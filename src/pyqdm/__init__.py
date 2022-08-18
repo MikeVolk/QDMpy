@@ -1,23 +1,21 @@
 __version__ = '0.1.0a'
 
 import logging
-import sys
 import os
-import logging
+import sys
+
 from logging.config import fileConfig
-import tomli  # import tomllib in Python 3.11
+from pathlib import Path
 import matplotlib as mpl
 
 mpl.rcParams['figure.facecolor'] = 'white'
 
 projectdir = os.path.dirname(os.path.abspath(__file__))
+src_directory = os.path.join(projectdir, '..')
 sys.path.append(projectdir)
-import utils
+
 from utils import set_path, load_config
 
-from logging import getLogger
-from logging.config import dictConfig, fileConfig
-from pathlib import Path
 
 logging_conf = Path(projectdir, "logging.conf")
 
@@ -42,7 +40,7 @@ if pygpufit_present is None:
     LOG.error('Can\'t import pyGpufit. The package is necessary for most of the calculations. Functionality of pyqdm '
               'will be greatly diminished.')
     LOG.error(f"try running:\n"
-              f">>> pip install --no-index --find-links={os.path.join(projectdir, '../pyGpufit', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit")
+              f">>> pip install --no-index --find-links={os.path.join(src_directory, 'pyGpufit', 'win', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit")
 else:
     import pygpufit.gpufit as gf
 

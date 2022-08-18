@@ -1,29 +1,30 @@
 import numpy as np
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QComboBox
-from pyqdm_plot_window import pyqdmWindow
-from canvas import QualityCanvas
+from pyqdm.app.windows.pyqdm_plot_window import pyqdmWindow
+from pyqdm.app.canvas import QualityCanvas
 from matplotlib import pyplot as plt, colors
 
 
 class QualityWindow(pyqdmWindow):
-    TITLES = {'center':'f$_{\mathrm{resonance}}$',
-              'contrast':'$\sigma$contrast',
-              'contrast_0':'contrast$_0$',
-              'contrast_1':'contrast$_1$',
-              'contrast_2':'contrast$_2$',
-              'contrast_3':'contrast$_3$',
-              'width' : 'width',
-              'chi_squared':'$\chi^2$'
+    TITLES = {'center': 'f$_{\mathrm{resonance}}$',
+              'contrast': '$\sigma$contrast',
+              'contrast_0': 'contrast$_0$',
+              'contrast_1': 'contrast$_1$',
+              'contrast_2': 'contrast$_2$',
+              'contrast_3': 'contrast$_3$',
+              'width': 'width',
+              'chi_squared': '$\chi^2$'
               }
-    UNITS = {'center':'f [GHz]',
-              'contrast':'[a.u.]',
-              'contrast_0':'[%]',
-              'contrast_1':'[%]',
-              'contrast_2':'[%]',
-              'contrast_3':'[%]',
-              'width' : '[GHz]',
-              'chi_squared':'[a.u.]'
-              }
+    UNITS = {'center': 'f [GHz]',
+             'contrast': '[a.u.]',
+             'contrast_0': '[%]',
+             'contrast_1': '[%]',
+             'contrast_2': '[%]',
+             'contrast_3': '[%]',
+             'width': '[GHz]',
+             'chi_squared': '[a.u.]'
+             }
+
     def __init__(self, caller, *args, **kwargs):
         canvas = QualityCanvas(self, width=12, height=12, dpi=100)
         super(QualityWindow, self).__init__(caller, canvas, *args, **kwargs)
@@ -68,19 +69,13 @@ class QualityWindow(pyqdmWindow):
             if self.fixClimCheckBox.isChecked():
                 vmin, vmax = np.percentile(d, [100 - self.cLimSelector.value(), self.cLimSelector.value()])
 
-            if not (vmin < 0 < vmax):
-                vcenter = (vmin + vmax) / 2
-            else:
-                vcenter = 0
-
             im.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 
             cax = self.canvas.caxes.flatten()[i]
             cax.clear()
             cax.set_axes_locator(self.canvas.original_cax_locator.flatten()[i])
 
-            im_ratio = d.shape[0] / d.shape[1]
-            plt.colorbar(im, cax=cax,  # fraction=0.047,# * im_ratio, pad=0.01,
+            plt.colorbar(im, cax=cax,
                          extend='both' if self.fixClimCheckBox.isChecked() else 'neither',
                          label=self.UNITS[self.dataSelect.currentText()])
             self.canvas.draw()

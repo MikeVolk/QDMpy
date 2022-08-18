@@ -1,16 +1,13 @@
 #!/usr/bin/python
 
-import sys, getopt
+import sys
 import argparse
 import time
-import logging
 
 import pyqdm
-from pyqdm.qdm import QDM
+from pyqdm.core.qdm import QDM
 
 def main(argv):
-    inpath = None
-    outpath = None
     tstart = time.process_time()
 
     parser = argparse.ArgumentParser(description='Calculate the B111 field from ODMR data recorded with QDMio made QDM')
@@ -42,11 +39,11 @@ def main(argv):
     else:
         pyqdm.LOG.setLevel("INFO")
 
-    QDMobj = QDM.from_QDMio(args.input, diamond_type=args.diamond)
-    QDMobj.bin_data(bin_factor=args.binfactor)
-    QDMobj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
-    QDMobj.fit_ODMR()
-    QDMobj.export_QDMio()
+    qdm_obj = QDM.from_QDMio(args.input, diamond_type=args.diamond)
+    qdm_obj.bin_data(bin_factor=args.binfactor)
+    qdm_obj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
+    qdm_obj.fit_ODMR()
+    qdm_obj.export_QDMio()
     pyqdm.LOG.info("pyqdm finished in {:.2f} seconds".format(time.process_time()-tstart))
 
 if __name__ == "__main__":

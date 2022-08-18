@@ -1,4 +1,3 @@
-import seaborn as sns
 from PySide6.QtWidgets import (
     QMessageBox
 )

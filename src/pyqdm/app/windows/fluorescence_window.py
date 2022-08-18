@@ -6,10 +6,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 import numpy as np
-import seaborn as sns
-from canvas import FluorescenceCanvas
-
-sns.set_theme(font_scale=0.7)
+from pyqdm.app.canvas import FluorescenceCanvas
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -31,7 +28,7 @@ class FluorescenceWindow(QMainWindow):
             return
 
         if event.xdata is None or event.ydata is None:
-            self.LOG.debug(f'clicked outside of axes')
+            self.LOG.debug('clicked outside of axes')
             return
 
         if event.button == MouseButton.LEFT and not self.toolbar.mode:
@@ -60,7 +57,7 @@ class FluorescenceWindow(QMainWindow):
     def __init__(self, QDMObj=None, pixelsize=1e-6, *args, **kwargs):
         self.QDMObj = QDMObj
         self.pixelsize = pixelsize
-        self.LOG = logging.getLogger('pyqdm' + __name__)
+        self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         super(FluorescenceWindow, self).__init__(*args, **kwargs)
         self.setWindowTitle('Fluorescence Plots')
 
@@ -194,7 +191,7 @@ class FluorescenceWindow(QMainWindow):
         idx = self.QDMObj.odmr.rc2idx([y, x])  # get the index of the current pixel
         labels = ['p(<+', 'p(<-', 'p(>+', 'p(>-']
         # update the pixel spectrum plot
-        for i, l in enumerate([self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]):
+        for l in [self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]:
             l.set_data(x, y)
 
         # update the mean ODMR plot legend

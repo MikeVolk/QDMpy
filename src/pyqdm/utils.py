@@ -8,7 +8,7 @@ import pyqdm
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-LOG = logging.getLogger('pyqdm'+__name__)
+LOG = logging.getLogger(f'pyqdm.{__name__}')
 
 
 def idx2rc(idx, shape):
@@ -20,8 +20,9 @@ def idx2rc(idx, shape):
 
     :return: numpy.ndarray [[y], [x]] ([row][column])
     """
-    rc = np.unravel_index(idx, shape)
-    return rc
+    idx = np.array(idx).astype(int)
+    return np.unravel_index(idx, shape)
+
 
 def rc2idx(rc, shape):
     """
@@ -30,9 +31,9 @@ def rc2idx(rc, shape):
     :param shape: shape of the array
     :return: numpy.ndarray [idx]
     """
-    rc = np.array(rc)
-    idx = np.ravel_multi_index(rc, shape)
-    return idx
+    rc = np.array(rc).astype(int)
+    return np.ravel_multi_index(rc, shape)
+
 
 def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     '''
@@ -72,7 +73,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     # grid coords
     x, y = np.meshgrid(x, y)
     # coefficient array, up to x^kx, y^ky
-    coeffs = np.ones((kx+1, ky+1))
+    coeffs = np.ones((kx + 1, ky + 1))
 
     # solve array
     a = np.zeros((coeffs.size, x.size))
@@ -83,15 +84,22 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x**i * y**j
+            arr = coeffs[i, j] * x ** i * y ** j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
 
 
-
 def load_config(config_file='config.ini'):
+    """
+    Loads the config file.
+
+    :param config_file: str, default is 'config.ini'
+        name to the config file
+    :return: dict
+        config file
+    """
     with open(os.path.join(pyqdm.projectdir, config_file)) as fileObj:
         content = fileObj.read()
         pyqdm_config = tomli.loads(content)
@@ -99,6 +107,14 @@ def load_config(config_file='config.ini'):
 
 
 def set_path(path, config, default):
+    """
+    Sets the path to the data.
+
+    :param path:
+    :param config:
+    :param default:
+    :return:
+    """
     if path in config['default_paths']:
         p = config['default_paths'][path]
     else:
@@ -108,10 +124,23 @@ def set_path(path, config, default):
 
 
 def has_csv(lst):
+    """
+    Checks if a list of files contains a csv file.
+
+    :param lst: list of str
+    :return: bool
+    """
     return any(('.csv' in s for s in lst))
 
 
 def get_image_file(lst):
+    """
+    Returns the first image file in the list.
+
+    :param lst: list of str
+        list of files to load the image from
+    :return: name of the image file
+    """
     if has_csv(lst):
         return [s for s in lst if '.csv' in s][0]
     else:
@@ -119,9 +148,32 @@ def get_image_file(lst):
 
 
 def get_image(folder, lst):
+    """
+    Loads an image from a list of files.
+
+    :param folder: str
+        folder to load the image from
+    :param lst: list of str
+        list of files to load the image from
+    :return: np.array
+        image
+    """
     return np.loadtxt(os.path.join(folder, get_image_file(lst))) if has_csv(lst) \
         else mpimg.imread(os.path.join(folder, get_image_file(lst)))
 
 
-if __name__ == "__main__":
-    print(set_path('datadir', pyqdm_config, os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")))
+def double_norm(data, axis):
+    """
+    Normalizes data from 0 to 1.
+    :param data: np.array
+        data to normalize
+    :param axis: int
+        axis to normalize
+
+    :return: np.array
+        normalized data
+    """
+    mn = np.expand_dims(np.min(data, axis=axis), data.ndim - 1)
+    data -= mn
+    mx = np.expand_dims(np.max(data, axis=axis), data.ndim - 1)
+    return data / mx

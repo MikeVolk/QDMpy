@@ -35,15 +35,15 @@ class QDM:
     }
     LOG = logging.getLogger("pyqdm")
 
-    _BOUND_TYPES = ['FREE', 'LOWER', 'UPPER', 'LOWER_UPPER']
-    _CONSTRAINT_TYPES = {
-        "LOWER_UPPER": gf.ConstraintType.LOWER_UPPER,
+    CONSTRAINT_TYPES = {
+        "FREE": gf.ConstraintType.FREE,
         "LOWER": gf.ConstraintType.LOWER,
         "UPPER": gf.ConstraintType.UPPER,
-        "FREE": gf.ConstraintType.FREE,
+        "LOWER_UPPER": gf.ConstraintType.LOWER_UPPER,
     }
-    _UNITS = {'center': 'GHz', 'width': 'GHz',
-              'contrast': 'a.u.', 'offset': 'a.u.'}
+    BOUND_TYPES = list(CONSTRAINT_TYPES.keys())
+    UNITS = {'center': 'GHz', 'width': 'GHz',
+             'contrast': 'a.u.', 'offset': 'a.u.'}
 
     # GAMMA = 0.0028 # GHz/G
     GAMMA = 28.024 / 1e6  # GHz/muT;
@@ -161,8 +161,9 @@ class QDM:
         # collapse the first dimensions so that the product applies to all except the pixel dimension
         outliers = outliers.reshape(-1, shape[-1])
         outliers = ~np.product(outliers, axis=0).astype(bool)
-        self.LOG.info(f"Outlier detection using LocalOutlierFactor of <<{dtype}>> detected {outliers.sum()} outliers pixels.\n"
-                      f"                                      Indixes can be accessed using 'outlier_idx' and 'outlier_xy'")
+        self.LOG.info(
+            f"Outlier detection using LocalOutlierFactor of <<{dtype}>> detected {outliers.sum()} outliers pixels.\n"
+            f"                                      Indixes can be accessed using 'outlier_idx' and 'outlier_xy'")
         self.LOG.debug(f"returning {outliers.shape}")
         self._outliers = outliers
         return self._outliers
@@ -296,14 +297,14 @@ class QDM:
             f"Reading {len(led_files)} led, {len(laser_files)} laser files.")
 
         try:
-            ODMRobj = ODMR.from_QDMio(data_folder=data_folder)
+            odmr_obj = ODMR.from_QDMio(data_folder=data_folder)
             led = get_image(data_folder, led_files)
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
             raise CantImportError(
                 f'Cannot import QDM data from "{data_folder}"') from e
 
-        return cls(ODMRobj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder, **kwargs)
+        return cls(odmr_obj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder, **kwargs)
 
     def bin_data(self, bin_factor):
         """
@@ -461,7 +462,7 @@ class QDM:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [self._BOUND_TYPES.index(
+        fit_bounds = [self.BOUND_TYPES.index(
             self._constraints[k][2]) for k in self._fitting_params_unique]
 
         return np.array(fit_bounds).astype(np.int32)
@@ -480,10 +481,10 @@ class QDM:
             The bound type to set the constraints to. The default is None.
         """
         if isinstance(bound_type, int):
-            bound_type = self._BOUND_TYPES[bound_type]
-        if bound_type is not None and bound_type not in self._BOUND_TYPES:
+            bound_type = self.BOUND_TYPES[bound_type]
+        if bound_type is not None and bound_type not in self.BOUND_TYPES:
             raise ValueError(
-                f"Unknown constraint type: {bound_type} choose from {self._BOUND_TYPES}")
+                f"Unknown constraint type: {bound_type} choose from {self.BOUND_TYPES}")
 
         if param == 'contrast':
             for contrast in [v for v in self._fitting_params_unique if 'contrast' in v]:
@@ -493,7 +494,7 @@ class QDM:
             self.LOG.debug(
                 f"Setting constraints for {param}: {values} with {bound_type}")
             self._constraints[param] = [values[0], values[1],
-                                        bound_type, self._UNITS[param.split('_')[0]]]
+                                        bound_type, self.UNITS[param.split('_')[0]]]
 
     def reset_constraints(self):
         """
@@ -539,7 +540,7 @@ class QDM:
         for i in np.arange(0, self.ODMRobj.n_frange):
             self.LOG.info(f"Fitting {self.POLARITIES[i]} polarization")
             data = self.ODMRobj.data[:,
-                                     i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
+                   i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
             initial_guess = self.initial_guess[:, i].reshape(
                 -1, len(self._fitting_params)).astype(np.float32)
 
@@ -610,16 +611,19 @@ class QDM:
         if not self.fitted:
             raise NotImplementedError(
                 "No fit has been performed yet. Run fit_ODMR().")
-        n = None
+
         if param == "resonance":
             param = 'center'
+
         idx = [i for i, v in enumerate(self._fitting_params) if v == param]
         if not idx:
             idx = [i for i, v in enumerate(
                 self._fitting_params_unique) if v == param]
         if not idx:
             raise ValueError(f"Unknown parameter: {param}")
+
         out = self._fitted_parameter[idx]
+
         if reshape:
             out = out.reshape(-1, self.ODMRobj.n_pol,
                               self.ODMRobj.n_frange, *self.ODMRobj.scan_dimensions)

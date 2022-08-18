@@ -99,24 +99,6 @@ class ODMR:
 
         self.LOG.debug(f"get item: {item}")
 
-        # check if item is a tuple or int -> index
-        if any(isinstance(i, (tuple, list, np.ndarray)) for i in item):
-            idx = [i for i in item if isinstance(
-                i, (int, tuple, list, np.ndarray))][0]
-            if np.ndim(idx) == 2:
-                # convert (y,x) index to linear index
-                linear_idx = self.rc2idx(idx, linear_idx)
-            if np.ndim(idx) == 1:
-                linear_idx = np.array(idx)
-                idx = self.idx2rc(idx, linear_idx)
-                # convert the (x,y) index to a linear index
-            item = [i for i in item if not isinstance(
-                i, (int, tuple, list, np.ndarray))]
-
-        if idx:
-            self.LOG.debug(
-                f"get item: x/y index: ({idx[1]}, {idx[0]}); linear: {linear_idx})")
-
         items = ','.join(item)
 
         reshape = bool(re.findall('|'.join(['r', 'R']), items))
@@ -245,7 +227,8 @@ class ODMR:
     def get_norm_factors(cls, data, method="max"):
         """
         Return the normalization factors for the data.
-        :param data:
+
+        :param data: data
         :param method:
         :return:
         """
@@ -500,18 +483,3 @@ class ODMR:
             np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
-    def widget_gf(self):
-        widgets.interact(self.check_glob_fluorescence,
-                         gf_factor=widgets.FloatSlider(
-                             description="GF factor",
-                             min=0,
-                             max=1,
-                             step=0.01,
-                             value=0),
-                         idx=widgets.IntSlider(
-                             description="index",
-                             min=0,
-                             max=self.n_pixel,
-                             step=1,
-                             value=self.get_most_divergent_from_mean()[-1]),
-                         save=False, debug=True)

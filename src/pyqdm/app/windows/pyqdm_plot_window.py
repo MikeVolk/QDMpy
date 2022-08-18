@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QLabel, QDoubleSpinBox, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QSizePolicy, QToolBar,
 )
 from PySide6.QtCore import Qt, QSize
-import models
+from pyqdm.core import models
 import matplotlib
 from matplotlib_scalebar.scalebar import ScaleBar
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -44,34 +44,26 @@ class pyqdmWindow(QMainWindow):
         return self.canvas._is_spectra
 
     def __init__(self, caller, canvas, QDMObj=None, includes_fits=False, *args, **kwargs):
-        self.LOG = logging.getLogger('pyqdm.' + self.__class__.__name__)
+        self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.caller = caller
         self.QDMObj = QDMObj
         self._includes_fits = includes_fits
         super().__init__(*args, **kwargs)
-
         self.setContentsMargins(0, 0, 0, 0)
-        # Create the maptlotlib FigureCanvas object,
         self.canvas = canvas
         cid = self.canvas.mpl_connect('button_press_event', self.on_press)
-
         self.mainToolbar = QToolBar("Toolbar")
         self.mainToolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
-
         self._add_plt_toolbar()
         self.addToolBar(self.mainToolbar)
         self._outlier_masks = {}
-
         self.mainVerticalLayout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
-
         self.mainToolbar.addSeparator()
         self._add_cLim_selector(self.mainToolbar)
         self.mainToolbar.addSeparator()
         self._add_pixel_box(self.mainToolbar)
-
         self.mainVerticalLayout.addWidget(self.canvas)
-
         centralWidget = QWidget()
         centralWidget.setLayout(self.mainVerticalLayout)
         self.setCentralWidget(centralWidget)
@@ -139,7 +131,7 @@ class pyqdmWindow(QMainWindow):
                 img.set_data(self.QDMObj.outliers.reshape(self.QDMObj.scan_dimensions))
         self.canvas.draw()
 
-    def _toggle_outlier_mask(self, onoff = 'on'):
+    def _toggle_outlier_mask(self, onoff='on'):
         for ax, img in self._outlier_masks.items():
             if onoff == 'on':
                 if img is None:
@@ -310,7 +302,7 @@ class pyqdmWindow(QMainWindow):
         self.canvas.draw()
 
     def update_pixel_lims(self):
-        self.LOG.debug(f'updating xy limits for the pixel plots')
+        self.LOG.debug('updating xy limits for the pixel plots')
         for ax in self._pixel_ax.flatten():
             mn = np.min([np.min(l.get_ydata()) for l in ax.get_lines()])
             mx = np.max([np.max(l.get_ydata()) for l in ax.get_lines()])

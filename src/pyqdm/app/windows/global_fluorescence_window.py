@@ -1,22 +1,18 @@
 import logging
 import numpy as np
-import seaborn as sns
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QSlider, QPushButton, QDoubleSpinBox,
     QWidget, QVBoxLayout, QHBoxLayout
 )
-from canvas import GlobalFluorescenceCanvas
-
-sns.set_theme(font_scale=0.7)
-sns.set_style("whitegrid")
+from pyqdm.app.canvas import GlobalFluorescenceCanvas
 
 import matplotlib
 from matplotlib_scalebar.scalebar import ScaleBar
 
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backend_bases import MouseButton
-from misc import GFAppliedWindow
+from pyqdm.app.windows.misc import GFAppliedWindow
 
 matplotlib.rcParams.update({  # 'font.size': 8,
     # 'axes.labelsize': 8,
@@ -33,26 +29,19 @@ class GlobalFluorescenceWindow(QMainWindow):
         if event.inaxes in self.pixel_axes:
             self.LOG.debug(f'clicked in {event.inaxes}')
             return
-
         if event.xdata is None or event.ydata is None:
-            self.LOG.debug(f'clicked outside of axes')
+            self.LOG.debug('clicked outside of axes')
             return
-
         if event.button == MouseButton.LEFT and not self.toolbar.mode:
-
             bin_factor = self.QDMObj.bin_factor
-            # event is in image coordinates
             xy = [event.xdata / bin_factor, event.ydata / bin_factor]
             x, y = np.round(xy).astype(int)
-
             self.xselect.valueChanged.disconnect(self.onXYValueChange)
             self.xselect.setValue(x)
             self.xselect.valueChanged.connect(self.onXYValueChange)
-
             self.yselect.valueChanged.disconnect(self.onXYValueChange)
             self.yselect.setValue(y)
             self.yselect.valueChanged.connect(self.onXYValueChange)
-
             self.LOG.debug(f'clicked in {event.inaxes} with new index: {self._current_idx}')
 
             self._current_idx = self.QDMObj.odmr.rc2idx([y, x])
@@ -77,7 +66,7 @@ class GlobalFluorescenceWindow(QMainWindow):
 
 
     def __init__(self, main_window, QDMObj=None, pixelsize=1e-6, *args, **kwargs):
-        self.LOG = logging.getLogger('pyqdm'+__name__)
+        self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.main_window = main_window
         self.QDMObj = QDMObj
         self.pixelsize = pixelsize
@@ -228,7 +217,7 @@ class GlobalFluorescenceWindow(QMainWindow):
         idx = self.QDMObj.odmr.rc2idx([y, x])  # get the index of the current pixel
         labels = ['p(<+', 'p(<-', 'p(>+', 'p(>-']
         # update the pixel spectrum plot
-        for i, l in enumerate([self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]):
+        for l in [self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]:
             l.set_data(x, y)
 
         # update the mean ODMR plot legend

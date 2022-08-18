@@ -1,19 +1,17 @@
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
-# import seaborn as sns
 from PySide6.QtWidgets import (
     QLabel, QPushButton, QComboBox,
     QWidget, QVBoxLayout, QHBoxLayout, QCheckBox
 )
-from quality_window import QualityWindow
-from canvas import FittingPropertyCanvas
+from pyqdm.app.windows.quality_window import QualityWindow
+from pyqdm.app.canvas import FittingPropertyCanvas
 
-# sns.set_theme(font_scale=0.7)
 from matplotlib import colors
 
-from utils import polyfit2d
-from pyqdm_plot_window import pyqdmWindow
+from pyqdm.utils import polyfit2d
+from pyqdm.app.windows.pyqdm_plot_window import pyqdmWindow
 
 
 class FitWindow(pyqdmWindow):
@@ -96,10 +94,7 @@ class FitWindow(pyqdmWindow):
             vmin, vmax = np.percentile(d, [(100 - self.cLimSelector.value()) / 2,
                                            (100 + self.cLimSelector.value()) / 2])
 
-        if not (vmin < 0 < vmax):
-            vcenter = (vmin + vmax) / 2
-        else:
-            vcenter = 0
+        vcenter = 0 if vmin < 0 < vmax else (vmin + vmax) / 2
 
         if self.data_img is None:
             self.data_img = self.data_ax.imshow(d, cmap='RdBu', interpolation='none', origin='lower',
@@ -111,8 +106,7 @@ class FitWindow(pyqdmWindow):
         self.canvas.cax.clear()
         self.canvas.cax.set_axes_locator(self.canvas.original_cax_locator)
 
-        im_ratio = d.shape[0] / d.shape[1]
-        self.data_cbar = plt.colorbar(self.data_img, cax=self.canvas.cax,  # fraction=0.047,# * im_ratio, pad=0.01,
+        self.data_cbar = plt.colorbar(self.data_img, cax=self.canvas.cax,
                                       extend='both' if self.need_extend() else 'neither',
                                       label='B$_{111}$ [$\mu$T]')
 
@@ -147,26 +141,3 @@ class FitWindow(pyqdmWindow):
             self.qualityWindow.hide()
         else:
             self.qualityWindow.show()
-
-
-class FluorescenceWindow(QWidget):
-    """
-    This "window" is a QWidget. If it has no parent,
-    it will appear as a free-floating window.
-    """
-    LOG = logging.getLogger('pyqdm.app')
-
-    def __init__(self, QDMObj):
-        self.QDMObj = QDMObj
-        print(self.QDMObj.odmr.f_Hz)
-        super().__init__()
-        layout = QVBoxLayout()
-        self.setWindowTitle("Fluorescence Plots")
-
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        self.LOG.debug("FluorescenceWindow created")
-
-        self.canvas.axes.plot(np.linspace(0, 1, 10), np.linspace(0, 1, 10))
-        self.setLayout(layout)
-        self.resize(920, 600)
-        self.canvas.draw()

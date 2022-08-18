@@ -5,8 +5,8 @@ import numpy as np
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout
 )
-from pyqdm_plot_window import pyqdmWindow
-from canvas import SimpleCanvas
+from pyqdm.app.windows.pyqdm_plot_window import pyqdmWindow
+from pyqdm.app.canvas import SimpleCanvas
 from matplotlib import colors
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -68,7 +68,8 @@ class SimplePlotWindowOLD(QMainWindow):
 
     def __init__(self, caller, plot_data=None, title='', pixelsize=1e-6, cmap='bone', cbar=None,
                  *args, **kwargs):
-        super(SimplePlotWindow, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
         self.LOG.debug('__init__')
         self.caller = caller
         self.plot_data = plot_data

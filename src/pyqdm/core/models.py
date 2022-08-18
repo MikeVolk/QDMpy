@@ -5,11 +5,9 @@ from numba import jit
 
 
 @jit
-def model_vector(x, parameter, modelID):
-    out = []
-    model = [None, ESRSINGLE, ESR15N, ESR14N][modelID]
-    for p in parameter:
-        out.append(model(x, p))
+def model_vector(x, parameter, model_id):
+    model = [None, ESRSINGLE, ESR15N, ESR14N][model_id]
+    out = [model(x, p) for p in parameter]
     return np.array(out)
 
 
