@@ -13,14 +13,21 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from matplotlib.backend_bases import MouseButton
 from pyqdm.app.windows.misc import gf_applied_window
 from pyqdm.app.windows.tools import get_label_box
-
+from pyqdm.app.windows import PyQDMWindow
 matplotlib.rcParams.update({  # 'font.size': 8,
     # 'axes.labelsize': 8,
     'grid.linestyle': '-',
     'grid.alpha': 0.5})
 
 
-class GlobalFluorescenceWindow(QMainWindow):
+class GlobalFluorescenceWindow(PyQDMWindow):
+    def __init__(self):
+        canvas = GlobalFluorescenceCanvas()
+        super().__init__()
+        self.setWindowTitle('Global Fluorescence')
+
+
+class GlobalFluorescenceWindowOLD(QMainWindow):
     """
     Window for checking the global fluorescence correction.
     """
@@ -53,9 +60,9 @@ class GlobalFluorescenceWindow(QMainWindow):
         return self.qdm.odmr.idx2rc(self._current_idx)[::-1]
 
 
-    def __init__(self, main_window, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
+    def __init__(self, caller, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
         self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
-        self.main_window = main_window
+        self.main_window = caller
         self.qdm = qdm_instance
         self.pixelsize = pixelsize
 
@@ -64,13 +71,10 @@ class GlobalFluorescenceWindow(QMainWindow):
 
         # Create the maptlotlib FigureCanvas object,
         self.canvas = GlobalFluorescenceCanvas(self, width=12, height=6, dpi=100)
-        cid = self.canvas.mpl_connect('button_press_event', self.on_press)
-        self.pixel_axes = [self.canvas.left_meanODMR_ax, self.canvas.right_meanODMR_ax]
-        self.img_axes = [self.canvas.led_ax, self.canvas.laser_ax]
+        self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.pixel_axes = self.canvas.odmr_axes
+        self.img_axes = self.canvas.img_axes
 
-
-        self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
-        self.LOG.debug(f'setting index of worst pixel to {self._current_xy} ({self._current_idx})')
 
         vertical_layout = QVBoxLayout()
         horizontal_layout_top = QHBoxLayout()

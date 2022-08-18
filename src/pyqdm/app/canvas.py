@@ -5,6 +5,116 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
+class PyQdmCanvas(FigureCanvas):
+    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+
+    @property
+    def data_axes(self):
+        return list(self.data.keys())
+
+    @property
+    def img_axes(self):
+        return list(self.led.keys()) + list(self.laser.keys()) + \
+               list(self.data.keys()) + list(self.outlier.keys()) + \
+               list(self.overlay.keys())
+
+    @property
+    def odmr_axes(self):
+        return list(self.odmr.keys())
+
+    def __init__(self, parent=None, width=5, height=5, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        super(PyQdmCanvas, self).__init__(self.fig)
+        self.led = {}  # dict of ax : led img
+        self.laser = {}  # laser is a dictionary of dictionaries
+        self.data = {}  # data is a dictionary of dictionaries
+        self.outlier = {}  # outlier is a dictionary of ax: outlier data
+        self.overlay = {}  # dictionary of ax: overlay img objects
+        self.cbar = {}  # dictionary of ax: colorbar object
+
+        self.odmr = {}  # dictionary of ax : odmr data lines
+        self.corrected = {}  # dictionary of ax : corrected data lines
+        self.uncorrected = {}  # dictionary of ax : uncorrected data lines
+
+        self.fit = {}  # dictionary of ax : odmr fit lines
+        self.markers = {}  # dictionary of Line2D objects containing the markers for all axes in _is_img
+
+    @staticmethod
+    def add_cax(ax):
+        divider = make_axes_locatable(ax)
+        return divider.append_axes("right", size="5%", pad=0.05)
+
+    def set_led(self):
+        for a in self.led:
+            a.set(xlabel='px', ylabel='px', title='Light', aspect='equal', origin='lower')
+
+    def set_laser(self):
+        for a in self.laser:
+            a.set(xlabel='px', ylabel='px', title='Laser', aspect='equal', origin='lower')
+
+    def set_data(self):
+        for a in self.data:
+            a.set(xlabel='px', ylabel='px', title='Data', aspect='equal', origin='lower')
+
+    def add_led(self, light, data_dimensions):
+        for ax, img in self.led.items():
+            self.LOG.debug(f'Adding LED to axis {ax}')
+            if img is None:
+                self.led[ax] = ax.imshow(light, cmap='bone',
+                                         interpolation='none', origin='lower', aspect='equal',
+                                         extent=[0, data_dimensions[1], 0, data_dimensions[0]],
+                                         zorder=0)
+
+    def add_laser(self, laser, data_dimensions):
+        for ax, img in self.laser.items():
+            self.LOG.debug(f'Adding laser to axis {ax}')
+            if img is None:
+                self.laser[ax] = ax.imshow(laser, cmap='magma',
+                                           interpolation='none', origin='lower', aspect='equal',
+                                           extent=[0, data_dimensions[1], 0, data_dimensions[0]],
+                                           zorder=0)
+
+    def add_outlier_masks(self, outlier):
+        for ax, img in self.outlier.items():
+            self.LOG.debug(f'Adding outlier mask to axis {ax}')
+            if img is None:
+                self.outlier[ax] = ax.imshow(outlier,
+                                             cmap='gist_rainbow',
+                                             alpha=outlier.astype(float),
+                                             vmin=0, vmax=1, interpolation='none', origin='lower', aspect='equal',
+                                             zorder=2)
+
+    def update_outlier_masks(self, outlier):
+        for ax, img in self.outlier.items():
+            self.LOG.debug(f'Updating outlier mask to axis {ax}')
+            img.set_data(outlier)
+
+
+class GlobalFluorescenceCanvas(PyQdmCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        super(GlobalFluorescenceCanvas, self).__init__(parent, width, height, dpi)
+
+        self.fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075,
+                                 right=0.925, hspace=0.28, wspace=0.899)
+
+        spec = self.fig.add_gridspec(ncols=6, nrows=2)
+
+        self.left_mean_odmr_ax = self.fig.add_subplot(spec[0, :3])
+        self.right_mean_odmr_ax = self.fig.add_subplot(spec[0, 3:6])
+
+        self.led_ax = self.fig.add_subplot(spec[1, :3])
+        self.laser_ax = self.fig.add_subplot(spec[1, 3:])
+
+        self.led_ax.get_shared_x_axes().join(self.led_ax, self.laser_ax)
+        self.led_ax.get_shared_y_axes().join(self.led_ax, self.laser_ax)
+
+        self.led = {self.led_ax: None}
+        self.laser = {self.laser_ax: None}
+        self.odmr = {self.left_mean_odmr_ax: None,
+                     self.right_mean_odmr_ax: None}
+        self.cbar = {self.laser_ax: self.add_cax(self.laser_ax)}
+
+
 class FittingPropertyCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=5, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
@@ -55,7 +165,7 @@ class FittingPropertyCanvas(FigureCanvas):
         super(FittingPropertyCanvas, self).__init__(fig)
 
 
-class GlobalFluorescenceCanvas(FigureCanvas):
+class GlobalFluorescenceCanvasOLD(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
@@ -172,7 +282,7 @@ class QualityCanvas(FigureCanvas):
                                                   self.right_bottom_ax)
 
         self.ax = np.array([[self.left_top_ax, self.right_top_ax], [
-                           self.left_bottom_ax, self.right_bottom_ax]])
+            self.left_bottom_ax, self.right_bottom_ax]])
         self._is_img = self.ax.flatten()
         self._is_spectra = []
 
@@ -191,3 +301,8 @@ class QualityCanvas(FigureCanvas):
             self.original_cax_locator[p][f] = self.caxes[p][f]._axes_locator
 
         super(QualityCanvas, self).__init__(fig)
+
+
+if __name__ == '__main__':
+    c = GlobalFluorescenceCanvas()
+    print('c:', c.data_axes)

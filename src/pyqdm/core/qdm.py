@@ -35,12 +35,21 @@ class QDM:
     }
     LOG = logging.getLogger("pyqdm")
 
-    CONSTRAINT_TYPES = {
-        "FREE": gf.ConstraintType.FREE,
-        "LOWER": gf.ConstraintType.LOWER,
-        "UPPER": gf.ConstraintType.UPPER,
-        "LOWER_UPPER": gf.ConstraintType.LOWER_UPPER,
-    }
+    if pygpufit_present:
+        CONSTRAINT_TYPES = {
+            "FREE": gf.ConstraintType.FREE,
+            "LOWER": gf.ConstraintType.LOWER,
+            "UPPER": gf.ConstraintType.UPPER,
+            "LOWER_UPPER": gf.ConstraintType.LOWER_UPPER,
+        }
+    else:
+        CONSTRAINT_TYPES = {
+            "FREE": 0,
+            "LOWER": 1,
+            "UPPER": 2,
+            "LOWER_UPPER": 3,
+        }
+
     BOUND_TYPES = list(CONSTRAINT_TYPES.keys())
     UNITS = {'center': 'GHz', 'width': 'GHz',
              'contrast': 'a.u.', 'offset': 'a.u.'}
