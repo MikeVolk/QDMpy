@@ -1,17 +1,15 @@
 import numpy as np
-import scipy as sp
-import matplotlib.pyplot as plt
 from numba import jit
 
 
 @jit
 def model_vector(x, parameter, model_id):
-    model = [None, ESRSINGLE, ESR15N, ESR14N][model_id]
+    model = [None, esr_single, esr_15n, esr_14n][model_id]
     out = [model(x, p) for p in parameter]
     return np.array(out)
 
 
-def ESR14N(x, parameter):
+def esr_14n(x, parameter):
     """
     ESR14N model
     """
@@ -35,7 +33,7 @@ def ESR14N(x, parameter):
     return out
 
 
-def ESR15N(x, parameter):
+def esr_15n(x, parameter):
     """
     ESR15N model
     """
@@ -56,7 +54,7 @@ def ESR15N(x, parameter):
     return out
 
 
-def ESRSINGLE(x, parameter):
+def esr_single(x, parameter):
     """
     ESR15N model
     """
@@ -72,10 +70,3 @@ def ESRSINGLE(x, parameter):
         out.append(1 + p[3] - dip1)
     return out
 
-
-if __name__ == '__main__':
-    p_ = np.load(r'C:\Users\micha\Desktop\CAGEO_data\fitdata.npz')
-    p = p_['arr_0'][0, 0]
-    x = np.linspace(2.8, 2.9, 50)
-    print(x.shape, p.shape)
-    print(ESR14N(x, p).shape)

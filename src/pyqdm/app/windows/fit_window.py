@@ -1,20 +1,18 @@
-import logging
 import matplotlib.pyplot as plt
 import numpy as np
 from PySide6.QtWidgets import (
     QLabel, QPushButton, QComboBox,
-    QWidget, QVBoxLayout, QHBoxLayout, QCheckBox
+    QWidget, QHBoxLayout, QCheckBox
 )
-from pyqdm.app.windows.quality_window import QualityWindow
-from pyqdm.app.canvas import FittingPropertyCanvas
-
 from matplotlib import colors
 
+from pyqdm.app.canvas import FittingPropertyCanvas
+from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from pyqdm.app.windows.quality_window import QualityWindow
 from pyqdm.utils import polyfit2d
-from pyqdm.app.windows.pyqdm_plot_window import pyqdmWindow
 
 
-class FitWindow(pyqdmWindow):
+class FitWindow(PyQdmWindow):
     def __init__(self, caller, *args, **kwargs):
         canvas = FittingPropertyCanvas(self, width=12, height=12, dpi=100)
         self._spectra_ax = [[canvas.left_ODMR_ax, canvas.right_ODMR_ax], [canvas.left_ODMR_ax, canvas.right_ODMR_ax]]
@@ -37,7 +35,7 @@ class FitWindow(pyqdmWindow):
 
         self.add_light_img(self.canvas.led_ax)
         self.add_laser_img(self.canvas.laser_ax)
-        self.add_mean_ODMR()
+        self.add_mean_odmr()
 
         self.qualityWindow = None
 
@@ -48,34 +46,34 @@ class FitWindow(pyqdmWindow):
 
     def _add_quality_button(self, toolbar):
         self.qualityButton = QPushButton('Quality')
-        self.qualityButton.clicked.connect(self.onQualityClicked)
+        self.qualityButton.clicked.connect(self.on_quality_clicked)
         toolbar.addWidget(self.qualityButton)
 
     def _add_b111_select_box(self, toolbar):
-        b111Widget = QWidget()
-        b111selectBox = QHBoxLayout()
+        b111_widget = QWidget()
+        b111select_box = QHBoxLayout()
         b111label = QLabel('B111: ')
         self.b111select = QComboBox()
         self.b111select.addItems(['remanent', 'induced'])
         self.b111select.currentIndexChanged.connect(self.update_img_plots)
-        b111selectBox.addWidget(b111label)
-        b111selectBox.addWidget(self.b111select)
-        b111Widget.setLayout(b111selectBox)
-        toolbar.addWidget(b111Widget)
+        b111select_box.addWidget(b111label)
+        b111select_box.addWidget(self.b111select)
+        b111_widget.setLayout(b111select_box)
+        toolbar.addWidget(b111_widget)
 
     def _add_subtract_box(self, toolbar):
-        subtractWidget = QWidget()
-        bgCheckBox = QHBoxLayout()
-        subtractLabel = QLabel('Subtract: ')
+        subtract_widget = QWidget()
+        bg_check_box = QHBoxLayout()
+        subtract_label = QLabel('Subtract: ')
         self.subtractMedian = QCheckBox('median')
-        self.subtractMedian.stateChanged.connect(self.onSubtractMedianClicked)
+        self.subtractMedian.stateChanged.connect(self.on_subtract_median_clicked)
         self.subtractQuad = QCheckBox('quadratic')
-        self.subtractQuad.stateChanged.connect(self.onSubtractQuadClicked)
-        bgCheckBox.addWidget(subtractLabel)
-        bgCheckBox.addWidget(self.subtractMedian)
-        bgCheckBox.addWidget(self.subtractQuad)
-        subtractWidget.setLayout(bgCheckBox)
-        toolbar.addWidget(subtractWidget)
+        self.subtractQuad.stateChanged.connect(self.on_subtract_quad_clicked)
+        bg_check_box.addWidget(subtract_label)
+        bg_check_box.addWidget(self.subtractMedian)
+        bg_check_box.addWidget(self.subtractQuad)
+        subtract_widget.setLayout(bg_check_box)
+        toolbar.addWidget(subtract_widget)
 
     def update_img_plots(self):
         d = self.QDMObj.B111[self.b111select.currentIndex()].copy()
@@ -90,7 +88,7 @@ class FitWindow(pyqdmWindow):
 
         vmin, vmax = np.min(d), np.max(d)
 
-        if self.fixClimCheckBox.isChecked():
+        if self.fix_clim_check_box.isChecked():
             vmin, vmax = np.percentile(d, [(100 - self.cLimSelector.value()) / 2,
                                            (100 + self.cLimSelector.value()) / 2])
 
@@ -98,7 +96,7 @@ class FitWindow(pyqdmWindow):
 
         if self.data_img is None:
             self.data_img = self.data_ax.imshow(d, cmap='RdBu', interpolation='none', origin='lower',
-                                                       norm=colors.TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=vcenter))
+                                                norm=colors.TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=vcenter))
         else:
             self.data_img.set_data(d)
             self.data_img.set(norm=colors.TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=vcenter))
@@ -106,18 +104,19 @@ class FitWindow(pyqdmWindow):
         self.canvas.cax.clear()
         self.canvas.cax.set_axes_locator(self.canvas.original_cax_locator)
 
+        # noinspection PyPep8
         self.data_cbar = plt.colorbar(self.data_img, cax=self.canvas.cax,
                                       extend='both' if self.need_extend() else 'neither',
                                       label='B$_{111}$ [$\mu$T]')
 
         self.canvas.draw()
 
-    def onSubtractMedianClicked(self):
+    def on_subtract_median_clicked(self):
         if self.subtractMedian.isChecked() and self.subtractQuad.isChecked():
             self.subtractQuad.setChecked(False)
         self.update_img_plots()
 
-    def onSubtractQuadClicked(self):
+    def on_subtract_quad_clicked(self):
         if self.subtractMedian.isChecked() and self.subtractQuad.isChecked():
             self.subtractMedian.setChecked(False)
 
@@ -133,7 +132,7 @@ class FitWindow(pyqdmWindow):
 
         self.update_img_plots()
 
-    def onQualityClicked(self):
+    def on_quality_clicked(self):
         if self.qualityWindow is None:
             self.qualityWindow = QualityWindow(self.caller, self.QDMObj)
             self.caller.qualityWindow = self.qualityWindow

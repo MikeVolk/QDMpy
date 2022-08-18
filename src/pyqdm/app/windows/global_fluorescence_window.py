@@ -2,8 +2,7 @@ import logging
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QSlider, QPushButton, QDoubleSpinBox,
-    QWidget, QVBoxLayout, QHBoxLayout
+    QMainWindow, QLabel, QSlider, QPushButton, QWidget, QVBoxLayout, QHBoxLayout
 )
 from pyqdm.app.canvas import GlobalFluorescenceCanvas
 
@@ -12,7 +11,8 @@ from matplotlib_scalebar.scalebar import ScaleBar
 
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backend_bases import MouseButton
-from pyqdm.app.windows.misc import GFAppliedWindow
+from pyqdm.app.windows.misc import gf_applied_window
+from pyqdm.app.windows.tools import get_label_box
 
 matplotlib.rcParams.update({  # 'font.size': 8,
     # 'axes.labelsize': 8,
@@ -33,42 +33,30 @@ class GlobalFluorescenceWindow(QMainWindow):
             self.LOG.debug('clicked outside of axes')
             return
         if event.button == MouseButton.LEFT and not self.toolbar.mode:
-            bin_factor = self.QDMObj.bin_factor
+            bin_factor = self.qdm.bin_factor
             xy = [event.xdata / bin_factor, event.ydata / bin_factor]
             x, y = np.round(xy).astype(int)
-            self.xselect.valueChanged.disconnect(self.onXYValueChange)
+            self.xselect.valueChanged.disconnect(self.on_xy_value_change)
             self.xselect.setValue(x)
-            self.xselect.valueChanged.connect(self.onXYValueChange)
-            self.yselect.valueChanged.disconnect(self.onXYValueChange)
+            self.xselect.valueChanged.connect(self.on_xy_value_change)
+            self.yselect.valueChanged.disconnect(self.on_xy_value_change)
             self.yselect.setValue(y)
-            self.yselect.valueChanged.connect(self.onXYValueChange)
+            self.yselect.valueChanged.connect(self.on_xy_value_change)
             self.LOG.debug(f'clicked in {event.inaxes} with new index: {self._current_idx}')
 
-            self._current_idx = self.QDMObj.odmr.rc2idx([y, x])
+            self._current_idx = self.qdm.odmr.rc2idx([y, x])
             self.update_marker()
             self.update_plots()
 
-    def get_label_box(self, label, value, decimals, step, min, max, callback):
-        label = QLabel(label)
-        selector = QDoubleSpinBox()
-        selector.setValue(value)
-        selector.setDecimals(decimals)
-        selector.setSingleStep(step)
-        selector.setMinimum(min)
-        selector.setMaximum(max)
-        selector.setKeyboardTracking(False)
-        selector.valueChanged.connect(callback)
-        return label, selector
-
     @property
     def _current_xy(self):
-        return self.QDMObj.odmr.idx2rc(self._current_idx)[::-1]
+        return self.qdm.odmr.idx2rc(self._current_idx)[::-1]
 
 
-    def __init__(self, main_window, QDMObj=None, pixelsize=1e-6, *args, **kwargs):
+    def __init__(self, main_window, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
         self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.main_window = main_window
-        self.QDMObj = QDMObj
+        self.qdm = qdm_instance
         self.pixelsize = pixelsize
 
         super(GlobalFluorescenceWindow, self).__init__(*args, **kwargs)
@@ -81,57 +69,57 @@ class GlobalFluorescenceWindow(QMainWindow):
         self.img_axes = [self.canvas.led_ax, self.canvas.laser_ax]
 
 
-        self._current_idx = self.QDMObj.odmr.get_most_divergent_from_mean()[-1]
+        self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
         self.LOG.debug(f'setting index of worst pixel to {self._current_xy} ({self._current_idx})')
 
-        verticalLayout = QVBoxLayout()
-        horizontalLayoutTop = QHBoxLayout()
+        vertical_layout = QVBoxLayout()
+        horizontal_layout_top = QHBoxLayout()
         self.toolbar = NavigationToolbar(self.canvas, self)
-        horizontalLayoutTop.addWidget(self.toolbar)
+        horizontal_layout_top.addWidget(self.toolbar)
 
         label = QLabel('Data pixel:')
-        horizontalLayoutTop.addWidget(label)
-        self.xlabel, self.xselect = self.get_label_box('x', int(self._current_xy[0]), 0, 1, 0, self.QDMObj.odmr.scan_dimensions[0], self.onXYValueChange)
-        horizontalLayoutTop.addWidget(self.xlabel)
-        horizontalLayoutTop.addWidget(self.xselect)
-        self.ylabel, self.yselect = self.get_label_box('y', int(self._current_xy[1]), 0, 1, 0, self.QDMObj.odmr.scan_dimensions[1], self.onXYValueChange)
+        horizontal_layout_top.addWidget(label)
+        self.xlabel, self.xselect = get_label_box('x', int(self._current_xy[0]), 0, 1, 0, self.qdm.odmr.scan_dimensions[0], self.on_xy_value_change)
+        horizontal_layout_top.addWidget(self.xlabel)
+        horizontal_layout_top.addWidget(self.xselect)
+        self.ylabel, self.yselect = get_label_box('y', int(self._current_xy[1]), 0, 1, 0, self.qdm.odmr.scan_dimensions[1], self.on_xy_value_change)
 
-        self.xselect.valueChanged.disconnect(self.onXYValueChange)
+        self.xselect.valueChanged.disconnect(self.on_xy_value_change)
         self.xselect.setValue(int(self._current_xy[0]))
-        self.xselect.valueChanged.connect(self.onXYValueChange)
+        self.xselect.valueChanged.connect(self.on_xy_value_change)
 
-        self.yselect.valueChanged.disconnect(self.onXYValueChange)
+        self.yselect.valueChanged.disconnect(self.on_xy_value_change)
         self.yselect.setValue(int(self._current_xy[1]))
-        self.yselect.valueChanged.connect(self.onXYValueChange)
+        self.yselect.valueChanged.connect(self.on_xy_value_change)
 
         self.indexLabel = QLabel(f'({self._current_idx}')
 
-        horizontalLayoutTop.addWidget(self.ylabel)
-        horizontalLayoutTop.addWidget(self.yselect)
-        horizontalLayoutTop.addWidget(self.indexLabel)
+        horizontal_layout_top.addWidget(self.ylabel)
+        horizontal_layout_top.addWidget(self.yselect)
+        horizontal_layout_top.addWidget(self.indexLabel)
 
-        verticalLayout.addLayout(horizontalLayoutTop)
-        verticalLayout.addWidget(self.canvas)
+        vertical_layout.addLayout(horizontal_layout_top)
+        vertical_layout.addWidget(self.canvas)
 
-        self.gf_label = QLabel(f'Global Fluorescence: {self.QDMObj.global_factor:.2f}')
+        self.gf_label = QLabel(f'Global Fluorescence: {self.qdm.global_factor:.2f}')
         self.gfSlider = QSlider()
         self.gfSlider.setValue(self.main_window.gf_select.value())
         self.gfSlider.setRange(0, 100)
         self.gfSlider.setOrientation(Qt.Horizontal)
-        self.gfSlider.valueChanged.connect(self.onSliderValueChanged)
+        self.gfSlider.valueChanged.connect(self.on_slider_value_changed)
         self.applyButton = QPushButton('Apply')
         self.applyButton.clicked.connect(self.apply_global_factor)
 
-        horizontalLayout = QHBoxLayout()
-        horizontalLayout.addWidget(self.gf_label)
-        horizontalLayout.addWidget(self.gfSlider)
-        horizontalLayout.addWidget(self.applyButton)
+        horizontal_layout = QHBoxLayout()
+        horizontal_layout.addWidget(self.gf_label)
+        horizontal_layout.addWidget(self.gfSlider)
+        horizontal_layout.addWidget(self.applyButton)
 
-        verticalLayout.addLayout(horizontalLayout)
-        mainWidget = QWidget()
-        mainWidget.setLayout(verticalLayout)
+        vertical_layout.addLayout(horizontal_layout)
+        main_widget = QWidget()
+        main_widget.setLayout(vertical_layout)
 
-        self.setCentralWidget(mainWidget)
+        self.setCentralWidget(main_widget)
 
         self._corrected_lines = [[None, None], [None, None]]
         self._pixel_lines = [[None, None], [None, None]]
@@ -147,23 +135,23 @@ class GlobalFluorescenceWindow(QMainWindow):
 
         pols = ['+', '-']
 
-        for f in np.arange(self.QDMObj.odmr.n_frange):
-            for p in np.arange(self.QDMObj.odmr.n_pol):
-                ul, = self.pixel_axes[f].plot(self.QDMObj.odmr.f_GHz[f], uncorrected[p, f],
+        for f in np.arange(self.qdm.odmr.n_frange):
+            for p in np.arange(self.qdm.odmr.n_pol):
+                ul, = self.pixel_axes[f].plot(self.qdm.odmr.f_ghz[f], uncorrected[p, f],
                                              '.--', mfc='w', label=f"{pols[p]} original", lw=0.8)
                 self._uncorrected_lines[p][f] = ul
 
-                cl, = self.pixel_axes[f].plot(self.QDMObj.odmr.f_GHz[f], corrected[p, f],
+                cl, = self.pixel_axes[f].plot(self.qdm.odmr.f_ghz[f], corrected[p, f],
                                              '.-', label=f"{pols[p]} corrected", color=ul.get_color())
                 self._corrected_lines[p][f] = cl
 
-                if self.QDMObj.odmr._gf_factor != 0:
-                    pl, = self.pixel_axes[f].plot(self.QDMObj.odmr.f_GHz[f], pixel_spectra[p,f], ':',
-                                            label=f"{pols[p]} current: GF={self.QDMObj.odmr._gf_factor}",
-                                            color = ul.get_color(), lw=0.8)
+                if self.qdm.odmr._gf_factor != 0:
+                    pl, = self.pixel_axes[f].plot(self.qdm.odmr.f_ghz[f], pixel_spectra[p, f], ':',
+                                                  label=f"{pols[p]} current: GF={self.qdm.odmr._gf_factor}",
+                                                  color = ul.get_color(), lw=0.8)
                     self._pixel_lines[p][f] = pl
 
-            if self.QDMObj.odmr._gf_factor != 0:
+            if self.qdm.odmr._gf_factor != 0:
                 h, l = self.pixel_axes[f].get_legend_handles_labels()
                 h = np.array(h).reshape((2, -1)).T.flatten()
                 l = np.array(l).reshape((2, -1)).T.flatten()
@@ -176,11 +164,11 @@ class GlobalFluorescenceWindow(QMainWindow):
 
             self.pixel_axes[f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]", ylim=(mn, mx))
 
-        self.img_axes[0].imshow(self.QDMObj.led, cmap='gray', interpolation='none', origin='lower')
-        self.img_axes[1].imshow(self.QDMObj.laser, cmap='inferno', interpolation='none', origin='lower')
-        self._marker_line[0], = self.img_axes[0].plot(self._current_xy[1]*self.QDMObj.bin_factor, self._current_xy[0]*self.QDMObj.bin_factor, 'cx', markersize=5,
+        self.img_axes[0].imshow(self.qdm.led, cmap='gray', interpolation='none', origin='lower')
+        self.img_axes[1].imshow(self.qdm.laser, cmap='inferno', interpolation='none', origin='lower')
+        self._marker_line[0], = self.img_axes[0].plot(self._current_xy[1] * self.qdm.bin_factor, self._current_xy[0] * self.qdm.bin_factor, 'cx', markersize=5,
                                                       zorder=10)
-        self._marker_line[1], = self.img_axes[1].plot(self._current_xy[1]*self.QDMObj.bin_factor, self._current_xy[0]*self.QDMObj.bin_factor, 'cx', markersize=5,
+        self._marker_line[1], = self.img_axes[1].plot(self._current_xy[1] * self.qdm.bin_factor, self._current_xy[0] * self.qdm.bin_factor, 'cx', markersize=5,
                                                       zorder=10)
         self.img_axes[0].set(xlabel="x [px]", ylabel="y [px]")
         self.img_axes[1].set(xlabel="x [px]", ylabel="y [px]")
@@ -189,9 +177,9 @@ class GlobalFluorescenceWindow(QMainWindow):
 
     def get_pixel_data(self):
         gf_factor = self.gfSlider.value() / 100
-        new_correct = self.QDMObj.odmr._get_gf_correction(gf=gf_factor)
-        old_correct = self.QDMObj.odmr._get_gf_correction(gf=self.QDMObj.odmr._gf_factor)
-        pixel_spectra = self.QDMObj.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
+        new_correct = self.qdm.odmr._get_gf_correction(gf=gf_factor)
+        old_correct = self.qdm.odmr._get_gf_correction(gf=self.qdm.odmr._gf_factor)
+        pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
         uncorrected = pixel_spectra + old_correct
         corrected = uncorrected - new_correct
         mn = np.min([np.min(pixel_spectra), np.min(corrected), np.min(uncorrected)]) * 0.998
@@ -214,7 +202,7 @@ class GlobalFluorescenceWindow(QMainWindow):
         if self.toolbar.mode:
             return
 
-        idx = self.QDMObj.odmr.rc2idx([y, x])  # get the index of the current pixel
+        idx = self.qdm.odmr.rc2idx([y, x])  # get the index of the current pixel
         labels = ['p(<+', 'p(<-', 'p(>+', 'p(>-']
         # update the pixel spectrum plot
         for l in [self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]:
@@ -232,10 +220,10 @@ class GlobalFluorescenceWindow(QMainWindow):
         self.canvas.highF_meanODMR_ax.legend(h, l, loc='lower left', fontsize=8)
 
         # add lines to mean ODMR plot
-        self.low_pos_pixel_line.set_ydata(self.QDMObj.odmr.data[0, 0, idx])
-        self.low_neg_pixel_line.set_ydata(self.QDMObj.odmr.data[0, 1, idx])
-        self.high_pos_pixel_line.set_ydata(self.QDMObj.odmr.data[1, 0, idx])
-        self.high_neg_pixel_line.set_ydata(self.QDMObj.odmr.data[1, 1, idx])
+        self.low_pos_pixel_line.set_ydata(self.qdm.odmr.data[0, 0, idx])
+        self.low_neg_pixel_line.set_ydata(self.qdm.odmr.data[0, 1, idx])
+        self.high_pos_pixel_line.set_ydata(self.qdm.odmr.data[1, 0, idx])
+        self.high_neg_pixel_line.set_ydata(self.qdm.odmr.data[1, 1, idx])
 
         self.canvas.draw()
 
@@ -245,11 +233,11 @@ class GlobalFluorescenceWindow(QMainWindow):
         """
         pixel_spectra, uncorrected, corrected, mn, mx = self.get_pixel_data()
 
-        for p in np.arange(self.QDMObj.odmr.n_pol):
-            for f in np.arange(self.QDMObj.odmr.n_frange):
+        for p in np.arange(self.qdm.odmr.n_pol):
+            for f in np.arange(self.qdm.odmr.n_frange):
                 self._uncorrected_lines[p][f].set_ydata(uncorrected[p, f])
                 self._corrected_lines[p][f].set_ydata(corrected[p, f])
-                if self.QDMObj.odmr._gf_factor != 0:
+                if self.qdm.odmr._gf_factor != 0:
                     self._pixel_lines[p][f].set_ydata(pixel_spectra[p,f])
 
         for a in self.pixel_axes:
@@ -261,23 +249,23 @@ class GlobalFluorescenceWindow(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.LOG.debug(f'Updating marker to ({self._current_xy[0] * self.QDMObj.bin_factor},{self._current_xy[1] * self.QDMObj.bin_factor})')
+        self.LOG.debug(f'Updating marker to ({self._current_xy[0] * self.qdm.bin_factor},{self._current_xy[1] * self.qdm.bin_factor})')
 
         for i, a in enumerate(self.img_axes):
-            self._marker_line[i].set_data(self._current_xy[0] * self.QDMObj.bin_factor,
-                                          self._current_xy[1] * self.QDMObj.bin_factor)
+            self._marker_line[i].set_data(self._current_xy[0] * self.qdm.bin_factor,
+                                          self._current_xy[1] * self.qdm.bin_factor)
         self.canvas.draw()
 
     def on_frange_selector_changed(self, frange):
         self.LOG.info(f'frange changed to {frange}')
 
-    def onSliderValueChanged(self):
+    def on_slider_value_changed(self):
         self.gf_label.setText(f'Global Fluorescence: {self.gfSlider.value() / 100:.2f}')
         self.update_plots()
 
-    def onXYValueChange(self):
-        self._current_idx = self.QDMObj.odmr.rc2idx([int(self.yselect.value()),
-                                                     int(self.xselect.value())])
+    def on_xy_value_change(self):
+        self._current_idx = self.qdm.odmr.rc2idx([int(self.yselect.value()),
+                                                  int(self.xselect.value())])
         self.LOG.debug(f'XY value changed to {self._current_xy} ({self._current_idx})')
         self.indexLabel.setText(f'({self._current_idx})')
         self.update_plots()
@@ -285,8 +273,8 @@ class GlobalFluorescenceWindow(QMainWindow):
 
     def apply_global_factor(self):
         self.LOG.debug(f'applying global factor {self.gfSlider.value() / 100:.2f}')
-        self.QDMObj.odmr.correct_glob_fluorescence(self.gfSlider.value()/100)
-        GFAppliedWindow(self.gfSlider.value() / 100)
+        self.qdm.odmr.correct_glob_fluorescence(self.gfSlider.value() / 100)
+        gf_applied_window(self.gfSlider.value() / 100)
 
         self.main_window.gf_select.setValue(self.gfSlider.value() / 100)
         self.close()

@@ -7,6 +7,7 @@ import time
 import pyqdm
 from pyqdm.core.qdm import QDM
 
+
 def main(argv):
     tstart = time.process_time()
 
@@ -44,7 +45,8 @@ def main(argv):
     qdm_obj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
     qdm_obj.fit_ODMR()
     qdm_obj.export_QDMio()
-    pyqdm.LOG.info("pyqdm finished in {:.2f} seconds".format(time.process_time()-tstart))
+    pyqdm.LOG.info("pyqdm finished in {:.2f} seconds".format(time.process_time() - tstart))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

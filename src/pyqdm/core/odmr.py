@@ -109,7 +109,7 @@ class ODMR:
         elif reshape:
             self.LOG.debug("ODMR: reshaping data")
             d = d.reshape(self.n_pol, self.n_frange, *
-                          self.scan_dimensions, self.n_freqs)
+            self.scan_dimensions, self.n_freqs)
 
         # catch case where only indices are provided
         if len(item) == 0:
@@ -167,27 +167,28 @@ class ODMR:
         """
         Stack the data in the ODMR object.
         """
-        n_imgStack = len([k for k in mfile.keys() if "imgStack" in k])
+        n_img_stacks = len([k for k in mfile.keys() if "imgStack" in k])
+        img_stack1, img_stack2 = [], []
 
-        if n_imgStack == 2:
+        if n_img_stacks == 2:
             # IF ONLY 2 IMGSTACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
             cls.LOG.debug(
                 "Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
-            imgStack1 = mfile["imgStack1"].T
-            imgStack2 = mfile["imgStack2"].T
-        elif n_imgStack == 4:
+            img_stack1 = mfile["imgStack1"].T
+            img_stack2 = mfile["imgStack2"].T
+        elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug(
                 "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-            imgStack1 = np.concatenate(
+            img_stack1 = np.concatenate(
                 [mfile["imgStack1"], mfile["imgStack2"]]).T
-            imgStack2 = np.concatenate(
+            img_stack2 = np.concatenate(
                 [mfile["imgStack3"], mfile["imgStack4"]]).T
-        return np.stack((imgStack1, imgStack2), axis=0)
+        return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
-    def from_QDMio(cls, data_folder):
+    def from_qdmio(cls, data_folder):
         """
         Loads QDM data from a Matlab file.
         """
@@ -236,12 +237,11 @@ class ODMR:
         match method:
             case "max":
                 mx = np.max(data, axis=-1)
-                cls.LOG.debug(
-                    "Determining normalization factor from maximum value of each pixel spectrum. Shape of mx: {}".format(
-                        mx.shape
-                    )
-                )
+                cls.LOG.debug(f"Determining normalization factor from maximum value of each pixel spectrum. "
+                              f"Shape of mx: {mx.shape}")
                 factors = np.expand_dims(mx, axis=-1)
+            case _:
+                raise NotImplementedError('Method "{}" not implemented.'.format(method))
 
         return factors
 
@@ -277,14 +277,14 @@ class ODMR:
             return self._frequencies_cropped
 
     @property
-    def f_Hz(self):
+    def f_hz(self):
         """
         Returns the frequencies of the ODMR in Hz.
         """
         return self.frequencies
 
     @property
-    def f_GHz(self):
+    def f_ghz(self):
         """
         Returns the frequencies of the ODMR in GHz.
         """
@@ -445,6 +445,7 @@ class ODMR:
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
         return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
+    # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):
         if idx is None:
             idx = self.get_most_divergent_from_mean()[-1]
@@ -461,14 +462,14 @@ class ODMR:
 
                 old_correct = self._get_gf_correction(gf=self._gf_factor)
                 if self._gf_factor != 0:
-                    ax[p, f].plot(self.f_GHz[f], d, 'k:',
+                    ax[p, f].plot(self.f_ghz[f], d, 'k:',
                                   label=f"current: GF={self._gf_factor}")
 
                 l, = ax[p, f].plot(
-                    self.f_GHz[f], d + old_correct[p, f], '.--', mfc='w', label="original")
-                ax[p, f].plot(self.f_GHz[f], d + old_correct[p, f] - new_correct[p, f], '.-', label="corrected",
+                    self.f_ghz[f], d + old_correct[p, f], '.--', mfc='w', label="original")
+                ax[p, f].plot(self.f_ghz[f], d + old_correct[p, f] - new_correct[p, f], '.-', label="corrected",
                               color=l.get_color())
-                ax[p, f].plot(self.f_GHz[f], 1 + new_correct[p, f],
+                ax[p, f].plot(self.f_ghz[f], 1 + new_correct[p, f],
                               'r--', label="correction")
                 ax[p, f].set_title(f"{['+', '-'][p]},{['<', '>'][f]}")
                 ax[p, f].legend()
@@ -482,4 +483,3 @@ class ODMR:
         baseline_mean = np.mean(
             np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
         return baseline_left_mean, baseline_right_mean, baseline_mean
-

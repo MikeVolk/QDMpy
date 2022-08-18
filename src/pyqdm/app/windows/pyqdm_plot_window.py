@@ -1,16 +1,18 @@
 import logging
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QDoubleSpinBox, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QSizePolicy, QToolBar,
+    QMainWindow, QLabel, QDoubleSpinBox, QWidget, QVBoxLayout, QHBoxLayout, QCheckBox, QToolBar,
 )
-from PySide6.QtCore import Qt, QSize
-from pyqdm.core import models
-import matplotlib
-from matplotlib_scalebar.scalebar import ScaleBar
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backend_bases import MouseButton
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib_scalebar.scalebar import ScaleBar
+
+from pyqdm.core import models
+from pyqdm.app.windows.tools import get_label_box
 
 matplotlib.rcParams.update({  # 'font.size': 8,
     # 'axes.labelsize': 8,
@@ -18,7 +20,7 @@ matplotlib.rcParams.update({  # 'font.size': 8,
     'grid.alpha': 0.5})
 
 
-class pyqdmWindow(QMainWindow):
+class PyQdmWindow(QMainWindow):
     """
     Window for checking the global fluorescence correction.
     """
@@ -43,15 +45,15 @@ class pyqdmWindow(QMainWindow):
     def _is_spectra(self):
         return self.canvas._is_spectra
 
-    def __init__(self, caller, canvas, QDMObj=None, includes_fits=False, *args, **kwargs):
+    def __init__(self, caller, canvas, qdm_instance=None, includes_fits=False, *args, **kwargs):
         self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.caller = caller
-        self.QDMObj = QDMObj
+        self.QDMObj = qdm_instance
         self._includes_fits = includes_fits
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
         self.canvas = canvas
-        cid = self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.canvas.mpl_connect('button_press_event', self.on_press)
         self.mainToolbar = QToolBar("Toolbar")
         self.mainToolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
         self._add_plt_toolbar()
@@ -64,26 +66,26 @@ class pyqdmWindow(QMainWindow):
         self.mainToolbar.addSeparator()
         self._add_pixel_box(self.mainToolbar)
         self.mainVerticalLayout.addWidget(self.canvas)
-        centralWidget = QWidget()
-        centralWidget.setLayout(self.mainVerticalLayout)
-        self.setCentralWidget(centralWidget)
+        central_widget = QWidget()
+        central_widget.setLayout(self.mainVerticalLayout)
+        self.setCentralWidget(central_widget)
 
     def _add_cLim_selector(self, toolbar):
-        cLimWidget = QWidget()
-        cLimSelectLayout = QHBoxLayout()
-        cLimLabel, self.cLimSelector = self.get_label_box(label='clim', value=99,
-                                                          decimals=1, step=1, min=1, max=100,
-                                                          callback=self.update_img_plots)
-        cLimLabelUnit = QLabel('[%]')
-        self.fixClimCheckBox = QCheckBox(f'set')
-        self.fixClimCheckBox.setStatusTip('Fix the color scale')
-        self.fixClimCheckBox.stateChanged.connect(self.update_img_plots)
-        cLimSelectLayout.addWidget(cLimLabel)
-        cLimSelectLayout.addWidget(self.cLimSelector)
-        cLimSelectLayout.addWidget(cLimLabelUnit)
-        cLimSelectLayout.addWidget(self.fixClimCheckBox)
-        cLimWidget.setLayout(cLimSelectLayout)
-        toolbar.addWidget(cLimWidget)
+        clim_widget = QWidget()
+        clim_selection_layout = QHBoxLayout()
+        clim_label, self.cLimSelector = get_label_box(label='clim', value=99,
+                                                      decimals=1, step=1, vmin=1, vmax=100,
+                                                      callback=self.update_img_plots)
+        clim_label_unit = QLabel('[%]')
+        self.fix_clim_check_box = QCheckBox('set ')
+        self.fix_clim_check_box.setStatusTip('Fix the color scale')
+        self.fix_clim_check_box.stateChanged.connect(self.update_img_plots)
+        clim_selection_layout.addWidget(clim_label)
+        clim_selection_layout.addWidget(self.cLimSelector)
+        clim_selection_layout.addWidget(clim_label_unit)
+        clim_selection_layout.addWidget(self.fix_clim_check_box)
+        clim_widget.setLayout(clim_selection_layout)
+        toolbar.addWidget(clim_widget)
 
     def _add_plt_toolbar(self):
         self.toolbar = NavigationToolbar(self.canvas, self)
@@ -95,18 +97,18 @@ class pyqdmWindow(QMainWindow):
     def _add_pixel_box(self, toolbar):
         pixelBoxWidget = QWidget()
         coordBox = QHBoxLayout()
-        self.xlabel, self.xselect = self.get_label_box('x', int(self._current_xy[0]), 0, 1, 0,
-                                                       self.QDMObj.odmr.scan_dimensions[1],
-                                                       self.onXYValueChange)
-        self.ylabel, self.yselect = self.get_label_box('y', int(self._current_xy[1]), 0, 1, 0,
-                                                       self.QDMObj.odmr.scan_dimensions[0],
-                                                       self.onXYValueChange)
-        self.xselect.valueChanged.disconnect(self.onXYValueChange)
+        self.xlabel, self.xselect = get_label_box('x', int(self._current_xy[0]), 0, 1, 0,
+                                                  self.QDMObj.odmr.scan_dimensions[1],
+                                                  self.on_xy_value_change)
+        self.ylabel, self.yselect = get_label_box('y', int(self._current_xy[1]), 0, 1, 0,
+                                                  self.QDMObj.odmr.scan_dimensions[0],
+                                                  self.on_xy_value_change)
+        self.xselect.valueChanged.disconnect(self.on_xy_value_change)
         self.xselect.setValue(int(self._current_xy[0]))
-        self.xselect.valueChanged.connect(self.onXYValueChange)
-        self.yselect.valueChanged.disconnect(self.onXYValueChange)
+        self.xselect.valueChanged.connect(self.on_xy_value_change)
+        self.yselect.valueChanged.disconnect(self.on_xy_value_change)
         self.yselect.setValue(int(self._current_xy[1]))
-        self.yselect.valueChanged.connect(self.onXYValueChange)
+        self.yselect.valueChanged.connect(self.on_xy_value_change)
         self.indexLabel = QLabel(f'[{self._current_idx}]')
         self.indexLabel.setFixedWidth(60)
         coordBox.addWidget(self.xlabel)
@@ -119,7 +121,7 @@ class pyqdmWindow(QMainWindow):
 
     def _add_outlier_mask(self):
         for ax, img in self._outlier_masks.items():
-            self.LOG.debug('Adding outlier mask to axis {}'.format(ax))
+            self.LOG.debug(f'Adding outlier mask to axis {ax}')
             if img is None:
                 self._outlier_masks[ax] = ax.imshow(
                     self.QDMObj.outliers.reshape(self.QDMObj.scan_dimensions),
@@ -141,18 +143,6 @@ class pyqdmWindow(QMainWindow):
             if onoff == 'off':
                 img.set_visible(False)
         self.canvas.draw()
-
-    def get_label_box(self, label, value, decimals, step, min, max, callback):
-        label = QLabel(label)
-        selector = QDoubleSpinBox()
-        selector.setValue(value)
-        selector.setDecimals(decimals)
-        selector.setSingleStep(step)
-        selector.setMinimum(min)
-        selector.setMaximum(max)
-        selector.setKeyboardTracking(False)
-        selector.valueChanged.connect(callback)
-        return label, selector
 
     def set_current_idx(self, x=None, y=None, idx=None):
         self.caller.set_current_idx(x=x, y=y, idx=idx)
@@ -189,7 +179,7 @@ class pyqdmWindow(QMainWindow):
             return
 
         if event.xdata is None or event.ydata is None:
-            self.LOG.debug(f'clicked outside of axes')
+            self.LOG.debug('clicked outside of axes')
             return
 
         if event.button == MouseButton.LEFT and not self.toolbar.mode:
@@ -198,13 +188,13 @@ class pyqdmWindow(QMainWindow):
             xy = [event.xdata, event.ydata]
             x, y = np.round(xy).astype(int)
 
-            self.xselect.valueChanged.disconnect(self.onXYValueChange)
+            self.xselect.valueChanged.disconnect(self.on_xy_value_change)
             self.xselect.setValue(x)
-            self.xselect.valueChanged.connect(self.onXYValueChange)
+            self.xselect.valueChanged.connect(self.on_xy_value_change)
 
-            self.yselect.valueChanged.disconnect(self.onXYValueChange)
+            self.yselect.valueChanged.disconnect(self.on_xy_value_change)
             self.yselect.setValue(y)
-            self.yselect.valueChanged.connect(self.onXYValueChange)
+            self.yselect.valueChanged.connect(self.on_xy_value_change)
 
             self.set_current_idx(x, y)
             self.indexLabel.setText(f'[{self._current_idx}]')
@@ -214,7 +204,7 @@ class pyqdmWindow(QMainWindow):
             self.caller.update_pixel()
             self.update_fit_lines()
 
-    def onXYValueChange(self):
+    def on_xy_value_change(self):
         self.set_current_idx(x=self.xselect.value(), y=self.yselect.value())
         self.LOG.debug(f'XY value changed to {self._current_xy} ({self._current_idx})')
         self.indexLabel.setText(f'[{self._current_idx}]')
@@ -246,16 +236,18 @@ class pyqdmWindow(QMainWindow):
         if self._is_spectra is None:
             return
         # init the lists for marker, pixel and fit lines
-        self._pixel_marker = np.array([None for a in self._is_img])
+        self._pixel_marker = np.array([None for _ in self._is_img])
         self._pixel_lines = np.array(
-            [[None for f in np.arange(self.QDMObj.odmr.n_pol)] for p in np.arange(self.QDMObj.odmr.n_frange)])
+            [[None for _ in np.arange(self.QDMObj.odmr.n_pol)]
+             for _ in np.arange(self.QDMObj.odmr.n_frange)])
         self._fit_lines = np.array(
-            [[None for p in np.arange(self.QDMObj.odmr.n_pol)] for f in np.arange(self.QDMObj.odmr.n_frange)])
+            [[None for _ in np.arange(self.QDMObj.odmr.n_pol)]
+             for _ in np.arange(self.QDMObj.odmr.n_frange)])
 
-    def add_mean_ODMR(self):
+    def add_mean_odmr(self):
         for f in np.arange(self.QDMObj.odmr.n_frange):
             for p in np.arange(self.QDMObj.odmr.n_pol):
-                self._pixel_ax[p][f].plot(self.QDMObj.odmr.f_GHz[f], self.QDMObj.odmr.mean_odmr[p, f],
+                self._pixel_ax[p][f].plot(self.QDMObj.odmr.f_ghz[f], self.QDMObj.odmr.mean_odmr[p, f],
                                           marker='', ls='--', alpha=0.5, lw=1,
                                           label=f'mean ({self.POL[p]})')
 
@@ -267,11 +259,11 @@ class pyqdmWindow(QMainWindow):
         for f in np.arange(self.QDMObj.odmr.n_frange):
             for p in np.arange(self.QDMObj.odmr.n_pol):
                 if self._pixel_lines[p][f] is None:
-                    self._pixel_lines[p][f], = self._pixel_ax[p][f].plot(self.QDMObj.odmr.f_GHz[f], pixel_spectra[p, f],
+                    self._pixel_lines[p][f], = self._pixel_ax[p][f].plot(self.QDMObj.odmr.f_ghz[f], pixel_spectra[p, f],
                                                                          marker='.', markersize=6, mfc='w',
                                                                          linestyle='' if self._includes_fits else '-')
                 else:
-                    self._pixel_lines[p][f].set_data(self.QDMObj.odmr.f_GHz[f], pixel_spectra[p, f])
+                    self._pixel_lines[p][f].set_data(self.QDMObj.odmr.f_ghz[f], pixel_spectra[p, f])
                 self._pixel_lines[p][f].set_label(f'p({self.POL[p]},{self._current_xy[0]},{self._current_xy[1]})')
                 self._pixel_ax[p][f].legend(loc='lower left', fontsize=8, ncol=2)
         self.update_pixel_lims()
@@ -286,7 +278,7 @@ class pyqdmWindow(QMainWindow):
         parameter = np.rollaxis(parameter, axis=0, start=4)
 
         for f in np.arange(self.QDMObj.odmr.n_frange):
-            f_new = np.linspace(min(self.QDMObj.ODMRobj.f_GHz[f]), max(self.QDMObj.ODMRobj.f_GHz[f]), 200)
+            f_new = np.linspace(min(self.QDMObj.ODMRobj.f_ghz[f]), max(self.QDMObj.ODMRobj.f_ghz[f]), 200)
             for p in np.arange(self.QDMObj.odmr.n_pol):
                 m_fit = self.model(parameter=parameter[p, f], x=f_new)
                 if self._fit_lines[p][f] is None:
@@ -326,7 +318,7 @@ class pyqdmWindow(QMainWindow):
         self.canvas.draw()
 
     def need_extend(self):
-        return self.fixClimCheckBox.isChecked() and self.cLimSelector.value() != 100
+        return self.fix_clim_check_box.isChecked() and self.cLimSelector.value() != 100
 
     def update_img_plots(self):
         """
@@ -343,7 +335,7 @@ class pyqdmWindow(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.ESRSINGLE, models.ESR15N, models.ESR14N][self.QDMObj._diamond_type]
+        return [None, models.esr_single, models.esr_15n, models.esr_14n][self.QDMObj._diamond_type]
 
     @property
     def pixel_size(self):

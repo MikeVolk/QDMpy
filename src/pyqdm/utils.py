@@ -36,7 +36,7 @@ def rc2idx(rc, shape):
 
 
 def polyfit2d(x, y, z, kx=3, ky=3, order=None):
-    '''
+    """
     Two dimensional polynomial fitting by least squares.
     Fits the functional form f(x,y) = z.
 
@@ -68,7 +68,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     s: np.ndarray
 
     found at :https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
-    '''
+    """
 
     # grid coords
     x, y = np.meshgrid(x, y)
@@ -102,8 +102,7 @@ def load_config(config_file='config.ini'):
     """
     with open(os.path.join(pyqdm.projectdir, config_file)) as fileObj:
         content = fileObj.read()
-        pyqdm_config = tomli.loads(content)
-        return pyqdm_config
+        return tomli.loads(content)
 
 
 def set_path(path, config, default):
