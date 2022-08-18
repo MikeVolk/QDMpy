@@ -11,6 +11,7 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
       - id: trailing-whitespace
+      - id: mixed-line-ending
 -   repo: local
     hooks:
       - id: autoflake
