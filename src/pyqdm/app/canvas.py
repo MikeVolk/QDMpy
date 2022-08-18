@@ -1,4 +1,6 @@
 import itertools
+import logging
+
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
@@ -23,6 +25,7 @@ class PyQdmCanvas(FigureCanvas):
         return list(self.odmr.keys())
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
+        self.LOG = logging.getLogger(f'pyQDM.{self.__class__.__name__}')
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super(PyQdmCanvas, self).__init__(self.fig)
         self.led = {}  # dict of ax : led img
@@ -56,7 +59,7 @@ class PyQdmCanvas(FigureCanvas):
         for a in self.data:
             a.set(xlabel='px', ylabel='px', title='Data', aspect='equal', origin='lower')
 
-    def add_led(self, light, data_dimensions):
+    def add_light(self, light, data_dimensions):
         for ax, img in self.led.items():
             self.LOG.debug(f'Adding LED to axis {ax}')
             if img is None:

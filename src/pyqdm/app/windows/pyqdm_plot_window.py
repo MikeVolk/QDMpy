@@ -45,7 +45,11 @@ class PyQdmWindow(QMainWindow):
     def _is_spectra(self):
         return self.canvas._is_spectra
 
-    def __init__(self, caller, canvas, qdm_instance=None, includes_fits=False, *args, **kwargs):
+    # @property
+    # def qdm(self):
+    #     return self.caller.qdm
+
+    def __init__(self, caller, canvas, qdm_instance, includes_fits=False, *args, **kwargs):
         self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.caller = caller
         self.qdm = qdm_instance
@@ -66,6 +70,8 @@ class PyQdmWindow(QMainWindow):
         self.mainToolbar.addSeparator()
         self._add_pixel_box(self.mainToolbar)
         self.mainVerticalLayout.addWidget(self.canvas)
+
+    def set_main_window(self):
         central_widget = QWidget()
         central_widget.setLayout(self.mainVerticalLayout)
         self.setCentralWidget(central_widget)

@@ -13,19 +13,36 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from matplotlib.backend_bases import MouseButton
 from pyqdm.app.windows.misc import gf_applied_window
 from pyqdm.app.windows.tools import get_label_box
-from pyqdm.app.windows import PyQDMWindow
+from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 matplotlib.rcParams.update({  # 'font.size': 8,
     # 'axes.labelsize': 8,
     'grid.linestyle': '-',
     'grid.alpha': 0.5})
 
 
-class GlobalFluorescenceWindow(PyQDMWindow):
-    def __init__(self):
+class GlobalFluorescenceWindow(PyQdmWindow):
+    def __init__(self, caller, qdm_instance, *args, **kwargs):
         canvas = GlobalFluorescenceCanvas()
-        super().__init__()
+        super().__init__(caller=caller, canvas=canvas, qdm_instance = qdm_instance, *args, **kwargs)
         self.setWindowTitle('Global Fluorescence')
+        self.gf_label = QLabel(f'Global Fluorescence: {self.qdm.global_factor:.2f}')
+        self.gfSlider = QSlider()
+        self.gfSlider.setValue(self.caller.gf_select.value())
+        self.gfSlider.setRange(0, 100)
+        self.gfSlider.setOrientation(Qt.Horizontal)
+        # self.gfSlider.valueChanged.connect(self.on_slider_value_changed)
+        self.applyButton = QPushButton('Apply')
+        # self.applyButton.clicked.connect(self.apply_global_factor)
 
+        horizontal_layout = QHBoxLayout()
+        horizontal_layout.addWidget(self.gf_label)
+        horizontal_layout.addWidget(self.gfSlider)
+        horizontal_layout.addWidget(self.applyButton)
+
+        self.mainVerticalLayout.addLayout(horizontal_layout)
+        self.set_main_window()
+
+        self.canvas.add_light(self.qdm.led, self.qdm.scan_dimensions)
 
 class GlobalFluorescenceWindowOLD(QMainWindow):
     """
@@ -60,7 +77,7 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
         return self.qdm.odmr.idx2rc(self._current_idx)[::-1]
 
 
-    def __init__(self, caller, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
+    def __init__(self, caller, qdm_instance, pixelsize=1e-6, *args, **kwargs):
         self.LOG = logging.getLogger(f'pyqdm.{self.__class__.__name__}')
         self.main_window = caller
         self.qdm = qdm_instance

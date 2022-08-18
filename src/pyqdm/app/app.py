@@ -668,8 +668,11 @@ class PyQDMMainWindow(QMainWindow):
         self.fill_fitconstraints_widget()
 
     def on_gf_detect_button_press(self):
-        self.gf_window = GlobalFluorescenceWindow(self, self.QDMObj)
-        self.LOG.debug("GF Button clicked")
+        self.gf_window = GlobalFluorescenceWindow(caller=self, qdm_instance=self.QDMObj)
+        if self.gf_window.isVisible():
+            self.gf_window.hide()
+        else:
+            self.gf_window.show()
 
     def on_gf_apply_button_press(self):
         self.LOG.debug("GF Apply Button clicked")
