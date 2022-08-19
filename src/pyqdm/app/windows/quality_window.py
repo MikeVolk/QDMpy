@@ -1,33 +1,37 @@
 import numpy as np
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QComboBox
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from matplotlib import colors
+from matplotlib import pyplot as plt
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
+
 from pyqdm.app.canvas import QualityCanvas
-from matplotlib import pyplot as plt, colors
+from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 
 
 class QualityWindow(PyQdmWindow):
-    TITLES = {'center': 'f$_{\mathrm{resonance}}$',
-              'contrast': '$\sigma$contrast',
-              'contrast_0': 'contrast$_0$',
-              'contrast_1': 'contrast$_1$',
-              'contrast_2': 'contrast$_2$',
-              'contrast_3': 'contrast$_3$',
-              'width': 'width',
-              'chi_squared': '$\chi^2$'
-              }
-    UNITS = {'center': 'f [GHz]',
-             'contrast': '[a.u.]',
-             'contrast_0': '[%]',
-             'contrast_1': '[%]',
-             'contrast_2': '[%]',
-             'contrast_3': '[%]',
-             'width': '[GHz]',
-             'chi_squared': '[a.u.]'
-             }
+    TITLES = {
+        "center": r"f$_{\mathrm{resonance}}$",
+        "contrast": r"$\sigma$contrast",
+        "contrast_0": "contrast$_0$",
+        "contrast_1": "contrast$_1$",
+        "contrast_2": "contrast$_2$",
+        "contrast_3": "contrast$_3$",
+        "width": "width",
+        "chi_squared": r"$\chi^2$",
+    }
+    UNITS = {
+        "center": "f [GHz]",
+        "contrast": "[a.u.]",
+        "contrast_0": "[%]",
+        "contrast_1": "[%]",
+        "contrast_2": "[%]",
+        "contrast_3": "[%]",
+        "width": "[GHz]",
+        "chi_squared": "[a.u.]",
+    }
 
     def __init__(self, caller, *args, **kwargs):
         canvas = QualityCanvas(self, width=12, height=12, dpi=100)
-        super(QualityWindow, self).__init__(caller, canvas, *args, **kwargs)
+        super().__init__(caller, canvas, *args, **kwargs)
         self._add_dtypeSelector(self.mainToolbar)
         self._init_lines()
         self.init_plots()
@@ -35,10 +39,10 @@ class QualityWindow(PyQdmWindow):
     def _add_dtypeSelector(self, toolbar):
         dtypeSelectWidget = QWidget()
         parameterBox = QHBoxLayout()
-        parameterLabel = QLabel('param: ')
+        parameterLabel = QLabel("param: ")
         self.dataSelect = QComboBox()
-        self.dataSelect.addItems(self.QDMObj._fitting_params_unique + ['contrast', 'chi_squared'])
-        self.dataSelect.setCurrentText('chi_squared')
+        self.dataSelect.addItems(self.QDMObj._fitting_params_unique + ["contrast", "chi_squared"])
+        self.dataSelect.setCurrentText("chi_squared")
         self.dataSelect.currentTextChanged.connect(self.update_img_plots)
         parameterBox.addWidget(parameterLabel)
         parameterBox.addWidget(self.dataSelect)
@@ -46,18 +50,18 @@ class QualityWindow(PyQdmWindow):
         toolbar.addWidget(dtypeSelectWidget)
 
     def init_plots(self):
-        self.LOG.debug('init_plots')
-        d = self.QDMObj._chi_squares.reshape(self.QDMObj.ODMRobj.n_pol, self.QDMObj.ODMRobj.n_frange,
-                                             *self.QDMObj.ODMRobj.scan_dimensions)
+        self.LOG.debug("init_plots")
+        d = self.QDMObj._chi_squares.reshape(
+            self.QDMObj.odmr.n_pol, self.QDMObj.odmr.n_frange, *self.QDMObj.odmr.scan_dimensions
+        )
         vmin, vmax = d.min(), d.max()
 
-        for f in range(self.QDMObj.ODMRobj.n_frange):
-            for p in range(self.QDMObj.ODMRobj.n_pol):
+        for f in range(self.QDMObj.odmr.n_frange):
+            for p in range(self.QDMObj.odmr.n_pol):
                 ax = self.canvas.ax[p][f]
-                img = ax.imshow(d[p, f], cmap='viridis', interpolation='none',
-                                origin='lower', vmin=vmin, vmax=vmax)
+                img = ax.imshow(d[p, f], cmap="viridis", interpolation="none", origin="lower", vmin=vmin, vmax=vmax)
                 plt.colorbar(img, cax=self.canvas.caxes[p][f])
-        self.canvas.fig.suptitle('$\chi^2$')
+        self.canvas.fig.suptitle(r"$\chi^2$")
         self.update_marker()
 
     def updateClimS(self):
@@ -75,23 +79,27 @@ class QualityWindow(PyQdmWindow):
             cax.clear()
             cax.set_axes_locator(self.canvas.original_cax_locator.flatten()[i])
 
-            plt.colorbar(im, cax=cax,
-                         extend='both' if self.fix_clim_check_box.isChecked() else 'neither',
-                         label=self.UNITS[self.dataSelect.currentText()])
+            plt.colorbar(
+                im,
+                cax=cax,
+                extend="both" if self.fix_clim_check_box.isChecked() else "neither",
+                label=self.UNITS[self.dataSelect.currentText()],
+            )
             self.canvas.draw()
 
     def update_img_plots(self):
-        if self.dataSelect.currentText() == 'chi_squared':
-            data = self.QDMObj._chi_squares.reshape(self.QDMObj.ODMRobj.n_pol, self.QDMObj.ODMRobj.n_frange,
-                                                    *self.QDMObj.ODMRobj.scan_dimensions)
+        if self.dataSelect.currentText() == "chi_squared":
+            data = self.QDMObj._chi_squares.reshape(
+                self.QDMObj.odmr.n_pol, self.QDMObj.odmr.n_frange, *self.QDMObj.odmr.scan_dimensions
+            )
         else:
             data = self.QDMObj.get_param(self.dataSelect.currentText())
 
-        if self.dataSelect.currentText() == 'contrast':
+        if self.dataSelect.currentText() == "contrast":
             data = np.sum(data, axis=2)
 
-        for f in range(self.QDMObj.ODMRobj.n_frange):
-            for p in range(self.QDMObj.ODMRobj.n_pol):
+        for f in range(self.QDMObj.odmr.n_frange):
+            for p in range(self.QDMObj.odmr.n_pol):
                 im = self.canvas.ax[p][f].images[0]
                 d = data[p, f]
                 im.set_data(d)
@@ -100,6 +108,6 @@ class QualityWindow(PyQdmWindow):
         self.updateClimS()
 
     def closeEvent(self, event):
-        self.LOG.debug('closeEvent')
+        self.LOG.debug("closeEvent")
         self.caller.qualityWindow = None
         self.close()
