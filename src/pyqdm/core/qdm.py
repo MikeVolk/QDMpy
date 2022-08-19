@@ -7,18 +7,17 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
 import pyqdm
-from pyqdm import plotting
-from pyqdm import pygpufit_present
+from pyqdm import plotting, pygpufit_present
 from pyqdm.core import fitting
 from pyqdm.core.odmr import ODMR
 from pyqdm.exceptions import CantImportError, WrongFileNumber
-from pyqdm.utils import get_image, rc2idx, idx2rc
+from pyqdm.utils import get_image, idx2rc, rc2idx
 
 if pygpufit_present:
     import pygpufit.gpufit as gf
 
-from scipy.io import savemat
 import pandas as pd
+from scipy.io import savemat
 
 
 class QDM:
@@ -33,7 +32,7 @@ class QDM:
         "ESR15N": ["center", "width", "contrast", "contrast", "offset"],
         "ESRSINGLE": ["center", "width", "contrast", "offset"],
     }
-    LOG = logging.getLogger("pyqdm")
+    LOG = logging.getLogger(f"pyQDM.QDM")
 
     if pygpufit_present:
         CONSTRAINT_TYPES = {
@@ -51,32 +50,28 @@ class QDM:
         }
 
     BOUND_TYPES = list(CONSTRAINT_TYPES.keys())
-    UNITS = {'center': 'GHz', 'width': 'GHz',
-             'contrast': 'a.u.', 'offset': 'a.u.'}
+    UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
 
     # GAMMA = 0.0028 # GHz/G
     GAMMA = 28.024 / 1e6  # GHz/muT;
 
     def __init__(
-            self,
-            ODMRobj,
-            led,
-            laser,
-            working_directory,
-            diamond_type=None,
+        self,
+        ODMRobj,
+        led,
+        laser,
+        working_directory,
+        diamond_type=None,
     ):
 
         self.LOG.info("Initializing QDM object.")
         self.LOG.info(f'Working directory: "{working_directory}"')
         self.working_directory = working_directory
 
-        self.LOG.debug(
-            "ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
+        self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {ODMRobj.data.shape}")
-        self.LOG.debug(
-            f"                      scan_dimensions: {ODMRobj.scan_dimensions}")
-        self.LOG.debug(
-            f"                      frequencies: {ODMRobj.frequencies.shape}")
+        self.LOG.debug(f"                      scan_dimensions: {ODMRobj.scan_dimensions}")
+        self.LOG.debug(f"                      frequencies: {ODMRobj.frequencies.shape}")
         self.LOG.debug(f"                      n_freqs: {ODMRobj.n_freqs}")
 
         self.ODMRobj = ODMRobj
@@ -131,7 +126,7 @@ class QDM:
         y, x = self.idx2rc(self.outliers_idx)
         return np.stack([x, y], axis=1)
 
-    def detect_outliers(self, dtype='chi_squared', method='LocalOutlierFactor', **outlier_props):
+    def detect_outliers(self, dtype="chi_squared", method="LocalOutlierFactor", **outlier_props):
         """
         Detect outliers in the ODMR data.
         The outliers are detected using 'method'.
@@ -145,36 +140,35 @@ class QDM:
         :return:
         """
 
-        if dtype == 'chi_squared':
+        if dtype == "chi_squared":
             data = self._chi_squares
-        elif dtype == 'B111_remanent':
+        elif dtype == "B111_remanent":
             data = self.B111_remanent.reshape(1, -1)
-        elif dtype == 'B111_induced':
+        elif dtype == "B111_induced":
             data = self.B111_remanent.reshape(1, -1)
         elif dtype in self._fitting_params + self._fitting_params_unique:
             data = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 
-        if method == 'LocalOutlierFactor':
+        if method == "LocalOutlierFactor":
             clf = LocalOutlierFactor(**outlier_props).fit(data)
-        elif method == 'IsolationForest':
-            outlier_props['contamination'] = outlier_props.pop(
-                'contamination', 0.001)
+        elif method == "IsolationForest":
+            outlier_props["contamination"] = outlier_props.pop("contamination", 0.001)
             clf = IsolationForest(n_jobs=-1, **outlier_props)
         else:
             raise ValueError(f"Method {method} not recognized.")
 
         shape = data.shape
-        self.LOG.debug(
-            f"Detecting outliers in <<{dtype}>> data of shape {shape}")
+        self.LOG.debug(f"Detecting outliers in <<{dtype}>> data of shape {shape}")
         outliers = (clf.fit_predict(data.reshape(-1, 1)) + 1) / 2
         # collapse the first dimensions so that the product applies to all except the pixel dimension
         outliers = outliers.reshape(-1, shape[-1])
         outliers = ~np.product(outliers, axis=0).astype(bool)
         self.LOG.info(
             f"Outlier detection using LocalOutlierFactor of <<{dtype}>> detected {outliers.sum()} outliers pixels.\n"
-            f"                                      Indixes can be accessed using 'outlier_idx' and 'outlier_xy'")
+            f"                                      Indixes can be accessed using 'outlier_idx' and 'outlier_xy'"
+        )
         self.LOG.debug(f"returning {outliers.shape}")
         self._outliers = outliers
         return self._outliers
@@ -196,8 +190,7 @@ class QDM:
         :param diamond_type:
         """
         self.LOG.debug(f'Setting diamond type to "{diamond_type}"')
-        self._diamond_type = {'N14': 3, 'N15': 2, 'SINGLE': 1}[
-            self.DIAMOND_TYPES[diamond_type]]
+        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1}[self.DIAMOND_TYPES[diamond_type]]
         self.reset_constraints()
         self._construct_initial_guess()
 
@@ -206,7 +199,8 @@ class QDM:
 
         if np.all(self.ODMRobj._scan_dimensions != self.led.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.ODMRobj._scan_dimensions}) and LED ({self.led.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}.")
+                f"Scan dimensions of ODMR ({self.ODMRobj._scan_dimensions}) and LED ({self.led.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+            )
             # set the true bin factor
             self.ODMRobj._pre_bin_factor = bin_factors[0]
             self.ODMRobj._scan_dimensions = np.array(self.led.shape)
@@ -244,13 +238,13 @@ class QDM:
         :return: diamond_type (int)
         """
         from scipy.signal import find_peaks
+
         indices = []
 
         # Find the indices of the peaks
         for p in range(self.ODMRobj.n_pol - 1):
             for f in range(self.ODMRobj.n_frange - 1):
-                peaks = find_peaks(
-                    -self.ODMRobj.mean_odmr[p, f], prominence=0.003)
+                peaks = find_peaks(-self.ODMRobj.mean_odmr[p, f], prominence=0.003)
                 indices.append(peaks[0])
 
         n_peaks = int(np.round(np.mean([len(idx) for idx in indices])))
@@ -277,8 +271,7 @@ class QDM:
                     )
                     n += 1
             plt.legend()
-        self.LOG.info(
-            f"Guessed diamond type: {n_peaks} peaks -> {self.DIAMOND_TYPES[n_peaks]}")
+        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {self.DIAMOND_TYPES[n_peaks]}")
 
         return n_peaks
 
@@ -293,8 +286,7 @@ class QDM:
             case "QDM.io":
                 return cls.from_QDMio(matlab_files)
 
-        raise NotImplementedError(
-            'Dialect "{}" not implemented.'.format(dialect))
+        raise NotImplementedError('Dialect "{}" not implemented.'.format(dialect))
 
     @classmethod
     def from_QDMio(cls, data_folder, diamond_type=None, **kwargs):
@@ -304,16 +296,14 @@ class QDM:
         files = os.listdir(data_folder)
         led_files = [f for f in files if "led" in f.lower()]
         laser_files = [f for f in files if "laser" in f.lower()]
-        cls.LOG.info(
-            f"Reading {len(led_files)} led, {len(laser_files)} laser files.")
+        cls.LOG.info(f"Reading {len(led_files)} led, {len(laser_files)} laser files.")
 
         try:
             odmr_obj = ODMR.from_qdmio(data_folder=data_folder)
             led = get_image(data_folder, led_files)
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
-            raise CantImportError(
-                f'Cannot import QDM data from "{data_folder}"') from e
+            raise CantImportError(f'Cannot import QDM data from "{data_folder}"') from e
 
         return cls(odmr_obj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder)
 
@@ -339,10 +329,10 @@ class QDM:
         """
         if path_to_file is None:
             path_to_file = os.path.join(
-                self.working_directory, f'{self.ODMRobj._bin_factor}x{self.ODMRobj._bin_factor}Binned')
+                self.working_directory, f"{self.ODMRobj._bin_factor}x{self.ODMRobj._bin_factor}Binned"
+            )
             if not os.path.exists(path_to_file):
-                self.LOG.warning(
-                    f"Path does not exist, creating directory {path_to_file}")
+                self.LOG.warning(f"Path does not exist, creating directory {path_to_file}")
                 os.makedirs(path_to_file)
 
         neg_diff, pos_diff = self.delta_resonance
@@ -354,19 +344,24 @@ class QDM:
         laser_img = self.laser
         pixel_alerts = np.zeros(b111_remanent.shape)
 
-        return savemat(os.path.join(path_to_file, "B111dataToPlot.mat"), {'negDiff': neg_diff,
-                                                                          'posDiff': pos_diff,
-                                                                          'B111ferro': b111_remanent,
-                                                                          'B111para': b111_induced,
-                                                                          'chi2Pos1': chi2_pos1,
-                                                                          'chi2Pos2': chi2_pos2,
-                                                                          'chi2Neg1': chi2_neg1,
-                                                                          'chi2Neg2': chi2_neg2,
-                                                                          'ledImg': led_img,
-                                                                          'laser': laser_img,
-                                                                          'pixelAlerts': pixel_alerts,
-                                                                          'bin_factor': self.bin_factor,
-                                                                          'pyqdm_version': pyqdm.__version__})
+        return savemat(
+            os.path.join(path_to_file, "B111dataToPlot.mat"),
+            {
+                "negDiff": neg_diff,
+                "posDiff": pos_diff,
+                "B111ferro": b111_remanent,
+                "B111para": b111_induced,
+                "chi2Pos1": chi2_pos1,
+                "chi2Pos2": chi2_pos2,
+                "chi2Neg1": chi2_neg1,
+                "chi2Neg2": chi2_neg2,
+                "ledImg": led_img,
+                "laser": laser_img,
+                "pixelAlerts": pixel_alerts,
+                "bin_factor": self.bin_factor,
+                "pyqdm_version": pyqdm.__version__,
+            },
+        )
 
     # FITTING ##
     @property
@@ -378,9 +373,7 @@ class QDM:
         Guess the center of the ODMR spectra.
         """
         center = fitting.guess_center(self.ODMRobj.data, self.ODMRobj.f_ghz)
-        self.LOG.debug(
-            f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
-        )
+        self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
         return center
 
     def _guess_contrast(self):
@@ -404,8 +397,7 @@ class QDM:
         """
         Guess the offset from 0 of the ODMR spectra. Usually this is 1
         """
-        offset = np.zeros(
-            (self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel))
+        offset = np.zeros((self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel))
         self.LOG.debug(f"Guessing offset {offset.shape}")
         return offset
 
@@ -446,7 +438,7 @@ class QDM:
         Set the constraints to be free.
         """
         for param in set(self._fitting_params):
-            self.set_constraints(param, bound_type='FREE')
+            self.set_constraints(param, bound_type="FREE")
 
     @property
     def constraints_array(self):
@@ -455,13 +447,11 @@ class QDM:
 
         :return: np.array
         """
-        constraints = np.zeros(
-            (self.ODMRobj.n_pixel * 2, 2 * len(self._fitting_params)), dtype=np.float32)
+        constraints = np.zeros((self.ODMRobj.n_pixel * 2, 2 * len(self._fitting_params)), dtype=np.float32)
 
         constraints_list = []
         for k in self._fitting_params_unique:
-            constraints_list.extend(
-                (self._constraints[k][0], self._constraints[k][1]))
+            constraints_list.extend((self._constraints[k][0], self._constraints[k][1]))
         constraints[:, :] = constraints_list
         return constraints
 
@@ -471,8 +461,7 @@ class QDM:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [self.BOUND_TYPES.index(
-            self._constraints[k][2]) for k in self._fitting_params_unique]
+        fit_bounds = [self.BOUND_TYPES.index(self._constraints[k][2]) for k in self._fitting_params_unique]
 
         return np.array(fit_bounds).astype(np.int32)
 
@@ -492,18 +481,14 @@ class QDM:
         if isinstance(bound_type, int):
             bound_type = self.BOUND_TYPES[bound_type]
         if bound_type is not None and bound_type not in self.BOUND_TYPES:
-            raise ValueError(
-                f"Unknown constraint type: {bound_type} choose from {self.BOUND_TYPES}")
+            raise ValueError(f"Unknown constraint type: {bound_type} choose from {self.BOUND_TYPES}")
 
-        if param == 'contrast':
-            for contrast in [v for v in self._fitting_params_unique if 'contrast' in v]:
-                self.set_constraints(
-                    contrast, values=values, bound_type=bound_type)
+        if param == "contrast":
+            for contrast in [v for v in self._fitting_params_unique if "contrast" in v]:
+                self.set_constraints(contrast, values=values, bound_type=bound_type)
         else:
-            self.LOG.debug(
-                f"Setting constraints for {param}: {values} with {bound_type}")
-            self._constraints[param] = [values[0], values[1],
-                                        bound_type, self.UNITS[param.split('_')[0]]]
+            self.LOG.debug(f"Setting constraints for {param}: {values} with {bound_type}")
+            self._constraints[param] = [values[0], values[1], bound_type, self.UNITS[param.split("_")[0]]]
 
     def reset_constraints(self):
         """
@@ -516,11 +501,27 @@ class QDM:
         """
         Set the initial constraints for the fit.
         """
-        self.set_constraints("center", [2, 3.1], bound_type="LOWER_UPPER")
+        default_constraints = pyqdm.config["default_fitconstraints"]
         self.set_constraints(
-            "width", [0.0001, 0.005], bound_type="LOWER_UPPER")
-        self.set_constraints('contrast', [0.005, 0], bound_type="LOWER")
-        self.set_constraints('offset', [0, 0], bound_type="FREE")
+            "center",
+            [default_constraints["center_min"], default_constraints["center_max"]],
+            bound_type=default_constraints["center_type"],
+        )
+        self.set_constraints(
+            "width",
+            [default_constraints["width_min"], default_constraints["width_max"]],
+            bound_type=default_constraints["width_type"],
+        )
+        self.set_constraints(
+            "contrast",
+            [default_constraints["contrast_min"], default_constraints["contrast_max"]],
+            bound_type=default_constraints["contrast_type"],
+        )
+        self.set_constraints(
+            "offset",
+            [default_constraints["offset_min"], default_constraints["offset_max"]],
+            bound_type=default_constraints["offset_type"],
+        )
 
     def _reshape_parameter(self, data, n_pol, n_frange):
         """
@@ -540,18 +541,21 @@ class QDM:
         # ESR14N is the default model
         model_id = getattr(gf.ModelID, self.FIT_TYPES[self._diamond_type])
 
-        parameters, states, chi_squares, number_iterations, execution_time = ([], [], [
-        ], [], [],)
+        parameters, states, chi_squares, number_iterations, execution_time = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
 
         # calculate the fit for each f_range -> 1st dimension is f_range not n_pol
         # needs to be swapped later
 
         for i in np.arange(0, self.ODMRobj.n_frange):
             self.LOG.info(f"Fitting {self.POLARITIES[i]} polarization")
-            data = self.ODMRobj.data[:,
-                   i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
-            initial_guess = self.initial_guess[:, i].reshape(
-                -1, len(self._fitting_params)).astype(np.float32)
+            data = self.ODMRobj.data[:, i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
+            initial_guess = self.initial_guess[:, i].reshape(-1, len(self._fitting_params)).astype(np.float32)
 
             # fit the data
             p, s, c, n, t = gf.fit_constrained(
@@ -561,9 +565,10 @@ class QDM:
                 constraint_types=self.constraint_types,
                 weights=None,
                 initial_parameters=initial_guess,
-                model_id=model_id,  # estimator_id = estimator_id,
-                max_number_iterations=1000,
-                tolerance=1e-22,
+                model_id=model_id,
+                estimator_id=estimator_id,
+                max_number_iterations=100,
+                tolerance=1e-10,
             )
             parameters.append(p)
             states.append(s)
@@ -578,15 +583,13 @@ class QDM:
             number_iterations = np.array(number_iterations)[:, np.newaxis, :]
 
         # swapping the f_range and n_pol axes
-        parameters = self._reshape_parameter(
-            parameters, self.ODMRobj.n_pol, self.ODMRobj.n_frange)
+        parameters = self._reshape_parameter(parameters, self.ODMRobj.n_pol, self.ODMRobj.n_frange)
 
         # check if the reshaping is correct
-        assert np.all(parameters[0, 1] == p[:int(p.shape[0] / self.ODMRobj.n_pol)])
+        assert np.all(parameters[0, 1] == p[: int(p.shape[0] / self.ODMRobj.n_pol)])
 
         # reshape the states and chi_squares
-        shape = (self.ODMRobj.n_pol, self.ODMRobj.n_frange,
-                 self.ODMRobj.n_pixel)
+        shape = (self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel)
         states = np.reshape(states, shape)
         chi_squares = np.reshape(chi_squares, shape)
         number_iterations = np.reshape(number_iterations, shape)
@@ -602,12 +605,11 @@ class QDM:
         self._number_iterations = number_iterations
         self.execution_time = execution_time
 
-        t = '; '.join([f'{v:.2f}' for v in execution_time])
-        self.LOG.debug(
-            f"Fitting took {np.sum(execution_time):.3f} ({t}) seconds.")
+        t = "; ".join([f"{v:.2f}" for v in execution_time])
+        self.LOG.debug(f"Fitting took {np.sum(execution_time):.3f} ({t}) seconds.")
         if np.any(np.flatnonzero(states)):
             n = len(np.flatnonzero(states))
-            self.LOG.warning(f'Fit did not converge in {n} pixels.')
+            self.LOG.warning(f"Fit did not converge in {n} pixels.")
 
         self._fitted = True
         self._fitting_constraints = self.constraints
@@ -617,24 +619,21 @@ class QDM:
         Get the value of a parameter reshaped to the image dimesions.
         """
         if not self.fitted:
-            raise NotImplementedError(
-                "No fit has been performed yet. Run fit_ODMR().")
+            raise NotImplementedError("No fit has been performed yet. Run fit_ODMR().")
 
         if param == "resonance":
-            param = 'center'
+            param = "center"
 
         idx = [i for i, v in enumerate(self._fitting_params) if v == param]
         if not idx:
-            idx = [i for i, v in enumerate(
-                self._fitting_params_unique) if v == param]
+            idx = [i for i, v in enumerate(self._fitting_params_unique) if v == param]
         if not idx:
             raise ValueError(f"Unknown parameter: {param}")
 
         out = self._fitted_parameter[idx]
 
         if reshape:
-            out = out.reshape(-1, self.ODMRobj.n_pol,
-                              self.ODMRobj.n_frange, *self.ODMRobj.scan_dimensions)
+            out = out.reshape(-1, self.ODMRobj.n_pol, self.ODMRobj.n_frange, *self.ODMRobj.scan_dimensions)
 
         return np.squeeze(out)
 
@@ -646,12 +645,13 @@ class QDM:
         self.LOG.info("Fitting constraints:")
         for i, p in enumerate(self._fitting_params):
             self.LOG.info(
-                f"\t{p:10}: {self._fitting_constraints[i * 2]:8.2e} - {self._fitting_constraints[i * 2 + 1]:8.2e} | {self._constraint_types[i]}")
+                f"\t{p:10}: {self._fitting_constraints[i * 2]:8.2e} - {self._fitting_constraints[i * 2 + 1]:8.2e} | {self._constraint_types[i]}"
+            )
 
+        self.LOG.info(f"Number of failed pixels: {np.flatnonzero(self._states).size}")
         self.LOG.info(
-            f"Number of failed pixels: {np.flatnonzero(self._states).size}")
-        self.LOG.info(
-            f"Chi-square: mean: {np.mean(self._chi_squares):.2e}, median {np.median(self._chi_squares):.2e}, max: {np.max(self._chi_squares):.2e}")
+            f"Chi-square: mean: {np.mean(self._chi_squares):.2e}, median {np.median(self._chi_squares):.2e}, max: {np.max(self._chi_squares):.2e}"
+        )
 
     @property
     def _fitting_params_unique(self):
@@ -663,8 +663,8 @@ class QDM:
         for v in self._fitting_params:
             if self._fitting_params.count(v) > 1:
                 for n in range(10):
-                    if f'{v}_{n}' not in lst:
-                        lst.append(f'{v}_{n}')
+                    if f"{v}_{n}" not in lst:
+                        lst.append(f"{v}_{n}")
                         break
             else:
                 lst.append(v)
@@ -678,36 +678,37 @@ class QDM:
         :param irange: index of the frange
         :return: pandas dataframe
         """
-        return pd.DataFrame(data=self._fitted_parameter[ipol, irange].astype(np.float),
-                            columns=self._fitting_params_unique)
+        return pd.DataFrame(
+            data=self._fitted_parameter[ipol, irange].astype(np.float), columns=self._fitting_params_unique
+        )
 
     @property
     def resonance(self):
         """
         Return the resonance of the fit.
         """
-        return self.get_param('center')
+        return self.get_param("center")
 
     @property
     def width(self):
         """
         Return the resonance of the fit.
         """
-        return self.get_param('width')
+        return self.get_param("width")
 
     @property
     def contrast(self):
         """
         Return the resonance of the fit.
         """
-        return np.mean(self.get_param('contrast'), axis=0)
+        return np.mean(self.get_param("contrast"), axis=0)
 
     @property
     def offset(self):
         """
         Return the resonance of the fit.
         """
-        return self.get_param('offset')
+        return self.get_param("offset")
 
     # QUALITY CHECKS ###
 
@@ -762,7 +763,7 @@ class QDM:
         return self.B111[1]
 
     # PLOTTING
-    def rc2idx(self, rc, ref='data'):
+    def rc2idx(self, rc, ref="data"):
         """
         Convert the xy coordinates to the index of the data.
         If the reference is 'data', the index is relative to the data.
@@ -772,15 +773,15 @@ class QDM:
         :param ref: str 'data' or 'img'
         :return: numpy.ndarray [idx]
         """
-        if ref == 'data':
+        if ref == "data":
             idx = rc2idx(rc, self.scan_dimensions)
-        elif ref == 'img':
+        elif ref == "img":
             idx = rc2idx(rc, self.led.shape)
         else:
             raise ValueError(f"Reference {ref} not supported.")
         return idx
 
-    def idx2rc(self, idx, ref='data'):
+    def idx2rc(self, idx, ref="data"):
         """
         Convert an index to a rc coordinate of the reference.
         If the reference is 'data', the index is relative to the data.
@@ -792,9 +793,9 @@ class QDM:
 
         :return: numpy.ndarray ([row], [col]) -> [[y], [x]]
         """
-        if ref == 'data':
+        if ref == "data":
             rc = idx2rc(idx, self.scan_dimensions)
-        elif ref == 'img':
+        elif ref == "img":
             rc = idx2rc(idx, self.led.shape)
         else:
             raise ValueError(f"Reference {ref} not supported.")
