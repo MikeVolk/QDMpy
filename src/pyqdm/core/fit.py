@@ -21,7 +21,7 @@ BOUND_TYPES = {
 }
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
-MODELS = [models.esr_14n, models.esr_15n, models.esr_single]
+MODELS = {"esr14n": [models.esr14n, 6], "esr15n": [models.esr15n, 5], "esrsingle": [models.esrsingle, 4]}
 
 
 class Fit:
@@ -33,7 +33,7 @@ class Fit:
         self.LOG.debug(
             f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies with {model}"
         )
-        self._model = model
+        self._model = model.upper()
         self._initial_parameter = None
 
         # fit results
@@ -124,7 +124,7 @@ class Fit:
         if bound_type is not None and bound_type not in BOUND_TYPES:
             raise ValueError(f"Unknown constraint type: {bound_type} choose from {BOUND_TYPES}")
 
-        if param == "contrast":
+        if param == "contrast" and self.fitting_parameter_unique != self.fitting_parameter:
             for contrast in [v for v in self.fitting_parameter_unique if "contrast" in v]:
                 self.set_constraints(contrast, vmin=vmin, vmax=vmax, bound_type=bound_type)
         else:
@@ -485,37 +485,57 @@ def guess_center_freq_single(data, freq):
     return freq[idx]
 
 
-def make_dummy_data(model="esr_14n", n_freq=100):
-    from pyqdm.core import models
+def make_dummy_data(model: str = "esr14n", n_freq: int = 100):
+    pass
 
-    if model == "esr_14n":
-        model = models.esr_14n
-    elif model == "esr_15n":
-        model = models.esr_15n
+    if model in MODELS:
+        model_func = MODELS[model][0]
+        n_params = MODELS[model][1]
     else:
         raise ValueError(f"Unknown model {model}")
 
     f0 = np.linspace(2.84, 2.85, n_freq)  # in GHz
     f1 = np.linspace(2.89, 2.9, n_freq)
 
+    c0 = np.mean(f0)
+    c1 = np.mean(f1)
+    width = 0.0001
+    contrast = 0.01
+    offset = 0.0
+
+    params = {
+        4: [width, contrast, offset],
+        5: [width, contrast, contrast, offset],
+        6: [width, contrast, contrast, contrast, offset],
+    }
+
+    p = np.ones((n_freq, n_params))
     # model for the left frange
     # +
-    p00 = np.tile([np.mean(f0) - 0.0001, 0.0001, 0.01, 0.01, 0.01, 0], (100, 1))
-    m00 = model(f0, p00)
+    p00 = p.copy()
+    p00[:, 0] *= c0 - 0.0001
+    p00[:, 1:] *= params[n_params]
     # -
-    p10 = np.tile([np.mean(f0) + 0.0001, 0.0001, 0.01, 0.01, 0.01, 0], (100, 1))
-    m10 = model(f0, p10)
+    p10 = p.copy()
+    p10[:, 0] *= c0 + 0.0001
+    p10[:, 1:] *= params[n_params]
 
     # model for the right frange
     # +
-    p01 = np.tile([np.mean(f1) - 0.0001, 0.0001, 0.01, 0.01, 0.01, 0], (100, 1))
-    m01 = model(f1, p01)
-    # -
-    p11 = np.tile([np.mean(f1) + 0.0001, 0.0001, 0.01, 0.01, 0.01, 0], (100, 1))
-    m11 = model(f1, p11)
+    p01 = p.copy()
+    p01[:, 0] *= c1 - 0.0001
+    p01[:, 1:] *= params[n_params]
 
-    for p in [p00, p10, p01, p11]:
-        print(p[0])
+    # -
+    p11 = p.copy()
+    p11[:, 0] *= c1 + 0.0001
+    p11[:, 1:] *= params[n_params]
+
+    m00 = model_func(f0, p00)
+    m10 = model_func(f0, p10)
+    m01 = model_func(f1, p01)
+    m11 = model_func(f1, p11)
+
     # combine the models
     mall = np.stack([np.stack([m00, m01]), np.stack([m10, m11])])
     pall = np.stack([np.stack([p00, p01]), np.stack([p10, p11])])
