@@ -789,8 +789,8 @@ class PyQDMMainWindow(QMainWindow):
 
     def debug_call(self):
         self.import_file(r"C:\Users\micha\Desktop\diamond_testing\FOV18x")
-        self.on_quick_start_button_press()
-        self.on_fit_button_press()
+        # self.on_quick_start_button_press()
+        # self.on_fit_button_press()
 
 
 def main(**kwargs):

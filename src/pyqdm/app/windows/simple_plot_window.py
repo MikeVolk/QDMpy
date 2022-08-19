@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from PySide6.QtWidgets import (
-    QWidget
-)
 from matplotlib import colors
+from PySide6.QtWidgets import QWidget
 
 from pyqdm.app.canvas import SimpleCanvas
 from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
@@ -18,9 +16,9 @@ class SimplePlotWindow(PyQdmWindow):
         self.title = title
         self.cbar = None
         self.ax = self.canvas.ax
-        self.cax = self.canvas.cax
+        self.cax = self.canvas.cbar
 
-        self.setWindowTitle(f'{title}')
+        self.setWindowTitle(f"{title}")
 
         self._includes_fits = False
         self._pixel_ax = []
@@ -43,11 +41,14 @@ class SimplePlotWindow(PyQdmWindow):
         img.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 
         if self.cbar is not None:
-            self.canvas.cax.clear()
-            self.canvas.cax.set_axes_locator(self.canvas.original_cax_locator)
+            self.canvas.cbar.clear()
+            self.canvas.cbar.set_axes_locator(self.canvas.original_cax_locator)
 
-            self.cbar = plt.colorbar(img, cax=self.canvas.cax,
-                                     extend='both' if self.fix_clim_check_box.isChecked() else 'neither',
-                                     label='B$_{111}$ [$\mu$T]')
+            self.cbar = plt.colorbar(
+                img,
+                cax=self.canvas.cbar,
+                extend="both" if self.fix_clim_check_box.isChecked() else "neither",
+                label="B$_{111}$ [$\mu$T]",
+            )
 
         self.canvas.draw()

@@ -90,7 +90,6 @@ class PyQdmWindow(QMainWindow):
         self.mainVerticalLayout.addWidget(self.canvas)
 
     def set_main_window(self):
-        self.add_bottom_infobar()
         central_widget = QWidget()
         central_widget.setLayout(self.mainVerticalLayout)
         self.setCentralWidget(central_widget)
@@ -122,7 +121,7 @@ class PyQdmWindow(QMainWindow):
         bottom_info_layout.addWidget(rms_label)
         self.mainVerticalLayout.addLayout(bottom_info_layout)
 
-        self.labels = {
+        self.infobar_labels = {
             "min": min_label,
             "max": max_label,
             "mean": mean_label,
@@ -245,7 +244,7 @@ class PyQdmWindow(QMainWindow):
 
     def add_light_img(self, ax):
         ax.imshow(
-            self.qdm.led,
+            self.qdm.light,
             cmap="bone",
             interpolation="none",
             origin="lower",

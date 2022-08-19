@@ -52,7 +52,8 @@ class GlobalFluorescenceWindow(PyQdmWindow):
         self.mainVerticalLayout.addLayout(horizontal_layout)
         self.set_main_window()
 
-        self.canvas.add_light(self.qdm.led, self.qdm.scan_dimensions)
+        self.canvas.add_light(self.qdm.light, self.qdm.scan_dimensions)
+        self.canvas.add_laser(self.qdm.laser, self.qdm.scan_dimensions)
 
 
 class GlobalFluorescenceWindowOLD(QMainWindow):
@@ -239,7 +240,7 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
 
             self.pixel_axes[f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]", ylim=(mn, mx))
 
-        self.img_axes[0].imshow(self.qdm.led, cmap="gray", interpolation="none", origin="lower")
+        self.img_axes[0].imshow(self.qdm.light, cmap="gray", interpolation="none", origin="lower")
         self.img_axes[1].imshow(self.qdm.laser, cmap="inferno", interpolation="none", origin="lower")
         (self._marker_line[0],) = self.img_axes[0].plot(
             self._current_xy[1] * self.qdm.bin_factor,

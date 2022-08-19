@@ -1,10 +1,13 @@
 import itertools
 import logging
 
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import pyqdm.plotting as qdmplot
 
 
 class PyQdmCanvas(FigureCanvas):
@@ -16,19 +19,23 @@ class PyQdmCanvas(FigureCanvas):
 
     @property
     def img_axes(self):
-        return list(self.led.keys()) + list(self.laser.keys()) + \
-               list(self.data.keys()) + list(self.outlier.keys()) + \
-               list(self.overlay.keys())
+        return (
+            list(self.light.keys())
+            + list(self.laser.keys())
+            + list(self.data.keys())
+            + list(self.outlier.keys())
+            + list(self.overlay.keys())
+        )
 
     @property
     def odmr_axes(self):
         return list(self.odmr.keys())
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
-        self.LOG = logging.getLogger(f'pyQDM.{self.__class__.__name__}')
+        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super(PyQdmCanvas, self).__init__(self.fig)
-        self.led = {}  # dict of ax : led img
+        self.light = {}  # dict of ax : led img
         self.laser = {}  # laser is a dictionary of dictionaries
         self.data = {}  # data is a dictionary of dictionaries
         self.outlier = {}  # outlier is a dictionary of ax: outlier data
@@ -45,60 +52,77 @@ class PyQdmCanvas(FigureCanvas):
     @staticmethod
     def add_cax(ax):
         divider = make_axes_locatable(ax)
-        return divider.append_axes("right", size="5%", pad=0.05)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        original_locator = cax.get_axes_locator()
+        return cax, original_locator
 
     def set_led(self):
-        for a in self.led:
-            a.set(xlabel='px', ylabel='px', title='Light', aspect='equal', origin='lower')
+        for a in self.light:
+            a.set(xlabel="px", ylabel="px", title="Light", aspect="equal", origin="lower")
 
     def set_laser(self):
         for a in self.laser:
-            a.set(xlabel='px', ylabel='px', title='Laser', aspect='equal', origin='lower')
+            a.set(xlabel="px", ylabel="px", title="Laser", aspect="equal", origin="lower")
 
     def set_data(self):
         for a in self.data:
-            a.set(xlabel='px', ylabel='px', title='Data', aspect='equal', origin='lower')
+            a.set(xlabel="px", ylabel="px", title="Data", aspect="equal", origin="lower")
 
     def add_light(self, light, data_dimensions):
-        for ax, img in self.led.items():
-            self.LOG.debug(f'Adding LED to axis {ax}')
-            if img is None:
-                self.led[ax] = ax.imshow(light, cmap='bone',
-                                         interpolation='none', origin='lower', aspect='equal',
-                                         extent=[0, data_dimensions[1], 0, data_dimensions[0]],
-                                         zorder=0)
+        for ax, img in self.light.items():
+            self.LOG.debug(f"Adding Light image to axis {ax}")
+            self.light[ax] = qdmplot.plot_laser_img(
+                ax,
+                light,
+                img,
+                extent=[0, data_dimensions[1], 0, data_dimensions[0]],
+            )
 
     def add_laser(self, laser, data_dimensions):
         for ax, img in self.laser.items():
-            self.LOG.debug(f'Adding laser to axis {ax}')
-            if img is None:
-                self.laser[ax] = ax.imshow(laser, cmap='magma',
-                                           interpolation='none', origin='lower', aspect='equal',
-                                           extent=[0, data_dimensions[1], 0, data_dimensions[0]],
-                                           zorder=0)
+            self.LOG.debug(f"Adding laser to axis {ax}")
+            self.laser[ax] = qdmplot.plot_laser_img(
+                ax,
+                laser,
+                img,
+                extent=[0, data_dimensions[1], 0, data_dimensions[0]],
+            )
+            if ax in self.cbar:
+                self.cbar[ax][0] = plt.colorbar(self.laser[ax], cax=self.cbar[ax])
+                self.cbar[ax][1] = self.laser[ax]
 
     def add_outlier_masks(self, outlier):
         for ax, img in self.outlier.items():
-            self.LOG.debug(f'Adding outlier mask to axis {ax}')
+            self.LOG.debug(f"Adding outlier mask to axis {ax}")
             if img is None:
-                self.outlier[ax] = ax.imshow(outlier,
-                                             cmap='gist_rainbow',
-                                             alpha=outlier.astype(float),
-                                             vmin=0, vmax=1, interpolation='none', origin='lower', aspect='equal',
-                                             zorder=2)
+                self.outlier[ax] = ax.imshow(
+                    outlier,
+                    cmap="gist_rainbow",
+                    alpha=outlier.astype(float),
+                    vmin=0,
+                    vmax=1,
+                    interpolation="none",
+                    origin="lower",
+                    aspect="equal",
+                    zorder=2,
+                )
 
     def update_outlier_masks(self, outlier):
         for ax, img in self.outlier.items():
-            self.LOG.debug(f'Updating outlier mask to axis {ax}')
+            self.LOG.debug(f"Updating outlier mask to axis {ax}")
             img.set_data(outlier)
+
+    def add_odmr(self):
+        for ax, line in self.odmr:
+            if line is None:
+                pass
 
 
 class GlobalFluorescenceCanvas(PyQdmCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         super(GlobalFluorescenceCanvas, self).__init__(parent, width, height, dpi)
 
-        self.fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075,
-                                 right=0.925, hspace=0.28, wspace=0.899)
+        self.fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075, right=0.925, hspace=0.28, wspace=0.899)
 
         spec = self.fig.add_gridspec(ncols=6, nrows=2)
 
@@ -113,22 +137,16 @@ class GlobalFluorescenceCanvas(PyQdmCanvas):
 
         self.led = {self.led_ax: None}
         self.laser = {self.laser_ax: None}
-        self.odmr = {self.left_mean_odmr_ax: None,
-                     self.right_mean_odmr_ax: None}
-        self.cbar = {self.laser_ax: self.add_cax(self.laser_ax)}
+
+        self.odmr = {self.left_mean_odmr_ax: None, self.right_mean_odmr_ax: None}
+
+        self.cax = {self.laser_ax: [*self.add_cax(self.laser_ax), None]}  # entries are cax, original_locator, img
 
 
 class FittingPropertyCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=5, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(
-            top=0.966,
-            bottom=0.06,
-            left=0.056,
-            right=0.985,
-            hspace=0.325,
-            wspace=1.0
-        )
+        fig.subplots_adjust(top=0.966, bottom=0.06, left=0.056, right=0.985, hspace=0.325, wspace=1.0)
 
         self.fig = fig
 
@@ -140,27 +158,27 @@ class FittingPropertyCanvas(FigureCanvas):
         self.original_cax_locator = self.cax._axes_locator
 
         self.led_ax = fig.add_subplot(spec[0, 4:])
-        self.led_ax.set_title('reflected light')
-        self.led_ax.set_xlabel('px')
-        self.led_ax.set_ylabel('px')
+        self.led_ax.set_title("reflected light")
+        self.led_ax.set_xlabel("px")
+        self.led_ax.set_ylabel("px")
 
         self.laser_ax = fig.add_subplot(spec[1, 4:])
-        self.laser_ax.set_title('laser')
-        self.laser_ax.set_xlabel('px')
-        self.laser_ax.set_ylabel('px')
+        self.laser_ax.set_title("laser")
+        self.laser_ax.set_xlabel("px")
+        self.laser_ax.set_ylabel("px")
 
         self.main_ax.get_shared_x_axes().join(self.main_ax, self.led_ax, self.laser_ax)
         self.main_ax.get_shared_y_axes().join(self.main_ax, self.led_ax, self.laser_ax)
 
         self.left_ODMR_ax = fig.add_subplot(spec[2, :3])
-        self.left_ODMR_ax.set_title('low freq. ODMR')
-        self.left_ODMR_ax.set_xlabel('frequency [GHz]')
-        self.left_ODMR_ax.set_ylabel('contrast [a.u.]')
+        self.left_ODMR_ax.set_title("low freq. ODMR")
+        self.left_ODMR_ax.set_xlabel("frequency [GHz]")
+        self.left_ODMR_ax.set_ylabel("contrast [a.u.]")
 
         self.right_ODMR_ax = fig.add_subplot(spec[2, 3:])
-        self.right_ODMR_ax.set_title('high freq. ODMR')
-        self.right_ODMR_ax.set_xlabel('frequency [GHz]')
-        self.right_ODMR_ax.set_ylabel('contrast [a.u.]')
+        self.right_ODMR_ax.set_title("high freq. ODMR")
+        self.right_ODMR_ax.set_xlabel("frequency [GHz]")
+        self.right_ODMR_ax.set_ylabel("contrast [a.u.]")
 
         self._is_spectra = [self.left_ODMR_ax, self.right_ODMR_ax]
         self._is_data = [self.main_ax]
@@ -169,17 +187,14 @@ class FittingPropertyCanvas(FigureCanvas):
 
 
 class GlobalFluorescenceCanvasOLD(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075,
-                            right=0.925, hspace=0.28, wspace=0.899)
+        fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075, right=0.925, hspace=0.28, wspace=0.899)
 
         self.fig = fig
         widths = [1, 1, 1, 1, 1, 1]
         heights = [1, 1]
-        spec = fig.add_gridspec(ncols=6, nrows=2, width_ratios=widths,
-                                height_ratios=heights)
+        spec = fig.add_gridspec(ncols=6, nrows=2, width_ratios=widths, height_ratios=heights)
 
         self.left_meanODMR_ax = fig.add_subplot(spec[0, :3])
         self.right_meanODMR_ax = fig.add_subplot(spec[0, 3:6])
@@ -193,23 +208,14 @@ class GlobalFluorescenceCanvasOLD(FigureCanvas):
 
 
 class FluorescenceCanvas(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(
-            top=0.963,
-            bottom=0.064,
-            left=0.099,
-            right=0.982,
-            hspace=0.355,
-            wspace=0.253
-        )
+        fig.subplots_adjust(top=0.963, bottom=0.064, left=0.099, right=0.982, hspace=0.355, wspace=0.253)
 
         self.fig = fig
         widths = [1, 1]
         heights = [1, 1, 1, 0.1]
-        spec = fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths,
-                                height_ratios=heights)
+        spec = fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
 
         self.lowF_meanODMR_ax = fig.add_subplot(spec[0, 0])
         self.highF_meanODMR_ax = fig.add_subplot(spec[0, 1])
@@ -220,22 +226,22 @@ class FluorescenceCanvas(FigureCanvas):
         self.fluo_highF_neg_ax = fig.add_subplot(spec[2, 1])
         self.cbar_ax = fig.add_subplot(spec[3, :])
 
-        self.fluo_lowF_pos_ax.get_shared_x_axes().join(self.fluo_lowF_pos_ax,
-                                                       *[self.fluo_lowF_pos_ax, self.fluo_lowF_neg_ax,
-                                                         self.fluo_highF_neg_ax, self.fluo_highF_pos_ax])
-        self.fluo_lowF_pos_ax.get_shared_y_axes().join(self.fluo_lowF_pos_ax,
-                                                       *[self.fluo_lowF_pos_ax, self.fluo_lowF_neg_ax,
-                                                         self.fluo_highF_neg_ax, self.fluo_highF_pos_ax])
+        self.fluo_lowF_pos_ax.get_shared_x_axes().join(
+            self.fluo_lowF_pos_ax,
+            *[self.fluo_lowF_pos_ax, self.fluo_lowF_neg_ax, self.fluo_highF_neg_ax, self.fluo_highF_pos_ax],
+        )
+        self.fluo_lowF_pos_ax.get_shared_y_axes().join(
+            self.fluo_lowF_pos_ax,
+            *[self.fluo_lowF_pos_ax, self.fluo_lowF_neg_ax, self.fluo_highF_neg_ax, self.fluo_highF_pos_ax],
+        )
 
         super(FluorescenceCanvas, self).__init__(fig)
 
 
 class SimpleCanvas(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100, cax=True):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(top=0.97, bottom=0.055, left=0.075,
-                            right=0.925, hspace=0.28, wspace=0.23)
+        fig.subplots_adjust(top=0.97, bottom=0.055, left=0.075, right=0.925, hspace=0.28, wspace=0.23)
 
         self.fig = fig
         self.ax = fig.add_subplot(111)
@@ -256,41 +262,33 @@ class SimpleCanvas(FigureCanvas):
 
 
 class QualityCanvas(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi, tight_layout=False)
-        fig.subplots_adjust(
-            top=0.94,
-            bottom=0.054,
-            left=0.038,
-            right=0.957,
-            hspace=0.15,
-            wspace=0.167
-        )
+        fig.subplots_adjust(top=0.94, bottom=0.054, left=0.038, right=0.957, hspace=0.15, wspace=0.167)
 
         self.fig = fig
         widths = [1, 1]
         heights = [1, 1]
-        spec = fig.add_gridspec(ncols=2, nrows=2, width_ratios=widths,
-                                height_ratios=heights)
+        spec = fig.add_gridspec(ncols=2, nrows=2, width_ratios=widths, height_ratios=heights)
 
         self.left_top_ax = fig.add_subplot(spec[0, 0])
         self.right_top_ax = fig.add_subplot(spec[0, 1])
         self.left_bottom_ax = fig.add_subplot(spec[1, 0])
         self.right_bottom_ax = fig.add_subplot(spec[1, 1])
 
-        self.left_top_ax.get_shared_x_axes().join(self.left_top_ax, self.left_bottom_ax, self.right_top_ax,
-                                                  self.right_bottom_ax)
-        self.left_top_ax.get_shared_y_axes().join(self.left_top_ax, self.left_bottom_ax, self.right_top_ax,
-                                                  self.right_bottom_ax)
+        self.left_top_ax.get_shared_x_axes().join(
+            self.left_top_ax, self.left_bottom_ax, self.right_top_ax, self.right_bottom_ax
+        )
+        self.left_top_ax.get_shared_y_axes().join(
+            self.left_top_ax, self.left_bottom_ax, self.right_top_ax, self.right_bottom_ax
+        )
 
-        self.ax = np.array([[self.left_top_ax, self.right_top_ax], [
-            self.left_bottom_ax, self.right_bottom_ax]])
+        self.ax = np.array([[self.left_top_ax, self.right_top_ax], [self.left_bottom_ax, self.right_bottom_ax]])
         self._is_img = self.ax.flatten()
         self._is_spectra = []
 
         for a in self.ax.flatten():
-            a.set(xlabel='px', ylabel='px')
+            a.set(xlabel="px", ylabel="px")
 
         self.caxes = np.array([[None, None], [None, None]])
         self.original_cax_locator = np.array([[None, None], [None, None]])
@@ -299,13 +297,12 @@ class QualityCanvas(FigureCanvas):
             # create an axes on the right side of ax. The width of cax will be 5%
             # of ax and the padding between cax and ax will be fixed at 0.05 inch.
             divider = make_axes_locatable(self.ax[p][f])
-            self.caxes[p][f] = divider.append_axes(
-                "right", size="5%", pad=0.05)
+            self.caxes[p][f] = divider.append_axes("right", size="5%", pad=0.05)
             self.original_cax_locator[p][f] = self.caxes[p][f]._axes_locator
 
         super(QualityCanvas, self).__init__(fig)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     c = GlobalFluorescenceCanvas()
-    print('c:', c.data_axes)
+    print("c:", c.data_axes)

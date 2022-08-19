@@ -58,7 +58,7 @@ class QDM:
     def __init__(
         self,
         ODMRobj,
-        led,
+        light,
         laser,
         working_directory,
         diamond_type=None,
@@ -82,7 +82,7 @@ class QDM:
         self._constraints = {}
         self._outliers = None
 
-        self.led = led
+        self.light = light
         self.laser = laser
 
         self._B111 = None
@@ -195,15 +195,15 @@ class QDM:
         self._construct_initial_guess()
 
     def _check_bin_factor(self):
-        bin_factors = self.led.shape / self.odmr.scan_dimensions
+        bin_factors = self.light.shape / self.odmr.scan_dimensions
 
-        if np.all(self.ODMRobj._scan_dimensions != self.led.shape):
+        if np.all(self.ODMRobj._scan_dimensions != self.light.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.ODMRobj._scan_dimensions}) and LED ({self.led.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+                f"Scan dimensions of ODMR ({self.ODMRobj._scan_dimensions}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
             )
             # set the true bin factor
             self.ODMRobj._pre_bin_factor = bin_factors[0]
-            self.ODMRobj._scan_dimensions = np.array(self.led.shape)
+            self.ODMRobj._scan_dimensions = np.array(self.light.shape)
 
     @property
     def odmr(self):
@@ -294,18 +294,18 @@ class QDM:
         Loads QDM data from a Matlab file.
         """
         files = os.listdir(data_folder)
-        led_files = [f for f in files if "led" in f.lower()]
+        light_files = [f for f in files if "led" in f.lower()]
         laser_files = [f for f in files if "laser" in f.lower()]
-        cls.LOG.info(f"Reading {len(led_files)} led, {len(laser_files)} laser files.")
+        cls.LOG.info(f"Reading {len(light_files)} led, {len(laser_files)} laser files.")
 
         try:
             odmr_obj = ODMR.from_qdmio(data_folder=data_folder)
-            led = get_image(data_folder, led_files)
+            light = get_image(data_folder, light_files)
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
             raise CantImportError(f'Cannot import QDM data from "{data_folder}"') from e
 
-        return cls(odmr_obj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder)
+        return cls(odmr_obj, light=light, laser=laser, diamond_type=diamond_type, working_directory=data_folder)
 
     def bin_data(self, bin_factor):
         """
@@ -340,7 +340,7 @@ class QDM:
         chi_squares = self.ODMRobj.reshape_data(self._chi_squares)
         chi2_pos1, chi2_pos2 = chi_squares[0]
         chi2_neg1, chi2_neg2 = chi_squares[1]
-        led_img = self.led
+        led_img = self.light
         laser_img = self.laser
         pixel_alerts = np.zeros(b111_remanent.shape)
 
@@ -776,7 +776,7 @@ class QDM:
         if ref == "data":
             idx = rc2idx(rc, self.scan_dimensions)
         elif ref == "img":
-            idx = rc2idx(rc, self.led.shape)
+            idx = rc2idx(rc, self.light.shape)
         else:
             raise ValueError(f"Reference {ref} not supported.")
         return idx
@@ -796,7 +796,7 @@ class QDM:
         if ref == "data":
             rc = idx2rc(idx, self.scan_dimensions)
         elif ref == "img":
-            rc = idx2rc(idx, self.led.shape)
+            rc = idx2rc(idx, self.light.shape)
         else:
             raise ValueError(f"Reference {ref} not supported.")
         return rc

@@ -122,13 +122,13 @@ class FitWindow(PyQdmWindow):
             self.data_img.set_data(d)
             self.data_img.set(norm=colors.TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=vcenter))
 
-        self.canvas.cax.clear()
-        self.canvas.cax.set_axes_locator(self.canvas.original_cax_locator)
+        self.canvas.cbar.clear()
+        self.canvas.cbar.set_axes_locator(self.canvas.original_cax_locator)
 
         # noinspection PyPep8
         self.data_cbar = plt.colorbar(
             self.data_img,
-            cax=self.canvas.cax,
+            cax=self.canvas.cbar,
             extend="both" if self.need_extend() else "neither",
             label=r"B$_{111}$ [$\mu$T]",
         )
