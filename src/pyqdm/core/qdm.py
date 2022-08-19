@@ -1,18 +1,18 @@
-import dataclasses
 import logging
 import os
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.ensemble import IsolationForest
 
-import pyqdm
 import matplotlib.pyplot as plt
 import numpy as np
-from pyqdm.core import fitting
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+
+import pyqdm
 from pyqdm import plotting
 from pyqdm import pygpufit_present
+from pyqdm.core import fitting
+from pyqdm.core.odmr import ODMR
 from pyqdm.exceptions import CantImportError, WrongFileNumber
 from pyqdm.utils import get_image, rc2idx, idx2rc
-from pyqdm.core.odmr import ODMR
 
 if pygpufit_present:
     import pygpufit.gpufit as gf
@@ -144,6 +144,8 @@ class QDM:
             data = self.B111_remanent.reshape(1, -1)
         elif dtype in self._fitting_params + self._fitting_params_unique:
             data = self.get_param(dtype, reshape=False)
+        else:
+            raise ValueError(f"dtype {dtype} not recognized")
 
         if method == 'LocalOutlierFactor':
             clf = LocalOutlierFactor(**outlier_props).fit(data)
@@ -254,12 +256,12 @@ class QDM:
         if "debug" in args:
             self.LOG.debug(f"Indices of peaks: {indices}")
             n = 0
-            for i in range(self.mean_odmr.shape[0]):
-                for j in range(self.mean_odmr.shape[1]):
-                    plt.plot(self.mean_odmr[i, j], color=f"C{n}")
+            for i in range(self.ODMRobj.mean_odmr.shape[0]):
+                for j in range(self.ODMRobj.mean_odmr.shape[1]):
+                    plt.plot(self.ODMRobj.mean_odmr[i, j], color=f"C{n}")
                     plt.plot(
                         indices[n],
-                        self.mean_odmr[i, j, indices[n]],
+                        self.ODMRobj.mean_odmr[i, j, indices[n]],
                         "X",
                         color=f"C{n}",
                         label=f"{n}: {len(indices[n])}",
@@ -271,7 +273,7 @@ class QDM:
 
         return n_peaks
 
-    ### from METHODS ###
+    ## from METHODS ##
     @classmethod
     def from_matlab(cls, matlab_files, dialect="QDM.io"):
         """
@@ -280,7 +282,7 @@ class QDM:
 
         match dialect:
             case "QDM.io":
-                return cls.from_matlab_QDM_io(matlab_files)
+                return cls.from_QDMio(matlab_files)
 
         raise NotImplementedError(
             'Dialect "{}" not implemented.'.format(dialect))
@@ -297,14 +299,14 @@ class QDM:
             f"Reading {len(led_files)} led, {len(laser_files)} laser files.")
 
         try:
-            odmr_obj = ODMR.from_QDMio(data_folder=data_folder)
+            odmr_obj = ODMR.from_qdmio(data_folder=data_folder)
             led = get_image(data_folder, led_files)
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
             raise CantImportError(
                 f'Cannot import QDM data from "{data_folder}"') from e
 
-        return cls(odmr_obj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder, **kwargs)
+        return cls(odmr_obj, led=led, laser=laser, diamond_type=diamond_type, working_directory=data_folder)
 
     def bin_data(self, bin_factor):
         """
@@ -318,7 +320,7 @@ class QDM:
         self.reset_constraints()  # resets the initial constraints with new dimensions
         self._initial_guess = None  # resets the initial guess
 
-    ### EXPORT METHODS ###
+    # EXPORT METHODS ###
     def export_QDMio(self, path_to_file=None):
         """
         Export the data to a QDM.io file. This is a Matlab file named B111dataToPlot.mat. With the following variables:
@@ -328,36 +330,36 @@ class QDM:
         """
         if path_to_file is None:
             path_to_file = os.path.join(
-                self.working_directory, f'{self._bin_factor}x{self._bin_factor}Binned')
+                self.working_directory, f'{self.ODMRobj._bin_factor}x{self.ODMRobj._bin_factor}Binned')
             if not os.path.exists(path_to_file):
                 self.LOG.warning(
                     f"Path does not exist, creating directory {path_to_file}")
                 os.makedirs(path_to_file)
 
-        negDiff, posDiff = self.delta_resonance
-        B111ferro, B111para = self.B111
-        chi_squares = self.reshape_data(self._chi_squares)
-        chi2Pos1, chi2Pos2 = chi_squares[0]
-        chi2Neg1, chi2Neg2 = chi_squares[1]
-        ledImg = self.led
-        laser = self.laser
-        pixelAlerts = np.zeros(B111ferro.shape)
+        neg_diff, pos_diff = self.delta_resonance
+        b111_remanent, b111_induced = self.B111
+        chi_squares = self.ODMRobj.reshape_data(self._chi_squares)
+        chi2_pos1, chi2_pos2 = chi_squares[0]
+        chi2_neg1, chi2_neg2 = chi_squares[1]
+        led_img = self.led
+        laser_img = self.laser
+        pixel_alerts = np.zeros(b111_remanent.shape)
 
-        return savemat(os.path.join(path_to_file, "B111dataToPlot.mat"), {'negDiff': negDiff,
-                                                                          'posDiff': posDiff,
-                                                                          'B111ferro': B111ferro,
-                                                                          'B111para': B111para,
-                                                                          'chi2Pos1': chi2Pos1,
-                                                                          'chi2Pos2': chi2Pos2,
-                                                                          'chi2Neg1': chi2Neg1,
-                                                                          'chi2Neg2': chi2Neg2,
-                                                                          'ledImg': ledImg,
-                                                                          'laser': laser,
-                                                                          'pixelAlerts': pixelAlerts,
-                                                                          'bin_factor': self._bin_factor,
+        return savemat(os.path.join(path_to_file, "B111dataToPlot.mat"), {'negDiff': neg_diff,
+                                                                          'posDiff': pos_diff,
+                                                                          'B111ferro': b111_remanent,
+                                                                          'B111para': b111_induced,
+                                                                          'chi2Pos1': chi2_pos1,
+                                                                          'chi2Pos2': chi2_pos2,
+                                                                          'chi2Neg1': chi2_neg1,
+                                                                          'chi2Neg2': chi2_neg2,
+                                                                          'ledImg': led_img,
+                                                                          'laser': laser_img,
+                                                                          'pixelAlerts': pixel_alerts,
+                                                                          'bin_factor': self.bin_factor,
                                                                           'pyqdm_version': pyqdm.__version__})
 
-    ### FITTING ###
+    # FITTING ##
     @property
     def _fitting_params(self):
         return self.FIT_PARAMETER[self.FIT_TYPES[self._diamond_type]]
@@ -366,7 +368,7 @@ class QDM:
         """
         Guess the center of the ODMR spectra.
         """
-        center = fitting.guess_center(self.ODMRobj.data, self.ODMRobj.f_GHz)
+        center = fitting.guess_center(self.ODMRobj.data, self.ODMRobj.f_ghz)
         self.LOG.debug(
             f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
         )
@@ -385,7 +387,7 @@ class QDM:
         """
         Guess the width of the ODMR spectra.
         """
-        width = fitting.guess_width(self.ODMRobj.data, self.ODMRobj.f_GHz)
+        width = fitting.guess_width(self.ODMRobj.data, self.ODMRobj.f_ghz)
         self.LOG.debug(f"Guessing width of ODMR spectra {width.shape}.")
         return width
 
@@ -402,23 +404,21 @@ class QDM:
         """
         Constructs an initial guess for the fit.
         """
-        fit_type = self.FIT_TYPES[self._diamond_type]
         fit_parameter = []
 
         for p in self._fitting_params:
             param = getattr(self, f"_guess_{p}")()
             fit_parameter.append(param)
 
-        fit_parameter = np.stack(fit_parameter, axis=param.ndim)
-        self._initial_guess = np.ascontiguousarray(
-            fit_parameter, dtype=np.float32)
+        fit_parameter = np.stack(fit_parameter, axis=fit_parameter[-1].ndim)
+        self._initial_guess = np.ascontiguousarray(fit_parameter, dtype=np.float32)
 
-    def correct_glob_fluorescence(self, gf):
+    def correct_glob_fluorescence(self, glob_fluo):
         """
         Corrects the global fluorescence.
         """
-        self.LOG.debug(f"Correcting global fluorescence {gf}.")
-        self.ODMRobj.correct_glob_fluorescence(gf)
+        self.LOG.debug(f"Correcting global fluorescence {glob_fluo}.")
+        self.ODMRobj.correct_glob_fluorescence(glob_fluo)
         self._construct_initial_guess()
 
     @property
@@ -547,7 +547,7 @@ class QDM:
             # fit the data
             p, s, c, n, t = gf.fit_constrained(
                 data=data,
-                user_info=self.ODMRobj.f_GHz[i].astype(np.float32),
+                user_info=self.ODMRobj.f_ghz[i].astype(np.float32),
                 constraints=self.constraints_array,
                 constraint_types=self.constraint_types,
                 weights=None,
@@ -573,8 +573,7 @@ class QDM:
             parameters, self.ODMRobj.n_pol, self.ODMRobj.n_frange)
 
         # check if the reshaping is correct
-        assert np.all(parameters[0, 1] ==
-                      p[:int(p.shape[0] / self.ODMRobj.n_pol)])
+        assert np.all(parameters[0, 1] == p[:int(p.shape[0] / self.ODMRobj.n_pol)])
 
         # reshape the states and chi_squares
         shape = (self.ODMRobj.n_pol, self.ODMRobj.n_frange,
@@ -701,7 +700,7 @@ class QDM:
         """
         return self.get_param('offset')
 
-    ### QUALITY CHECKS ###
+    # QUALITY CHECKS ###
 
     def median_fit(self):
         """
@@ -715,7 +714,7 @@ class QDM:
         """
         return np.std(self._fitted_parameter.reshape((self._fitted_parameter.shape[0], -1)), axis=1)
 
-    ### CALCULATIONS ###
+    # CALCULATIONS ###
     @property
     def delta_resonance(self):
         """
@@ -753,8 +752,7 @@ class QDM:
         """
         return self.B111[1]
 
-    ### PLOTTING ###
-
+    # PLOTTING
     def rc2idx(self, rc, ref='data'):
         """
         Convert the xy coordinates to the index of the data.
@@ -769,6 +767,8 @@ class QDM:
             idx = rc2idx(rc, self.scan_dimensions)
         elif ref == 'img':
             idx = rc2idx(rc, self.led.shape)
+        else:
+            raise ValueError(f"Reference {ref} not supported.")
         return idx
 
     def idx2rc(self, idx, ref='data'):
@@ -787,6 +787,8 @@ class QDM:
             rc = idx2rc(idx, self.scan_dimensions)
         elif ref == 'img':
             rc = idx2rc(idx, self.led.shape)
+        else:
+            raise ValueError(f"Reference {ref} not supported.")
         return rc
 
     def plot_fluorescence(self, f_idx=10):
@@ -794,22 +796,6 @@ class QDM:
         Plot the fluorescence of a given (idx) frequency.
         """
         plotting.plot_fluorescence(self, f_idx)
-
-    def widget_fluorescence(self):
-        """
-        Interactive jupyter widget for the fluorescence plot.
-        """
-        widgets.interact(
-            self.plot_fluorescence,
-            x=widgets.IntSlider(
-                min=0,
-                max=self.n_freqs - 1,
-                step=1,
-                value=10,
-                orientation="horizontal",
-                width=9,
-            ),
-        )
 
     def plot_parameter(self, param, save=False):
         """
@@ -824,20 +810,11 @@ class QDM:
         f, ax = plotting.check_fit_pixel(self, idx)
         return f, ax
 
-    def widget_fits(self):
-        widgets.interact(
-            self.plot_fits,
-            idx=widgets.IntSlider(
-                min=0,
-                max=self.ODMRobj.n_pixel - 1,
-                step=1,
-                value=10,
-                orientation="horizontal",
-                width=20,
-            ),
-        )
+
+from dataclasses import dataclass
 
 
+@dataclass
 class fit:
     _parameter = None
     _fitted_parameter = None

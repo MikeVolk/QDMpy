@@ -1,4 +1,5 @@
-Python binding for the [Gpufit library](https://github.com/gpufit/Gpufit) which implements Levenberg Marquardt curve fitting in CUDA
+Python binding for the [Gpufit library](https://github.com/gpufit/Gpufit) which implements Levenberg Marquardt curve
+fitting in CUDA
 
 Requirements
 

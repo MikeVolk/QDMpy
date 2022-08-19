@@ -1,5 +1,5 @@
 import numpy as np
-from pyqdm.utils import double_norm
+
 FIT_PARAMETER = {'GAUSS_1D': ['contrast', 'center', 'width', 'offset'],
                  'ESR14N': ['center', 'width', 'contrast', 'contrast', 'contrast', 'offset'],
                  'ESR15N': ['center', 'width', 'contrast', 'contrast', 'offset'],
@@ -19,6 +19,7 @@ def guess_contrast(data):
     mn = np.nanmin(data, axis=-1)
     amp = np.abs(((mx - mn) / mx))
     return amp * 0.9
+
 
 def guess_center(data, freq):
     """
@@ -102,4 +103,3 @@ def guess_center_freq_single(data, freq):
     data /= np.expand_dims(np.max(data, axis=-1), axis=2)
     idx = np.argmin(np.abs(data - 0.5), axis=-1)
     return freq[idx]
-

@@ -1,15 +1,19 @@
 import os
-from pyqdm import projectdir
+
 from PySide6.QtWidgets import (
-    QLabel, QDialog, QDialogButtonBox, QProgressDialog,
-    QVBoxLayout
+    QLabel, QDialog, QDialogButtonBox, QVBoxLayout
 )
+
+from pyqdm import projectdir
+
+
 #
 # class progressDialog(QProgressDialog):
 #     super().__init__()
 #     self.maximum = 0
 #     self.minimum = 0
 
+# noinspection PyUnresolvedReferences
 class pyGPUfitNotInstalledDialog(QDialog):
     def __init__(self):
         super().__init__()

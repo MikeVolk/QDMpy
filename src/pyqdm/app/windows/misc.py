@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QMessageBox
 )
 
-def GFAppliedWindow(value):
+def gf_applied_window(value):
     dlg = QMessageBox()
     dlg.setWindowTitle("Global fluorescence correction")
     dlg.setText(f"Global fluorescence correction of {value} applied")

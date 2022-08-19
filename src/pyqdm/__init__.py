@@ -16,7 +16,6 @@ sys.path.append(projectdir)
 
 from utils import set_path, load_config
 
-
 logging_conf = Path(projectdir, "logging.conf")
 
 fileConfig(logging_conf)

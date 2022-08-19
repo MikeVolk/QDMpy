@@ -23,7 +23,7 @@ from pyqdm.core.qdm import QDM
 from pyqdm.exceptions import CantImportError
 
 from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
-from pyqdm.app.windows.misc import GFAppliedWindow
+from pyqdm.app.windows.misc import gf_applied_window
 from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
 from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
 from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
@@ -675,7 +675,7 @@ class PyQDMMainWindow(QMainWindow):
         self.LOG.debug("GF Apply Button clicked")
         self.QDMObj.correct_glob_fluorescence(self.gf_select.value())
         if not self.debug:
-            GFAppliedWindow(self.gf_select.value())
+            gf_applied_window(self.gf_select.value())
 
     def on_gf_changed(self):
         self.LOG.debug(f"GF changed to {self.gf_select.value()}")
@@ -783,7 +783,7 @@ class PyQDMMainWindow(QMainWindow):
 
 
 class PandasWidget(QGroupBox):
-    def __init__(self, caller, pd, title='Outliers', parent=None):
+    def __init__(self, caller, pdd, title='Outliers', parent=None):
         super().__init__(parent)
         v_layout = QVBoxLayout(self)
         self.setTitle(title)
@@ -793,16 +793,16 @@ class PandasWidget(QGroupBox):
         v_layout.addWidget(self.pandasTv)
         self.pandasTv.setSortingEnabled(True)
 
-        model = PandasModel(pd)
+        model = PandasModel(pdd)
         self.pandasTv.setModel(model)
         self.pandasTv.resizeColumnsToContents()
         self.pandasTv.setSelectionBehavior(QAbstractItemView.SelectRows)
         selection = self.pandasTv.selectionModel()
-        selection.selectionChanged.connect(self.handleSelectionChanged)
+        selection.selectionChanged.connect(self.handle_selection_changed)
         self.resize(150, 200)
         self.setContentsMargins(0, 0, 0, 0)
 
-    def handleSelectionChanged(self):
+    def handle_selection_changed(self):
         for index in self.pandasTv.selectionModel().selectedRows():
             self.caller.set_current_idx(idx=int(index.data()))
             self.caller.update_marker()
@@ -846,4 +846,4 @@ def main(**kwargs):
 
 
 if __name__ == '__main__':
-    main(debug=True)
+    main(debug=False)

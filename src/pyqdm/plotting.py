@@ -1,5 +1,5 @@
 import itertools
-import matplotlib.colors as colors
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,9 +10,10 @@ CONTRAST_LABEL = 'c [%]'
 
 
 def check_fit_pixel(qdm_obj, idx):
+    # noinspection PyTypeChecker
     f, ax = plt.subplots(1, 2, figsize=(10, 4), sharex=False, sharey=True)
     polarities = ['+', '-']
-    model = [None, models.ESRSINGLE, models.ESR15N, models.ESR14N][qdm_obj._diamond_type]
+    model = [None, models.esr_single, models.esr_15n, models.esr_14n][qdm_obj._diamond_type]
     print(f'IDX: {idx}, Model: {model.__name__}')
     lst = ['pol/side'] + qdm_obj._fitting_params + ['chi2']
     header = ' '.join([f'{i:>8s}' for i in lst])
@@ -20,12 +21,12 @@ def check_fit_pixel(qdm_obj, idx):
     print('-' * 100)
 
     for p, f in itertools.product(range(qdm_obj.ODMRobj.n_pol), range(qdm_obj.ODMRobj.n_frange)):
-        f_new = np.linspace(min(qdm_obj.ODMRobj.f_GHz[f]), max(qdm_obj.ODMRobj.f_GHz[f]), 200)
+        f_new = np.linspace(min(qdm_obj.ODMRobj.f_ghz[f]), max(qdm_obj.ODMRobj.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.initial_guess[p, f, [idx]], x=f_new)
         m_fit = model(parameter=qdm_obj._fitted_parameter[p, f, [idx]], x=f_new)
 
-        ax[f].plot(qdm_obj.ODMRobj.f_GHz[f], qdm_obj.ODMRobj.data[p, f, [idx]][0], 'k', marker=['o', '^'][p],
+        ax[f].plot(qdm_obj.ODMRobj.f_ghz[f], qdm_obj.ODMRobj.data[p, f, [idx]][0], 'k', marker=['o', '^'][p],
                    markersize=5,
                    mfc='w',
                    label=f'data: {polarities[p]}', ls='')
@@ -61,6 +62,7 @@ def plot_fit_params(qdm_obj, param, save=False):
               'contrast_2': CONTRAST_LABEL,
               'chi2': 'chi$^2$'}
 
+    # noinspection PyTypeChecker
     f, ax = plt.subplots(2, 2, figsize=(15, 8), sharex=True, sharey=True)
     f.suptitle(f'{param}')
 
@@ -95,10 +97,11 @@ def plot_fit_params(qdm_obj, param, save=False):
 
 
 def plot_fluorescence(qdm_obj, f_idx):
+    # noinspection PyTypeChecker
     f, ax = plt.subplots(2, 2, figsize=(9, 5), sharex=True, sharey=True)
     f.suptitle(f'Fluorescence of frequency '
-               f'({qdm_obj.ODMRobj.f_GHz[0, f_idx]:.5f};'
-               f'{qdm_obj.ODMRobj.f_GHz[1, f_idx]:.5f}) GHz')
+               f'({qdm_obj.ODMRobj.f_ghz[0, f_idx]:.5f};'
+               f'{qdm_obj.ODMRobj.f_ghz[1, f_idx]:.5f}) GHz')
 
     vmin = np.min(qdm_obj.ODMRobj.data)
     vmax = 1
@@ -120,7 +123,7 @@ def plot_fluorescence(qdm_obj, f_idx):
     for i, j in itertools.product(range(qdm_obj.ODMRobj.n_pol), range(qdm_obj.ODMRobj.n_frange)):
         a = ax[i, j]
         a.set_title('B$^%s_\mathrm{%sf}$' % (pol[i], side[j]))
-        a.text(0.0, 1, f'{qdm_obj.ODMRobj.f_GHz[j, f_idx]:.5f} GHz',
+        a.text(0.0, 1, f'{qdm_obj.ODMRobj.f_ghz[j, f_idx]:.5f} GHz',
                va='bottom', ha='left',
                transform=a.transAxes,
                color='k', zorder=100)

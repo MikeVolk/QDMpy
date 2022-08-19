@@ -3,7 +3,6 @@ repos:
     rev: v4.0.1
     hooks:
       - id: check-ast
-      - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-docstring-first

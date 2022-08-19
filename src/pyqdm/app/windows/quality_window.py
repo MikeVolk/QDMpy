@@ -1,11 +1,11 @@
 import numpy as np
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QComboBox
-from pyqdm.app.windows.pyqdm_plot_window import pyqdmWindow
+from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 from pyqdm.app.canvas import QualityCanvas
 from matplotlib import pyplot as plt, colors
 
 
-class QualityWindow(pyqdmWindow):
+class QualityWindow(PyQdmWindow):
     TITLES = {'center': 'f$_{\mathrm{resonance}}$',
               'contrast': '$\sigma$contrast',
               'contrast_0': 'contrast$_0$',
@@ -66,7 +66,7 @@ class QualityWindow(pyqdmWindow):
             d = im.get_array()
             vmin, vmax = np.min(d), np.max(d)
 
-            if self.fixClimCheckBox.isChecked():
+            if self.fix_clim_check_box.isChecked():
                 vmin, vmax = np.percentile(d, [100 - self.cLimSelector.value(), self.cLimSelector.value()])
 
             im.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
@@ -76,7 +76,7 @@ class QualityWindow(pyqdmWindow):
             cax.set_axes_locator(self.canvas.original_cax_locator.flatten()[i])
 
             plt.colorbar(im, cax=cax,
-                         extend='both' if self.fixClimCheckBox.isChecked() else 'neither',
+                         extend='both' if self.fix_clim_check_box.isChecked() else 'neither',
                          label=self.UNITS[self.dataSelect.currentText()])
             self.canvas.draw()
 
