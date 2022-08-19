@@ -7,8 +7,8 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
 import pyqdm
+import pyqdm.core.fit
 from pyqdm import plotting, pygpufit_present
-from pyqdm.core import fitting
 from pyqdm.core.odmr import ODMR
 from pyqdm.exceptions import CantImportError, WrongFileNumber
 from pyqdm.utils import get_image, idx2rc, rc2idx
@@ -71,10 +71,10 @@ class QDM:
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {ODMRobj.data.shape}")
         self.LOG.debug(f"                      scan_dimensions: {ODMRobj.scan_dimensions}")
-        self.LOG.debug(f"                      frequencies: {ODMRobj.frequencies.shape}")
+        self.LOG.debug(f"                      frequencies: {ODMRobj.f_ghz.shape}")
         self.LOG.debug(f"                      n_freqs: {ODMRobj.n_freqs}")
 
-        self.ODMRobj = ODMRobj
+        self.odmr = ODMRobj
         self._initial_guess = None
 
         self._fitted = False
@@ -175,7 +175,7 @@ class QDM:
 
     @property
     def bin_factor(self):
-        return self.ODMRobj.bin_factor
+        return self.odmr.bin_factor
 
     def diamond_type(self):
         """
@@ -197,17 +197,13 @@ class QDM:
     def _check_bin_factor(self):
         bin_factors = self.light.shape / self.odmr.scan_dimensions
 
-        if np.all(self.ODMRobj._scan_dimensions != self.light.shape):
+        if np.all(self.odmr._scan_dimensions != self.light.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.ODMRobj._scan_dimensions}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+                f"Scan dimensions of ODMR ({self.odmr._scan_dimensions}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
             )
             # set the true bin factor
-            self.ODMRobj._pre_bin_factor = bin_factors[0]
-            self.ODMRobj._scan_dimensions = np.array(self.light.shape)
-
-    @property
-    def odmr(self):
-        return self.ODMRobj
+            self.odmr._pre_bin_factor = bin_factors[0]
+            self.odmr._scan_dimensions = np.array(self.light.shape)
 
     @property
     def fitted(self):
@@ -229,7 +225,7 @@ class QDM:
 
     @property
     def scan_dimensions(self):
-        return self.ODMRobj.scan_dimensions
+        return self.odmr.scan_dimensions
 
     def guess_diamond_type(self, *args):
         """
@@ -242,9 +238,9 @@ class QDM:
         indices = []
 
         # Find the indices of the peaks
-        for p in range(self.ODMRobj.n_pol - 1):
-            for f in range(self.ODMRobj.n_frange - 1):
-                peaks = find_peaks(-self.ODMRobj.mean_odmr[p, f], prominence=0.003)
+        for p in range(self.odmr.n_pol - 1):
+            for f in range(self.odmr.n_frange - 1):
+                peaks = find_peaks(-self.odmr.mean_odmr[p, f], prominence=0.003)
                 indices.append(peaks[0])
 
         n_peaks = int(np.round(np.mean([len(idx) for idx in indices])))
@@ -259,12 +255,12 @@ class QDM:
         if "debug" in args:
             self.LOG.debug(f"Indices of peaks: {indices}")
             n = 0
-            for i in range(self.ODMRobj.mean_odmr.shape[0]):
-                for j in range(self.ODMRobj.mean_odmr.shape[1]):
-                    plt.plot(self.ODMRobj.mean_odmr[i, j], color=f"C{n}")
+            for i in range(self.odmr.mean_odmr.shape[0]):
+                for j in range(self.odmr.mean_odmr.shape[1]):
+                    plt.plot(self.odmr.mean_odmr[i, j], color=f"C{n}")
                     plt.plot(
                         indices[n],
-                        self.ODMRobj.mean_odmr[i, j, indices[n]],
+                        self.odmr.mean_odmr[i, j, indices[n]],
                         "X",
                         color=f"C{n}",
                         label=f"{n}: {len(indices[n])}",
@@ -336,7 +332,7 @@ class QDM:
         if path_to_file is None:
             path_to_file = os.path.join(
                 self.working_directory,
-                f"{self.ODMRobj._bin_factor}x{self.ODMRobj._bin_factor}Binned",
+                f"{self.odmr._bin_factor}x{self.odmr._bin_factor}Binned",
             )
             if not os.path.exists(path_to_file):
                 self.LOG.warning(f"Path does not exist, creating directory {path_to_file}")
@@ -344,7 +340,7 @@ class QDM:
 
         neg_diff, pos_diff = self.delta_resonance
         b111_remanent, b111_induced = self.B111
-        chi_squares = self.ODMRobj.reshape_data(self._chi_squares)
+        chi_squares = self.odmr.reshape_data(self._chi_squares)
         chi2_pos1, chi2_pos2 = chi_squares[0]
         chi2_neg1, chi2_neg2 = chi_squares[1]
         led_img = self.light
@@ -379,7 +375,7 @@ class QDM:
         """
         Guess the center of the ODMR spectra.
         """
-        center = fitting.guess_center(self.ODMRobj.data, self.ODMRobj.f_ghz)
+        center = pyqdm.core.fit.guess_center(self.odmr.data, self.odmr.f_ghz)
         self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
         return center
 
@@ -387,7 +383,7 @@ class QDM:
         """
         Guess the contrast of the ODMR spectra.
         """
-        contrast = fitting.guess_contrast(self.ODMRobj.data)
+        contrast = pyqdm.core.fit.guess_contrast(self.odmr.data)
         self.LOG.debug(f"Guessing contrast of ODMR spectra {contrast.shape}.")
         # np.ones((self.n_pol, self.n_frange, self.n_pixel)) * 0.03
         return contrast
@@ -396,7 +392,7 @@ class QDM:
         """
         Guess the width of the ODMR spectra.
         """
-        width = fitting.guess_width(self.ODMRobj.data, self.ODMRobj.f_ghz)
+        width = pyqdm.core.fit.guess_width(self.odmr.data, self.odmr.f_ghz)
         self.LOG.debug(f"Guessing width of ODMR spectra {width.shape}.")
         return width
 
@@ -404,7 +400,7 @@ class QDM:
         """
         Guess the offset from 0 of the ODMR spectra. Usually this is 1
         """
-        offset = np.zeros((self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel))
+        offset = np.zeros((self.odmr.n_pol, self.odmr.n_frange, self.odmr.n_pixel))
         self.LOG.debug(f"Guessing offset {offset.shape}")
         return offset
 
@@ -426,12 +422,12 @@ class QDM:
         Corrects the global fluorescence.
         """
         self.LOG.debug(f"Correcting global fluorescence {glob_fluo}.")
-        self.ODMRobj.correct_glob_fluorescence(glob_fluo)
+        self.odmr.correct_glob_fluorescence(glob_fluo)
         self._construct_initial_guess()
 
     @property
     def global_factor(self):
-        return self.ODMRobj.global_factor
+        return self.odmr.global_factor
 
     @property
     def constraints(self):
@@ -454,7 +450,7 @@ class QDM:
 
         :return: np.array
         """
-        constraints = np.zeros((self.ODMRobj.n_pixel * 2, 2 * len(self._fitting_params)), dtype=np.float32)
+        constraints = np.zeros((self.odmr.n_pixel * 2, 2 * len(self._fitting_params)), dtype=np.float32)
 
         constraints_list = []
         for k in self._fitting_params_unique:
@@ -513,7 +509,7 @@ class QDM:
         """
         Set the initial constraints for the fit.
         """
-        default_constraints = pyqdm.config["default_fitconstraints"]
+        default_constraints = pyqdm.settings["default_fitconstraints"]
         self.set_constraints(
             "center",
             [default_constraints["center_min"], default_constraints["center_max"]],
@@ -564,15 +560,15 @@ class QDM:
         # calculate the fit for each f_range -> 1st dimension is f_range not n_pol
         # needs to be swapped later
 
-        for i in np.arange(0, self.ODMRobj.n_frange):
+        for i in np.arange(0, self.odmr.n_frange):
             self.LOG.info(f"Fitting {self.POLARITIES[i]} polarization")
-            data = self.ODMRobj.data[:, i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
+            data = self.odmr.data[:, i].reshape(-1, self.odmr.n_freqs).astype(np.float32)
             initial_guess = self.initial_guess[:, i].reshape(-1, len(self._fitting_params)).astype(np.float32)
 
             # fit the data
             p, s, c, n, t = gf.fit_constrained(
                 data=data,
-                user_info=self.ODMRobj.f_ghz[i].astype(np.float32),
+                user_info=self.odmr.f_ghz[i].astype(np.float32),
                 constraints=self.constraints_array,
                 constraint_types=self.constraint_types,
                 weights=None,
@@ -595,13 +591,13 @@ class QDM:
             number_iterations = np.array(number_iterations)[:, np.newaxis, :]
 
         # swapping the f_range and n_pol axes
-        parameters = self._reshape_parameter(parameters, self.ODMRobj.n_pol, self.ODMRobj.n_frange)
+        parameters = self._reshape_parameter(parameters, self.odmr.n_pol, self.odmr.n_frange)
 
         # check if the reshaping is correct
-        assert np.all(parameters[0, 1] == p[: int(p.shape[0] / self.ODMRobj.n_pol)])
+        assert np.all(parameters[0, 1] == p[: int(p.shape[0] / self.odmr.n_pol)])
 
         # reshape the states and chi_squares
-        shape = (self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel)
+        shape = (self.odmr.n_pol, self.odmr.n_frange, self.odmr.n_pixel)
         states = np.reshape(states, shape)
         chi_squares = np.reshape(chi_squares, shape)
         number_iterations = np.reshape(number_iterations, shape)
@@ -647,9 +643,9 @@ class QDM:
         if reshape:
             out = out.reshape(
                 -1,
-                self.ODMRobj.n_pol,
-                self.ODMRobj.n_frange,
-                *self.ODMRobj.scan_dimensions,
+                self.odmr.n_pol,
+                self.odmr.n_frange,
+                *self.odmr.scan_dimensions,
             )
 
         return np.squeeze(out)
