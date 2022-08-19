@@ -2,11 +2,95 @@ import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import colors
 
 from pyqdm.core import models
+from pyqdm.utils import double_norm
 
 FREQ_LABEL = 'f [GHz]'
 CONTRAST_LABEL = 'c [%]'
+
+
+def plot_light_img(ax, data, img=None, **plt_props):
+    pass
+
+
+def plot_laser_img(ax, data, img=None, **plt_props):
+    pass
+
+
+def plot_data(ax, data, img=None, **plt_props):
+    norm = get_color_norm(data.min(), data.max())
+    plt_props['cmap'] = ''
+    plt_props['norm'] = norm
+    img = update_img(ax, img, data, **plt_props)
+    return img
+
+
+def get_color_norm(vmin, vmax):
+    if vmin < 0 < vmax:
+        return colors.TwoSlopeNorm(vmin=vmin, vmax=vmax)
+    else:
+        return colors.Normalize(vmin=vmin, vmax=vmax)
+
+
+def plot_overlay(ax, data, img=None, normtype='simple', **plt_props):
+    if normtype == 'simple':
+        plt_props['alpha'] = double_norm(data)
+    else:
+        raise NotImplementedError(f'Normalization type {normtype} not implemented.')
+    img = update_img(ax, img, data, **plt_props)
+    return img
+
+
+def plot_outlier(ax, data, img=None, **plt_props):
+    plt_props['cmap'] = ''
+    plt_props['alpha'] = data.astype(int)
+    img = update_img(ax, img, data, **plt_props)
+    return img
+
+
+def update_clim(img, vmin, vmax):
+    norm = get_color_norm(vmin, vmax)
+    img.set(norm=norm)
+
+
+def update_cbar(img, cbar, vmin, vmax, original_cax_locator):
+    extent = detect_extent(vmin=vmin, vmax=vmax,
+                           mn=img.get_array.min(), mx=img.get_array().max())
+
+    cax = cbar.ax
+    label = cbar.get_label()
+    cax.clear()
+    cax.set_axes_locator(original_cax_locator)
+    cbar = plt.colorbar(img, cax=cax, extend=extent, label=label)
+    return cbar
+
+
+def detect_extent(vmin, vmax, mn, mx):
+    if vmin == mn and vmax == mx:
+        return 'none'
+    elif vmin > mn and vmax < mx:
+        return 'both'
+    elif vmin > mn:
+        return 'lower'
+    else:
+        return 'upper'
+
+
+def update_img(ax, img, data, **plt_props):
+    if img is None:
+        img = ax.imshow(data, **plt_props)
+    else:
+        img.set_data(data)
+    return img
+
+
+def toggle_img(ax, img=None):
+    if img is None:
+        return
+    else:
+        img.set_visibility(~img.visibility)
 
 
 def check_fit_pixel(qdm_obj, idx):
