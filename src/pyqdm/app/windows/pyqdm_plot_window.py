@@ -84,7 +84,13 @@ class PyQdmWindow(QMainWindow):
         clim_widget = QWidget()
         clim_selection_layout = QHBoxLayout()
         clim_label, self.cLimSelector = get_label_box(
-            label="clim", value=99, decimals=1, step=1, vmin=1, vmax=100, callback=self.update_img_plots
+            label="clim",
+            value=99,
+            decimals=1,
+            step=1,
+            vmin=1,
+            vmax=100,
+            callback=self.update_img_plots,
         )
         clim_label_unit = QLabel("[%]")
         self.fix_clim_check_box = QCheckBox("set ")
@@ -108,10 +114,22 @@ class PyQdmWindow(QMainWindow):
         pixelBoxWidget = QWidget()
         coordBox = QHBoxLayout()
         self.xlabel, self.xselect = get_label_box(
-            "x", int(self._current_xy[0]), 0, 1, 0, self.qdm.odmr.scan_dimensions[1], self.on_xy_value_change
+            "x",
+            int(self._current_xy[0]),
+            0,
+            1,
+            0,
+            self.qdm.odmr.scan_dimensions[1],
+            self.on_xy_value_change,
         )
         self.ylabel, self.yselect = get_label_box(
-            "y", int(self._current_xy[1]), 0, 1, 0, self.qdm.odmr.scan_dimensions[0], self.on_xy_value_change
+            "y",
+            int(self._current_xy[1]),
+            0,
+            1,
+            0,
+            self.qdm.odmr.scan_dimensions[0],
+            self.on_xy_value_change,
         )
         self.xselect.valueChanged.disconnect(self.on_xy_value_change)
         self.xselect.setValue(int(self._current_xy[0]))
@@ -169,7 +187,12 @@ class PyQdmWindow(QMainWindow):
             interpolation="none",
             origin="lower",
             aspect="equal",
-            extent=[0, self.qdm.odmr.scan_dimensions[1], 0, self.qdm.odmr.scan_dimensions[0]],
+            extent=[
+                0,
+                self.qdm.odmr.scan_dimensions[1],
+                0,
+                self.qdm.odmr.scan_dimensions[0],
+            ],
         )
         ax.set(
             xlabel="px",
@@ -186,7 +209,12 @@ class PyQdmWindow(QMainWindow):
             interpolation="none",
             origin="lower",
             aspect="equal",
-            extent=[0, self.qdm.odmr.scan_dimensions[1], 0, self.qdm.odmr.scan_dimensions[0]],
+            extent=[
+                0,
+                self.qdm.odmr.scan_dimensions[1],
+                0,
+                self.qdm.odmr.scan_dimensions[0],
+            ],
         )
         ax.set(
             xlabel="px",
@@ -260,7 +288,12 @@ class PyQdmWindow(QMainWindow):
             # Create scale bar
             if ax in self._is_image:
                 scalebar = ScaleBar(
-                    self.pixelsize, "m", length_fraction=0.25, frameon=True, box_alpha=0.5, location="lower left"
+                    self.pixelsize,
+                    "m",
+                    length_fraction=0.25,
+                    frameon=True,
+                    box_alpha=0.5,
+                    location="lower left",
                 )
             else:
                 scalebar = ScaleBar(
@@ -335,7 +368,12 @@ class PyQdmWindow(QMainWindow):
                 m_fit = self.model(parameter=parameter[p, f], x=f_new)
                 if self._fit_lines[p][f] is None:
                     (self._fit_lines[p][f],) = self._pixel_ax[p][f].plot(
-                        f_new, m_fit[0], marker="", linestyle="-", lw=0.8, color=self._pixel_lines[p][f].get_color()
+                        f_new,
+                        m_fit[0],
+                        marker="",
+                        linestyle="-",
+                        lw=0.8,
+                        color=self._pixel_lines[p][f].get_color(),
                     )
                 else:
                     self._fit_lines[p][f].set_ydata(m_fit[0])

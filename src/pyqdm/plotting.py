@@ -38,7 +38,13 @@ def check_fit_pixel(qdm_obj, idx):
         )
         (l,) = ax[f].plot(f_new, m_initial[0], label="initial guess", alpha=0.5, ls=":")
         ax[f].plot(f_new, m_fit[0], color=l.get_color(), label="fit")
-        ax[f].legend(ncol=2, bbox_to_anchor=(0.0, 1.02, 1.0, 0.102), loc="lower left", mode="expand", borderaxespad=0.0)
+        ax[f].legend(
+            ncol=2,
+            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+            loc="lower left",
+            mode="expand",
+            borderaxespad=0.0,
+        )
 
         line = " ".join([f"{v:>8.5f}" for v in qdm_obj._fitted_parameter[p, f, idx]])
         line += f" {qdm_obj._chi_squares[p, f, idx]:>8.2e}"

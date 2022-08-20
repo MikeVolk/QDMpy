@@ -43,7 +43,7 @@ def esr15n(x, parameter):
         dip2 = p[3] * width_squared / (aux2 * aux2 + width_squared)
 
         out.append(1 + p[4] - dip1 - dip2)
-    return out
+    return np.array(out)
 
 
 def esrsingle(x, parameter):
@@ -60,4 +60,4 @@ def esrsingle(x, parameter):
         dip1 = p[2] * width_squared / (aux1 * aux1 + width_squared)
 
         out.append(1 + p[3] - dip1)
-    return out
+    return np.array(out)

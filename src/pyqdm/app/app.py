@@ -189,7 +189,13 @@ class PyQDMMainWindow(QMainWindow):
         pixel_widget = QWidget()
         pixel_size_box = QHBoxLayout()
         pixel_size_label, self.pixel_size_select = self.get_label_box(
-            label="Pixel Size [µm]:", value=1, decimals=2, step=1, vmin=1, vmax=99, callback=self.on_pixel_size_changed
+            label="Pixel Size [µm]:",
+            value=1,
+            decimals=2,
+            step=1,
+            vmin=1,
+            vmax=99,
+            callback=self.on_pixel_size_changed,
         )
         pixel_size_box.addWidget(pixel_size_label)
         pixel_size_box.addWidget(self.pixel_size_select)
@@ -200,7 +206,13 @@ class PyQDMMainWindow(QMainWindow):
         bin_widget = QWidget()
         bin_box = QHBoxLayout()
         bin_factor_label, self.binfactor_select = self.get_label_box(
-            label="Bin Factor:", value=1, decimals=0, step=1, vmin=1, vmax=32, callback=self.on_bin_factor_changed
+            label="Bin Factor:",
+            value=1,
+            decimals=0,
+            step=1,
+            vmin=1,
+            vmax=32,
+            callback=self.on_bin_factor_changed,
         )
         bin_box.addWidget(bin_factor_label)
         bin_box.addWidget(self.binfactor_select)
@@ -342,7 +354,9 @@ class PyQDMMainWindow(QMainWindow):
         self.fitconstraints[text][2].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][-1].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
         self._set_constraint_visibility(
-            self.qdm.CONSTRAINT_TYPES[constraint], self.fitconstraints[text][1], self.fitconstraints[text][2]
+            self.qdm.CONSTRAINT_TYPES[constraint],
+            self.fitconstraints[text][1],
+            self.fitconstraints[text][2],
         )
 
         # add them to the layout
@@ -524,7 +538,12 @@ class PyQDMMainWindow(QMainWindow):
 
     @property
     def _need_marker_update(self):
-        return [self.laserWindow, self.ledWindow, self.main_content_figure, self.qualityWindow]
+        return [
+            self.laserWindow,
+            self.ledWindow,
+            self.main_content_figure,
+            self.qualityWindow,
+        ]
 
     @property
     def _need_pixel_update(self):
@@ -572,7 +591,11 @@ class PyQDMMainWindow(QMainWindow):
     def on_laser_button_press(self):
         if self.laserWindow is None:
             self.laserWindow = SimplePlotWindow(
-                QDMObj=self.qdm, title="Laser Scan", caller=self, cmap="magma", cbar=True
+                QDMObj=self.qdm,
+                title="Laser Scan",
+                caller=self,
+                cmap="magma",
+                cbar=True,
             )
             self.laserWindow.add_laser_img(self.laserWindow.ax, cax=self.laserWindow.cax)
             self.laserWindow.show()
@@ -584,7 +607,11 @@ class PyQDMMainWindow(QMainWindow):
     def on_led_button_press(self):
         if self.ledWindow is None:
             self.ledWindow = SimplePlotWindow(
-                QDMObj=self.qdm, title="Reflected Light Image", caller=self, cmap="bone", cbar=False
+                QDMObj=self.qdm,
+                title="Reflected Light Image",
+                caller=self,
+                cmap="bone",
+                cbar=False,
             )
             self.ledWindow.add_light_img(self.ledWindow.ax)
             self.ledWindow.show()

@@ -1,14 +1,16 @@
 import logging
 import os
-import tomli
+import sys
+
 import matplotlib.image as mpimg
 import numpy as np
-import sys
+import tomli
+
 import pyqdm
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-LOG = logging.getLogger(f'pyqdm.{__name__}')
+LOG = logging.getLogger(f"pyqdm.{__name__}")
 
 
 def idx2rc(idx, shape):
@@ -84,14 +86,14 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x ** i * y ** j
+            arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
 
 
-def load_config(config_file='config.ini'):
+def load_config(config_file="config.ini"):
     """
     Loads the config file.
 
@@ -114,11 +116,11 @@ def set_path(path, config, default):
     :param default:
     :return:
     """
-    if path in config['default_paths']:
-        p = config['default_paths'][path]
+    if path in config["default_paths"]:
+        p = config["default_paths"][path]
     else:
         p = default
-    logging.debug(f'Setting {path} to {p}')
+    logging.debug(f"Setting {path} to {p}")
     return p
 
 
@@ -129,7 +131,7 @@ def has_csv(lst):
     :param lst: list of str
     :return: bool
     """
-    return any(('.csv' in s for s in lst))
+    return any(".csv" in s for s in lst)
 
 
 def get_image_file(lst):
@@ -141,9 +143,9 @@ def get_image_file(lst):
     :return: name of the image file
     """
     if has_csv(lst):
-        return [s for s in lst if '.csv' in s][0]
+        return [s for s in lst if ".csv" in s][0]
     else:
-        return [s for s in lst if '.jpg' in s][0]
+        return [s for s in lst if ".jpg" in s][0]
 
 
 def get_image(folder, lst):
@@ -157,8 +159,11 @@ def get_image(folder, lst):
     :return: np.array
         image
     """
-    return np.loadtxt(os.path.join(folder, get_image_file(lst))) if has_csv(lst) \
+    return (
+        np.loadtxt(os.path.join(folder, get_image_file(lst)))
+        if has_csv(lst)
         else mpimg.imread(os.path.join(folder, get_image_file(lst)))
+    )
 
 
 def double_norm(data, axis):

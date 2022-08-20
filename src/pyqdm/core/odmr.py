@@ -40,7 +40,14 @@ class ODMR:
 
         self._data_edited = None
         self._norm_method = "max"  # todo add to config
-        self._edit_stack = [self.reset_data, self._normalize_data, self.remove_overexposed, None, None, None]
+        self._edit_stack = [
+            self.reset_data,
+            self._normalize_data,
+            self.remove_overexposed,
+            None,
+            None,
+            None,
+        ]
 
         self._apply_edit_stack()
         self._imported_files = kwargs.pop("imported_files", [])
@@ -159,7 +166,7 @@ class ODMR:
     ### from methods ###
 
     @classmethod
-    def _stack_data(cls, mfile):
+    def _qdmio_stack_data(cls, mfile):
         """
         Stack the data in the ODMR object.
         """
@@ -170,13 +177,13 @@ class ODMR:
             # IF ONLY 2 IMGSTACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
             cls.LOG.debug("Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
-            img_stack1 = mfile["imgStack1"]
-            img_stack2 = mfile["imgStack2"]
+            img_stack1 = mfile["imgStack1"].T
+            img_stack2 = mfile["imgStack2"].T
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-            img_stack1 = np.concatenate([mfile["imgStack1"], mfile["imgStack2"]])
-            img_stack2 = np.concatenate([mfile["imgStack3"], mfile["imgStack4"]])
+            img_stack1 = np.concatenate([mfile["imgStack1"].T, mfile["imgStack2"].T])
+            img_stack2 = np.concatenate([mfile["imgStack3"].T, mfile["imgStack4"].T])
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
@@ -199,13 +206,17 @@ class ODMR:
 
         data = None
         for mfile in raw_data:
-            d = cls._stack_data(mfile)
+            d = cls._qdmio_stack_data(mfile)
             data = d if data is None else np.stack((data, d), axis=0)
         if data.ndim == 3:
             data = data[np.newaxis, :, :, :]
 
         scan_dimensions = np.array(
-            [np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(raw_data[0]["imgNumCols"])], dtype=int
+            [
+                np.squeeze(raw_data[0]["imgNumRows"]),
+                np.squeeze(raw_data[0]["imgNumCols"]),
+            ],
+            dtype=int,
         )
 
         n_freqs = int(np.squeeze(raw_data[0]["numFreqs"]))
@@ -456,7 +467,13 @@ class ODMR:
                 if self._gf_factor != 0:
                     ax[p, f].plot(self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}")
 
-                (l,) = ax[p, f].plot(self.f_ghz[f], d + old_correct[p, f], ".--", mfc="w", label="original")
+                (l,) = ax[p, f].plot(
+                    self.f_ghz[f],
+                    d + old_correct[p, f],
+                    ".--",
+                    mfc="w",
+                    label="original",
+                )
                 ax[p, f].plot(
                     self.f_ghz[f],
                     d + old_correct[p, f] - new_correct[p, f],

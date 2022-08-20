@@ -1,7 +1,11 @@
 import logging
+import os.path
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pygpufit.gpufit as gf
+from scipy.io import savemat
 
 from pyqdm import settings
 from pyqdm.core import models
@@ -21,7 +25,11 @@ BOUND_TYPES = {
 }
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
-MODELS = {"esr14n": [models.esr14n, 6], "esr15n": [models.esr15n, 5], "esrsingle": [models.esrsingle, 4]}
+MODELS = {
+    "esr14n": [models.esr14n, 6],
+    "esr15n": [models.esr15n, 5],
+    "esrsingle": [models.esrsingle, 4],
+}
 
 
 class Fit:
@@ -309,7 +317,11 @@ class Fit:
                 f"Fitting frange {irange} from {self.f_ghz[irange].min():5.3f}-{self.f_ghz[irange].max():5.3f} GHz"
             )
 
-            results = self.fit_frange(self.data[:, irange], self.f_ghz[irange], self.initial_parameter[:, irange])
+            results = self.fit_frange(
+                self.data[:, irange],
+                self.f_ghz[irange],
+                self.initial_parameter[:, irange],
+            )
             results = self.reshape_results(results)
 
             if self._parameter is None:
@@ -538,6 +550,7 @@ def make_dummy_data(
     model: str = "esr14n",
     n_freq: int = 100,
     scan_dimensions=[120, 190],
+    noise=0.1,
 ):
     if model in MODELS:
         model_func = MODELS[model][0]
@@ -589,6 +602,48 @@ def make_dummy_data(
 
     # combine the models
     mall = np.stack([np.stack([m00, m01]), np.stack([m10, m11])])
+    if noise:
+        mall += np.random.normal(0, noise, size=mall.shape)
     pall = np.stack([np.stack([p00, p01]), np.stack([p10, p11])])
     f_ghz = np.stack([f0, f1])
     return mall, f_ghz, pall
+
+
+def write_test_qdmio_file(path, scan_dimensions=[120, 190]):
+    path = Path(path)
+    path.mkdir(exist_ok=True)
+
+    data, freq, true_parameter = make_dummy_data(n_freq=100, model="esr15n", scan_dimensions=scan_dimensions)
+
+    data = np.swapaxes(data, -1, -2)
+
+    for i in range(2):
+        out = {
+            "disp1": data[i, 0, 0],
+            "disp2": data[i, 0, 0],
+            "freqList": np.concatenate(freq) * 1e9,
+            "imgNumCols": 190,
+            "imgNumRows": 120,
+            "imgStack1": data[i, 0],
+            "imgStack2": data[i, 1],
+            "numFreqs": 100,
+        }
+
+        savemat(os.path.join(path, f"run_0000{i}.mat"), out)
+
+    led = pd.DataFrame(data=np.random.normal(0, 1, size=(120, 190)))
+
+    led.to_csv(
+        os.path.join(path, "LED.csv"),
+        header=False,
+        index=False,
+        sep="\t",
+    )
+    laser = pd.DataFrame(data=np.random.normal(0, 1, size=(120, 190)))
+
+    laser.to_csv(
+        os.path.join(path, "laser.csv"),
+        header=False,
+        index=False,
+        sep="\t",
+    )

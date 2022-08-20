@@ -19,7 +19,10 @@ from pyqdm.utils import polyfit2d
 class FitWindow(PyQdmWindow):
     def __init__(self, caller, *args, **kwargs):
         canvas = FittingPropertyCanvas(self, width=12, height=12, dpi=100)
-        self._spectra_ax = [[canvas.left_ODMR_ax, canvas.right_ODMR_ax], [canvas.left_ODMR_ax, canvas.right_ODMR_ax]]
+        self._spectra_ax = [
+            [canvas.left_ODMR_ax, canvas.right_ODMR_ax],
+            [canvas.left_ODMR_ax, canvas.right_ODMR_ax],
+        ]
 
         super().__init__(caller, canvas, *args, **kwargs)
         self.data_img = None
@@ -98,7 +101,11 @@ class FitWindow(PyQdmWindow):
 
         if self.fix_clim_check_box.isChecked():
             vmin, vmax = np.percentile(
-                d, [(100 - self.cLimSelector.value()) / 2, (100 + self.cLimSelector.value()) / 2]
+                d,
+                [
+                    (100 - self.cLimSelector.value()) / 2,
+                    (100 + self.cLimSelector.value()) / 2,
+                ],
             )
 
         vcenter = 0 if vmin < 0 < vmax else (vmin + vmax) / 2

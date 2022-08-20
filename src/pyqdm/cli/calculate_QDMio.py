@@ -13,10 +13,18 @@ def main(argv):
 
     parser = argparse.ArgumentParser(description="Calculate the B111 field from ODMR data recorded with QDMio made QDM")
     parser.add_argument(
-        "-i", "--input", help="input path, location of the QDM data files and LED/laser images.", required=True
+        "-i",
+        "--input",
+        help="input path, location of the QDM data files and LED/laser images.",
+        required=True,
     )
     parser.add_argument(
-        "-b", "--binfactor", type=int, help="Binning factor of the ODMR data. Default: 1", default=1, required=False
+        "-b",
+        "--binfactor",
+        type=int,
+        help="Binning factor of the ODMR data. Default: 1",
+        default=1,
+        required=False,
     )
     parser.add_argument(
         "-d",
@@ -35,7 +43,11 @@ def main(argv):
         required=False,
     )
     parser.add_argument(
-        "--debug", help="sets logging to DEBUG level", action="store_true", default=False, required=False
+        "--debug",
+        help="sets logging to DEBUG level",
+        action="store_true",
+        default=False,
+        required=False,
     )
 
     args = parser.parse_args()

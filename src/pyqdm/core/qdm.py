@@ -346,7 +346,7 @@ class QDM:
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
             raise CantImportError(f'Cannot import QDM data from "{data_folder}"') from e
-
+        print(odmr_obj.data.shape)
         return cls(
             odmr_obj,
             light=light,

@@ -57,7 +57,14 @@ class QualityWindow(PyQdmWindow):
         for f in range(self.qdm.odmr.n_frange):
             for p in range(self.qdm.odmr.n_pol):
                 ax = self.canvas.ax[p][f]
-                img = ax.imshow(d[p, f], cmap="viridis", interpolation="none", origin="lower", vmin=vmin, vmax=vmax)
+                img = ax.imshow(
+                    d[p, f],
+                    cmap="viridis",
+                    interpolation="none",
+                    origin="lower",
+                    vmin=vmin,
+                    vmax=vmax,
+                )
                 plt.colorbar(img, cax=self.canvas.caxes[p][f])
         self.canvas.fig.suptitle(r"$\chi^2$")
         self.update_marker()
@@ -88,7 +95,9 @@ class QualityWindow(PyQdmWindow):
     def update_img_plots(self):
         if self.dataSelect.currentText() == "chi_squared":
             data = self.qdm._chi_squares.reshape(
-                self.qdm.odmr.n_pol, self.qdm.odmr.n_frange, *self.qdm.odmr.scan_dimensions
+                self.qdm.odmr.n_pol,
+                self.qdm.odmr.n_frange,
+                *self.qdm.odmr.scan_dimensions,
             )
         else:
             data = self.qdm.get_param(self.dataSelect.currentText())

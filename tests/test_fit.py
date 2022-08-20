@@ -18,4 +18,8 @@ class Fit_object(unittest.TestCase):
             npt.assert_allclose(true_parameter[:, :, :, 0], fit_instance._parameter[:, :, :, 0], 1e-6)
             npt.assert_allclose(true_parameter[:, :, :, 1], fit_instance._parameter[:, :, :, 1], 1e-3)
             npt.assert_allclose(true_parameter[:, :, :, 2], fit_instance._parameter[:, :, :, 2], 1e-3)
-            npt.assert_allclose(true_parameter[:, :, :, -1], fit_instance._parameter[:, :, :, -1], atol=1e-4)
+            npt.assert_allclose(
+                true_parameter[:, :, :, -1],
+                fit_instance._parameter[:, :, :, -1],
+                atol=1e-4,
+            )
