@@ -26,7 +26,7 @@ logging.getLogger("h5py").setLevel(logging.WARNING)
 LOG = logging.getLogger(f"pyQDM")
 LOG.info("WELCOME TO pyQDM")
 
-config = load_config()
+settings = load_config()
 
 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 

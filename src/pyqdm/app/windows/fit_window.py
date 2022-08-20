@@ -87,7 +87,7 @@ class FitWindow(PyQdmWindow):
         toolbar.addWidget(subtract_widget)
 
     def update_img_plots(self):
-        d = self.qdm.B111[self.b111select.currentIndex()].copy()
+        d = self.qdm.b111[self.b111select.currentIndex()].copy()
 
         if self.subtractMedian.isChecked():
             self.LOG.debug("Subtracting median")
@@ -103,8 +103,8 @@ class FitWindow(PyQdmWindow):
             vmin, vmax = np.percentile(
                 d,
                 [
-                    (100 - self.cLimSelector.value()) / 2,
-                    (100 + self.cLimSelector.value()) / 2,
+                    (100 - self.clims_selector.value()) / 2,
+                    (100 + self.clims_selector.value()) / 2,
                 ],
             )
 
@@ -128,7 +128,7 @@ class FitWindow(PyQdmWindow):
         # noinspection PyPep8
         self.data_cbar = plt.colorbar(
             self.data_img,
-            cax=self.canvas.cbar,
+            cax=self.canvas.cax,
             extend="both" if self.need_extend() else "neither",
             label=r"B$_{111}$ [$\mu$T]",
         )
@@ -150,14 +150,15 @@ class FitWindow(PyQdmWindow):
 
     def _calculate_quad_background(self):
         for i in range(2):
-            if self.quad_background[i] is None or self.quad_background[i].shape != self.qdm.odmr.scan_dimensions:
+            if self.quad_background[i] is None or any(self.quad_background[i].shape != self.qdm.odmr.scan_dimensions):
                 self.LOG.debug(f'Calculating quad background for {["remanent", "induced"][i]} component')
                 x = np.arange(self.qdm.odmr.scan_dimensions[0])
                 y = np.arange(self.qdm.odmr.scan_dimensions[1])
                 kx = ky = 2
-                solution = polyfit2d(x, y, self.QDMObj.B111[i], kx=kx, ky=ky)
-                fit = np.polynomial.polynomial.polygrid2d(x, y, solution[0].reshape((kx + 1, ky + 1)))
-                self.quad_background[i] = fit
+                solution = polyfit2d(x, y, self.qdm.b111[i], kx=kx, ky=ky)
+                self.quad_background[i] = np.polynomial.polynomial.polygrid2d(
+                    x, y, solution[0].reshape((kx + 1, ky + 1))
+                )
 
     def on_quality_clicked(self):
         if self.qualityWindow is None:

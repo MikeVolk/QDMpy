@@ -10,7 +10,7 @@ from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 class SimplePlotWindow(PyQdmWindow):
     def __init__(self, title, cmap, cbar, caller, *args, **kwargs):
         canvas = SimpleCanvas(self, width=12, height=12, dpi=100, cax=cbar)
-        super(SimplePlotWindow, self).__init__(caller, canvas, *args, **kwargs)
+        super().__init__(caller, canvas, *args, **kwargs)
 
         self.cmap = cmap
         self.title = title
@@ -36,7 +36,7 @@ class SimplePlotWindow(PyQdmWindow):
         vmin, vmax = np.min(d), np.max(d)
 
         if self.fix_clim_check_box.isChecked():
-            vmin, vmax = np.percentile(d, [100 - self.cLimSelector.value(), self.cLimSelector.value()])
+            vmin, vmax = np.percentile(d, [100 - self.clims_selector.value(), self.clims_selector.value()])
 
         img.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 
@@ -46,9 +46,9 @@ class SimplePlotWindow(PyQdmWindow):
 
             self.cbar = plt.colorbar(
                 img,
-                cax=self.canvas.cbar,
+                cax=self.canvas.cax,
                 extend="both" if self.fix_clim_check_box.isChecked() else "neither",
-                label="B$_{111}$ [$\mu$T]",
+                label=r"B$_{111}$ [$\mu$T]",
             )
 
         self.canvas.draw()

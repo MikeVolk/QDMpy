@@ -71,7 +71,7 @@ class FluorescenceWindow(QMainWindow):
             self.canvas.fluo_highF_neg_ax,
         ]
 
-        self.img_data = self.qdm.ODMRobj["r"]
+        self.img_data = self.qdm.odmr["r"]
         self.indexSlider = QSlider()
         self.indexSlider.setOrientation(Qt.Horizontal)
 
@@ -104,16 +104,32 @@ class FluorescenceWindow(QMainWindow):
         # fluorescence plots
         vmin, vmax = np.percentile(self.qdm.odmr.data[:, :, :, 0], [2, 98])
         self.fluo_lowF_pos_img = self.canvas.fluo_lowF_pos_ax.imshow(
-            self.img_data[0, 0, :, :, 0], vmin=vmin, vmax=vmax, origin="lower", aspect="equal"
+            self.img_data[0, 0, :, :, 0],
+            vmin=vmin,
+            vmax=vmax,
+            origin="lower",
+            aspect="equal",
         )
         self.fluo_lowF_neg_img = self.canvas.fluo_lowF_neg_ax.imshow(
-            self.img_data[1, 0, :, :, 0], vmin=vmin, vmax=vmax, origin="lower", aspect="equal"
+            self.img_data[1, 0, :, :, 0],
+            vmin=vmin,
+            vmax=vmax,
+            origin="lower",
+            aspect="equal",
         )
         self.fluo_highF_pos_img = self.canvas.fluo_highF_pos_ax.imshow(
-            self.img_data[0, 1, :, :, 0], vmin=vmin, vmax=vmax, origin="lower", aspect="equal"
+            self.img_data[0, 1, :, :, 0],
+            vmin=vmin,
+            vmax=vmax,
+            origin="lower",
+            aspect="equal",
         )
         self.fluo_highF_neg_img = self.canvas.fluo_highF_neg_ax.imshow(
-            self.img_data[1, 1, :, :, 0], vmin=vmin, vmax=vmax, origin="lower", aspect="equal"
+            self.img_data[1, 1, :, :, 0],
+            vmin=vmin,
+            vmax=vmax,
+            origin="lower",
+            aspect="equal",
         )
         for ax in self.fluo_axes:
             ax.set(xlabel="x [px]", ylabel="y [px]")
@@ -169,24 +185,42 @@ class FluorescenceWindow(QMainWindow):
 
     def _init_odmr_plots(self):
         # mean ODMR spectrum lines
-        self.canvas.lowF_meanODMR_ax.plot(
-            self.qdm.odmr.f_ghz[0], self.qdm.odmr.mean_odmr[0, 0], "-", label="lowF, pos", linewidth=0.8
+        self.canvas.low_f_mean_odmr_ax.plot(
+            self.qdm.odmr.f_ghz[0],
+            self.qdm.odmr.mean_odmr[0, 0],
+            "-",
+            label="lowF, pos",
+            linewidth=0.8,
         )
-        self.canvas.lowF_meanODMR_ax.plot(
-            self.qdm.odmr.f_ghz[0], self.qdm.odmr.mean_odmr[1, 0], "-", label="lowF, neg", linewidth=0.8
+        self.canvas.low_f_mean_odmr_ax.plot(
+            self.qdm.odmr.f_ghz[0],
+            self.qdm.odmr.mean_odmr[1, 0],
+            "-",
+            label="lowF, neg",
+            linewidth=0.8,
         )
-        self.canvas.highF_meanODMR_ax.plot(
-            self.qdm.odmr.f_ghz[1], self.qdm.odmr.mean_odmr[0, 1], "-", label="highF, pos", linewidth=0.8
+        self.canvas.high_f_mean_odmr_ax.plot(
+            self.qdm.odmr.f_ghz[1],
+            self.qdm.odmr.mean_odmr[0, 1],
+            "-",
+            label="highF, pos",
+            linewidth=0.8,
         )
-        self.canvas.highF_meanODMR_ax.plot(
-            self.qdm.odmr.f_ghz[1], self.qdm.odmr.mean_odmr[1, 1], "-", label="highF, neg", linewidth=0.8
+        self.canvas.high_f_mean_odmr_ax.plot(
+            self.qdm.odmr.f_ghz[1],
+            self.qdm.odmr.mean_odmr[1, 1],
+            "-",
+            label="highF, neg",
+            linewidth=0.8,
         )
-        self.lowF_line = self.canvas.lowF_meanODMR_ax.axvline(self.qdm.odmr.f_ghz[0, 0], color="k", alpha=0.7, zorder=0)
-        self.highF_line = self.canvas.highF_meanODMR_ax.axvline(
+        self.lowF_line = self.canvas.low_f_mean_odmr_ax.axvline(
+            self.qdm.odmr.f_ghz[0, 0], color="k", alpha=0.7, zorder=0
+        )
+        self.highF_line = self.canvas.high_f_mean_odmr_ax.axvline(
             self.qdm.odmr.f_ghz[1, 0], color="k", alpha=0.7, zorder=0
         )
         # single ODMR spectrum lines
-        (self.low_pos_pixel_line,) = self.canvas.lowF_meanODMR_ax.plot(
+        (self.low_pos_pixel_line,) = self.canvas.low_f_mean_odmr_ax.plot(
             self.qdm.odmr.f_ghz[0],
             [np.nan for _ in self.qdm.odmr.f_ghz[0]],
             ".-",
@@ -195,7 +229,7 @@ class FluorescenceWindow(QMainWindow):
             linewidth=0.8,
             markersize=2,
         )
-        (self.low_neg_pixel_line,) = self.canvas.lowF_meanODMR_ax.plot(
+        (self.low_neg_pixel_line,) = self.canvas.low_f_mean_odmr_ax.plot(
             self.qdm.odmr.f_ghz[0],
             [np.nan for _ in self.qdm.odmr.f_ghz[0]],
             ".-",
@@ -204,7 +238,7 @@ class FluorescenceWindow(QMainWindow):
             linewidth=0.8,
             markersize=2,
         )
-        (self.high_pos_pixel_line,) = self.canvas.highF_meanODMR_ax.plot(
+        (self.high_pos_pixel_line,) = self.canvas.high_f_mean_odmr_ax.plot(
             self.qdm.odmr.f_ghz[1],
             [np.nan for _ in self.qdm.odmr.f_ghz[1]],
             ".-",
@@ -213,7 +247,7 @@ class FluorescenceWindow(QMainWindow):
             linewidth=0.8,
             markersize=2,
         )
-        (self.high_neg_pixel_line,) = self.canvas.highF_meanODMR_ax.plot(
+        (self.high_neg_pixel_line,) = self.canvas.high_f_mean_odmr_ax.plot(
             self.qdm.odmr.f_ghz[1],
             [np.nan for _ in self.qdm.odmr.f_ghz[1]],
             ".-",
@@ -222,7 +256,7 @@ class FluorescenceWindow(QMainWindow):
             linewidth=0.8,
             markersize=2,
         )
-        for a in [self.canvas.lowF_meanODMR_ax, self.canvas.highF_meanODMR_ax]:
+        for a in [self.canvas.low_f_mean_odmr_ax, self.canvas.high_f_mean_odmr_ax]:
             a.set_xlabel("Frequency (GHz)", fontsize=8)
             a.set_ylabel("ODMR (a.u.)", fontsize=8)
             a.set_title("mean ODMR", fontsize=10)
@@ -238,19 +272,24 @@ class FluorescenceWindow(QMainWindow):
         idx = self.qdm.odmr.rc2idx([y, x])  # get the index of the current pixel
         labels = ["p(<+", "p(<-", "p(>+", "p(>-"]
         # update the pixel spectrum plot
-        for l in [self.low_pos_pixel, self.low_neg_pixel, self.high_pos_pixel, self.high_neg_pixel]:
+        for l in [
+            self.low_pos_pixel,
+            self.low_neg_pixel,
+            self.high_pos_pixel,
+            self.high_neg_pixel,
+        ]:
             l.set_data(x, y)
 
         # update the mean ODMR plot legend
-        h, l = self.canvas.lowF_meanODMR_ax.get_legend_handles_labels()
+        h, l = self.canvas.low_f_mean_odmr_ax.get_legend_handles_labels()
         h.extend([self.low_pos_pixel_line, self.low_neg_pixel_line])
         l.extend([f"{labels[0]},{x},{y})", f"{labels[1]},{x},{y})"])
-        self.canvas.lowF_meanODMR_ax.legend(h, l, loc="lower left", fontsize=8)
+        self.canvas.low_f_mean_odmr_ax.legend(h, l, loc="lower left", fontsize=8)
 
-        h, l = self.canvas.highF_meanODMR_ax.get_legend_handles_labels()
+        h, l = self.canvas.high_f_mean_odmr_ax.get_legend_handles_labels()
         h.extend([self.high_pos_pixel_line, self.high_neg_pixel_line])
         l.extend([f"{labels[2]},{x},{y})", f"{labels[3]},{x},{y})"])
-        self.canvas.highF_meanODMR_ax.legend(h, l, loc="lower left", fontsize=8)
+        self.canvas.high_f_mean_odmr_ax.legend(h, l, loc="lower left", fontsize=8)
 
         # add lines to mean ODMR plot
         self.low_pos_pixel_line.set_ydata(self.qdm.odmr.data[0, 0, idx])
@@ -268,7 +307,12 @@ class FluorescenceWindow(QMainWindow):
         self.fluo_highF_pos_img.set_data(self.img_data[0, 1, :, :, idx])
         self.fluo_highF_neg_img.set_data(self.img_data[1, 1, :, :, idx])
 
-        for img in [self.fluo_lowF_pos_img, self.fluo_lowF_neg_img, self.fluo_highF_pos_img, self.fluo_highF_neg_img]:
+        for img in [
+            self.fluo_lowF_pos_img,
+            self.fluo_lowF_neg_img,
+            self.fluo_highF_pos_img,
+            self.fluo_highF_neg_img,
+        ]:
             img.set_clim(vmin, vmax)
 
         self.lowF_line.set_xdata([self.qdm.odmr.f_ghz[0, idx], self.qdm.odmr.f_ghz[0, idx]])
@@ -292,16 +336,16 @@ class FluorescenceWindow(QMainWindow):
     def clear_axes(self):
         for a in self.canvas.fig.axes:
             if a not in [
-                self.canvas.lowF_meanODMR_ax,
-                self.canvas.highF_meanODMR_ax,
+                self.canvas.low_f_mean_odmr_ax,
+                self.canvas.high_f_mean_odmr_ax,
                 self.canvas.fluo_lowF_pos_ax,
                 self.canvas.fluo_lowF_neg_ax,
                 self.canvas.fluo_highF_pos_ax,
                 self.canvas.fluo_highF_neg_ax,
             ]:
                 a.remove()
-        self.canvas.lowF_meanODMR_ax.clear()
-        self.canvas.highF_meanODMR_ax.clear()
+        self.canvas.low_f_mean_odmr_ax.clear()
+        self.canvas.high_f_mean_odmr_ax.clear()
         self.canvas.fluo_lowF_pos_ax.clear()
         self.canvas.fluo_lowF_neg_ax.clear()
         self.canvas.fluo_highF_pos_ax.clear()

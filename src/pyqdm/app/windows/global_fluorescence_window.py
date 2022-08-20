@@ -94,14 +94,22 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
         self.qdm = qdm_instance
         self.pixelsize = pixelsize
 
+        super().__init__(*args, **kwargs)
+        self.setWindowTitle("Global Fluorescence Estimation")
         super(GlobalFluorescenceWindow, self).__init__(*args, **kwargs)
         self.setWindowTitle("Global Fluorescence Estimation")
 
         # Create the maptlotlib FigureCanvas object,
         self.canvas = GlobalFluorescenceCanvas(self, width=12, height=6, dpi=100)
         self.canvas.mpl_connect("button_press_event", self.on_press)
+        self.pixel_axes = [self.canvas.left_mean_odmr_ax, self.canvas.right_meanODMR_ax]
+        self.img_axes = [self.canvas.led_ax, self.canvas.laser_ax]
+        self.canvas.mpl_connect("button_press_event", self.on_press)
         self.pixel_axes = self.canvas.odmr_axes
         self.img_axes = self.canvas.img_axes
+
+        self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
+        self.LOG.debug(f"setting index of worst pixel to {self._current_xy} ({self._current_idx})")
 
         vertical_layout = QVBoxLayout()
         horizontal_layout_top = QHBoxLayout()
@@ -203,6 +211,15 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
                 )
                 self._corrected_lines[p][f] = cl
 
+                if self.qdm.odrm.global_factor != 0:
+                    (pl,) = self.pixel_axes[f].plot(
+                        self.qdm.odmr.f_ghz[f],
+                        pixel_spectra[p, f],
+                        ":",
+                        label=f"{pols[p]} current: GF={self.qdm.odrm.global_factor}",
+                        color=ul.get_color(),
+                        lw=0.8,
+                    )
                 if self.qdm.odmr._gf_factor != 0:
                     (pl,) = self.pixel_axes[f].plot(
                         self.qdm.odmr.f_ghz[f],
@@ -214,9 +231,22 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
                     )
                     self._pixel_lines[p][f] = pl
 
+            if self.qdm.odrm.global_factor != 0:
+                h, l = self.pixel_axes[f].get_legend_handles_labels()
             if self.qdm.odmr._gf_factor != 0:
                 h, labels = self.pixel_axes[f].get_legend_handles_labels()
                 h = np.array(h).reshape((2, -1)).T.flatten()
+                l = np.array(l).reshape((2, -1)).T.flatten()
+                self.pixel_axes[f].legend(
+                    h,
+                    l,
+                    ncol=3,
+                    bbox_to_anchor=(0, 1.01),
+                    loc="lower left",
+                    borderaxespad=0.0,
+                    frameon=False,
+                    prop={"family": "DejaVu Sans Mono"},
+                )
                 labels = np.array(labels).reshape((2, -1)).T.flatten()
                 self.pixel_axes[f].legend(
                     h,
@@ -263,8 +293,8 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
 
     def get_pixel_data(self):
         gf_factor = self.gfSlider.value() / 100
-        new_correct = self.qdm.odmr._get_gf_correction(gf=gf_factor)
-        old_correct = self.qdm.odmr._get_gf_correction(gf=self.qdm.odmr._gf_factor)
+        new_correct = self.qdm.odmr.get_gf_correction(gf=gf_factor)
+        old_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odrm.global_factor)
         pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
         uncorrected = pixel_spectra + old_correct
         corrected = uncorrected - new_correct
@@ -328,6 +358,8 @@ class GlobalFluorescenceWindowOLD(QMainWindow):
                 self._uncorrected_lines[p][f].set_ydata(uncorrected[p, f])
                 self._corrected_lines[p][f].set_ydata(corrected[p, f])
                 if self.qdm.odmr._gf_factor != 0:
+                    self._pixel_lines[p][f].set_ydata(pixel_spectra[p, f])
+                if self.qdm.odrm.global_factor != 0:
                     self._pixel_lines[p][f].set_ydata(pixel_spectra[p, f])
 
         for a in self.pixel_axes:

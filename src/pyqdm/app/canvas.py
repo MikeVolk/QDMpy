@@ -183,7 +183,7 @@ class FittingPropertyCanvas(FigureCanvas):
         self._is_spectra = [self.left_ODMR_ax, self.right_ODMR_ax]
         self._is_data = [self.main_ax]
         self._is_img = [self.main_ax, self.led_ax, self.laser_ax]
-        super(FittingPropertyCanvas, self).__init__(fig)
+        super().__init__(fig)
 
 
 class GlobalFluorescenceCanvasOLD(FigureCanvas):
@@ -196,7 +196,7 @@ class GlobalFluorescenceCanvasOLD(FigureCanvas):
         heights = [1, 1]
         spec = fig.add_gridspec(ncols=6, nrows=2, width_ratios=widths, height_ratios=heights)
 
-        self.left_meanODMR_ax = fig.add_subplot(spec[0, :3])
+        self.left_mean_odmr_ax = fig.add_subplot(spec[0, :3])
         self.right_meanODMR_ax = fig.add_subplot(spec[0, 3:6])
 
         self.led_ax = fig.add_subplot(spec[1, :3])
@@ -204,7 +204,7 @@ class GlobalFluorescenceCanvasOLD(FigureCanvas):
 
         self.led_ax.get_shared_x_axes().join(self.led_ax, self.laser_ax)
         self.led_ax.get_shared_y_axes().join(self.led_ax, self.laser_ax)
-        super(GlobalFluorescenceCanvas, self).__init__(fig)
+        super().__init__(fig)
 
 
 class FluorescenceCanvas(FigureCanvas):
@@ -217,14 +217,14 @@ class FluorescenceCanvas(FigureCanvas):
         heights = [1, 1, 1, 0.1]
         spec = fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
 
-        self.lowF_meanODMR_ax = fig.add_subplot(spec[0, 0])
-        self.highF_meanODMR_ax = fig.add_subplot(spec[0, 1])
+        self.low_f_mean_odmr_ax = fig.add_subplot(gs[0, 0])
+        self.high_f_mean_odmr_ax = fig.add_subplot(gs[0, 1])
 
-        self.fluo_lowF_pos_ax = fig.add_subplot(spec[1, 0])
-        self.fluo_highF_pos_ax = fig.add_subplot(spec[1, 1])
-        self.fluo_lowF_neg_ax = fig.add_subplot(spec[2, 0])
-        self.fluo_highF_neg_ax = fig.add_subplot(spec[2, 1])
-        self.cbar_ax = fig.add_subplot(spec[3, :])
+        self.fluo_lowF_pos_ax = fig.add_subplot(gs[1, 0])
+        self.fluo_highF_pos_ax = fig.add_subplot(gs[1, 1])
+        self.fluo_lowF_neg_ax = fig.add_subplot(gs[2, 0])
+        self.fluo_highF_neg_ax = fig.add_subplot(gs[2, 1])
+        self.cbar_ax = fig.add_subplot(gs[3, :])
 
         self.fluo_lowF_pos_ax.get_shared_x_axes().join(
             self.fluo_lowF_pos_ax,
@@ -235,7 +235,7 @@ class FluorescenceCanvas(FigureCanvas):
             *[self.fluo_lowF_pos_ax, self.fluo_lowF_neg_ax, self.fluo_highF_neg_ax, self.fluo_highF_pos_ax],
         )
 
-        super(FluorescenceCanvas, self).__init__(fig)
+        super().__init__(fig)
 
 
 class SimpleCanvas(FigureCanvas):
@@ -258,7 +258,7 @@ class SimpleCanvas(FigureCanvas):
         self._is_spectra = []
         self._is_data = []
 
-        super(SimpleCanvas, self).__init__(fig)
+        super().__init__(fig)
 
 
 class QualityCanvas(FigureCanvas):
@@ -300,7 +300,7 @@ class QualityCanvas(FigureCanvas):
             self.caxes[p][f] = divider.append_axes("right", size="5%", pad=0.05)
             self.original_cax_locator[p][f] = self.caxes[p][f]._axes_locator
 
-        super(QualityCanvas, self).__init__(fig)
+        super().__init__(fig)
 
 
 if __name__ == "__main__":
