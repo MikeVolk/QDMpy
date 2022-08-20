@@ -41,7 +41,7 @@ class QualityWindow(PyQdmWindow):
         parameterBox = QHBoxLayout()
         parameterLabel = QLabel("param: ")
         self.dataSelect = QComboBox()
-        self.dataSelect.addItems(self.QDMObj._fitting_params_unique + ["contrast", "chi_squared"])
+        self.dataSelect.addItems(self.qdm._fitting_params_unique + ["contrast", "chi_squared"])
         self.dataSelect.setCurrentText("chi_squared")
         self.dataSelect.currentTextChanged.connect(self.update_img_plots)
         parameterBox.addWidget(parameterLabel)
@@ -51,13 +51,11 @@ class QualityWindow(PyQdmWindow):
 
     def init_plots(self):
         self.LOG.debug("init_plots")
-        d = self.QDMObj._chi_squares.reshape(
-            self.QDMObj.odmr.n_pol, self.QDMObj.odmr.n_frange, *self.QDMObj.odmr.scan_dimensions
-        )
+        d = self.qdm._chi_squares.reshape(self.qdm.odmr.n_pol, self.qdm.odmr.n_frange, *self.qdm.odmr.scan_dimensions)
         vmin, vmax = d.min(), d.max()
 
-        for f in range(self.QDMObj.odmr.n_frange):
-            for p in range(self.QDMObj.odmr.n_pol):
+        for f in range(self.qdm.odmr.n_frange):
+            for p in range(self.qdm.odmr.n_pol):
                 ax = self.canvas.ax[p][f]
                 img = ax.imshow(d[p, f], cmap="viridis", interpolation="none", origin="lower", vmin=vmin, vmax=vmax)
                 plt.colorbar(img, cax=self.canvas.caxes[p][f])
@@ -89,17 +87,17 @@ class QualityWindow(PyQdmWindow):
 
     def update_img_plots(self):
         if self.dataSelect.currentText() == "chi_squared":
-            data = self.QDMObj._chi_squares.reshape(
-                self.QDMObj.odmr.n_pol, self.QDMObj.odmr.n_frange, *self.QDMObj.odmr.scan_dimensions
+            data = self.qdm._chi_squares.reshape(
+                self.qdm.odmr.n_pol, self.qdm.odmr.n_frange, *self.qdm.odmr.scan_dimensions
             )
         else:
-            data = self.QDMObj.get_param(self.dataSelect.currentText())
+            data = self.qdm.get_param(self.dataSelect.currentText())
 
         if self.dataSelect.currentText() == "contrast":
             data = np.sum(data, axis=2)
 
-        for f in range(self.QDMObj.odmr.n_frange):
-            for p in range(self.QDMObj.odmr.n_pol):
+        for f in range(self.qdm.odmr.n_frange):
+            for p in range(self.qdm.odmr.n_pol):
                 im = self.canvas.ax[p][f].images[0]
                 d = data[p, f]
                 im.set_data(d)
