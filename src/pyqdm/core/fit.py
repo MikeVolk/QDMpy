@@ -534,9 +534,11 @@ def guess_center_freq_single(data, freq):
     return freq[idx]
 
 
-def make_dummy_data(model: str = "esr14n", n_freq: int = 100):
-    pass
-
+def make_dummy_data(
+    model: str = "esr14n",
+    n_freq: int = 100,
+    scan_dimensions=[120, 190],
+):
     if model in MODELS:
         model_func = MODELS[model][0]
         n_params = MODELS[model][1]
@@ -558,7 +560,7 @@ def make_dummy_data(model: str = "esr14n", n_freq: int = 100):
         6: [width, contrast, contrast, contrast, offset],
     }
 
-    p = np.ones((n_freq, n_params))
+    p = np.ones((scan_dimensions[0] * scan_dimensions[1], n_params))
     # model for the left frange
     # +
     p00 = p.copy()
