@@ -56,6 +56,10 @@ class Fit:
         self._execution_time: np.array = None
 
     @property
+    def fitted(self):
+        return self._fitted
+
+    @property
     def data(self):
         return self._data
 
