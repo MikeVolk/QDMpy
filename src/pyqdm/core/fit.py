@@ -222,6 +222,35 @@ class Fit:
         fit_bounds = [BOUND_TYPES[self._constraints[k][2]] for k in self.fitting_parameter_unique]
         return np.array(fit_bounds).astype(np.int32)
 
+    def get_param(self, param):
+        """
+        Get the value of a parameter reshaped to the image dimesions.
+        """
+        if not self.fitted:
+            raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
+
+        if param == "chi2":
+            out = self._chi_squares
+        else:
+            idx = self._param_idx(param)
+            out = self._parameter[:, :, :, idx]
+        return out
+
+    def _param_idx(self, param):
+        """
+        Get the index of the fitted parameter.
+        :param param:
+        :return:
+        """
+        if param == "resonance":
+            param = "center"
+        idx = [i for i, v in enumerate(self.fitting_parameter) if v == param]
+        if not idx:
+            idx = [i for i, v in enumerate(self.fitting_parameter_unique) if v == param]
+        if not idx:
+            raise ValueError(f"Unknown parameter: {param}")
+        return idx
+
     # initial guess
     def _guess_center(self):
         """
