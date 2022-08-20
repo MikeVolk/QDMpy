@@ -68,6 +68,18 @@ class Fit:
         self._reset_fit()
 
     @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, model):
+        if model.lower() not in MODELS:
+            raise ValueError(f"Unknown model: {model} choose from {MODELS}")
+        self._model = model.upper()
+        self._reset_fit()
+        self._initial_parameter = self.get_initial_parameter()
+
+    @property
     def initial_parameter(self):
         """
         Return the initial parameter.
