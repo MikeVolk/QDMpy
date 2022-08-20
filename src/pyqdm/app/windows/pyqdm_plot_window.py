@@ -147,7 +147,7 @@ class PyQdmWindow(QMainWindow):
         pixel_box_widget.setLayout(coord_box)
         toolbar.addWidget(pixel_box_widget)
 
-    def _add_outlier_mask(self):
+    def add_outlier_mask(self):
         for ax, img in self._outlier_masks.items():
             self.LOG.debug(f"Adding outlier mask to axis {ax}")
             if img is None:
@@ -166,11 +166,11 @@ class PyQdmWindow(QMainWindow):
                 img.set_data(self.qdm.outliers.reshape(self.qdm.scan_dimensions))
         self.canvas.draw()
 
-    def _toggle_outlier_mask(self, onoff="on"):
+    def toggle_outlier_mask(self, onoff="on"):
         for ax, img in self._outlier_masks.items():
             if onoff == "on":
                 if img is None:
-                    self._add_outlier_mask()
+                    self.add_outlier_mask()
                     img = self._outlier_masks[ax]
                 img.set_visible(True)
             if onoff == "off":

@@ -110,7 +110,7 @@ class PyQDMMainWindow(QMainWindow):
         self.setWindowTitle("pyqdm")
         self.resize(
             int(0.6 * self.screen_size[0]),
-            int(0.8 * self.screen_size[0]) * self.screen_ratio,
+            int(0.8 * self.screen_size[0] * self.screen_ratio),
         )
 
         self.get_menu()
@@ -383,7 +383,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def fill_fitconstraints_widget(self):
         self.get_fitconstraints_widget()
-        for i, (k, v) in enumerate(self.qdm._fit.constraints.items()):
+        for i, (k, v) in enumerate(sefl.qdm.fit.constraints.items()):
             self.set_fitconstraints_widget_line(i, k, v[0], v[1], v[3], v[2])
 
     def set_fitconstraints_widget_line(self, row, text, vmin, vmax, unit, constraint):
@@ -526,7 +526,7 @@ class PyQDMMainWindow(QMainWindow):
         if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
-        elif not self.qdm._fit.fitted:
+        elif not sefl.qdm.fit.fitted:
             self.LOG.debug("QDM data loaded, fitting possible.")
             self.main_label.setText("No fit calculated yet.")
         else:
@@ -652,10 +652,10 @@ class PyQDMMainWindow(QMainWindow):
         for w in self._data_windows:
             if s:
                 self.LOG.debug("Marking outliers")
-                w._add_outlier_mask()
+                w.add_outlier_mask()
             else:
                 self.LOG.debug("Removing outlier markers")
-                w._toggle_outlier_mask("off")
+                w.toggle_outlier_mask("off")
 
     def on_show_outlier_list_button_press(self):
         self.LOG.debug("Showing outliers list")

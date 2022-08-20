@@ -179,18 +179,18 @@ class GlobalFluorescenceWindow(QMainWindow):
                 )
                 self._corrected_lines[p][f] = cl
 
-                if self.qdm.odmr._gf_factor != 0:
+                if self.qdm.odrm.global_factor != 0:
                     (pl,) = self.pixel_axes[f].plot(
                         self.qdm.odmr.f_ghz[f],
                         pixel_spectra[p, f],
                         ":",
-                        label=f"{pols[p]} current: GF={self.qdm.odmr._gf_factor}",
+                        label=f"{pols[p]} current: GF={self.qdm.odrm.global_factor}",
                         color=ul.get_color(),
                         lw=0.8,
                     )
                     self._pixel_lines[p][f] = pl
 
-            if self.qdm.odmr._gf_factor != 0:
+            if self.qdm.odrm.global_factor != 0:
                 h, l = self.pixel_axes[f].get_legend_handles_labels()
                 h = np.array(h).reshape((2, -1)).T.flatten()
                 l = np.array(l).reshape((2, -1)).T.flatten()
@@ -239,8 +239,8 @@ class GlobalFluorescenceWindow(QMainWindow):
 
     def get_pixel_data(self):
         gf_factor = self.gfSlider.value() / 100
-        new_correct = self.qdm.odmr._get_gf_correction(gf=gf_factor)
-        old_correct = self.qdm.odmr._get_gf_correction(gf=self.qdm.odmr._gf_factor)
+        new_correct = self.qdm.odmr.get_gf_correction(gf=gf_factor)
+        old_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odrm.global_factor)
         pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
         uncorrected = pixel_spectra + old_correct
         corrected = uncorrected - new_correct
@@ -303,7 +303,7 @@ class GlobalFluorescenceWindow(QMainWindow):
             for f in np.arange(self.qdm.odmr.n_frange):
                 self._uncorrected_lines[p][f].set_ydata(uncorrected[p, f])
                 self._corrected_lines[p][f].set_ydata(corrected[p, f])
-                if self.qdm.odmr._gf_factor != 0:
+                if self.qdm.odrm.global_factor != 0:
                     self._pixel_lines[p][f].set_ydata(pixel_spectra[p, f])
 
         for a in self.pixel_axes:

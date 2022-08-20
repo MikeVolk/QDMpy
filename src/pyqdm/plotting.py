@@ -13,9 +13,9 @@ def check_fit_pixel(qdm_obj, idx):
     # noinspection PyTypeChecker
     f, ax = plt.subplots(1, 2, figsize=(10, 4), sharex=False, sharey=True)
     polarities = ["+", "-"]
-    model = [None, models.esr_single, models.esr_15n, models.esr_14n][qdm_obj._diamond_type]
+    model = [None, models.esrsingle, models.esr15n, models.esr14n][qdm_obj.diamond_type]
     print(f"IDX: {idx}, Model: {model.__name__}")
-    lst = ["pol/side"] + qdm_obj._fitting_params + ["chi2"]
+    lst = ["pol/side"] + qdm_obj.fit.fitting_parameter + ["chi2"]
     header = " ".join([f"{i:>8s}" for i in lst])
     print(f"{header}")
     print("-" * 100)
@@ -23,8 +23,8 @@ def check_fit_pixel(qdm_obj, idx):
     for p, f in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
-        m_initial = model(parameter=qdm_obj.initial_guess[p, f, [idx]], x=f_new)
-        m_fit = model(parameter=qdm_obj._fitted_parameter[p, f, [idx]], x=f_new)
+        m_initial = model(parameter=qdm_obj.initial_parameter[p, f, [idx]], x=f_new)
+        m_fit = model(parameter=qdm_obj.fit.fitting_parameter[p, f, [idx]], x=f_new)
 
         ax[f].plot(
             qdm_obj.odmr.f_ghz[f],
@@ -46,8 +46,8 @@ def check_fit_pixel(qdm_obj, idx):
             borderaxespad=0.0,
         )
 
-        line = " ".join([f"{v:>8.5f}" for v in qdm_obj._fitted_parameter[p, f, idx]])
-        line += f" {qdm_obj._chi_squares[p, f, idx]:>8.2e}"
+        line = " ".join([f"{v:>8.5f}" for v in qdm_obj.fit.fitting_parameter[p, f, idx]])
+        line += f" {qdm_obj.fit._chi_squares[p, f, idx]:>8.2e}"
         print(f'{["+", "-"][p]},{["<", ">"][p]}:     {line}')
 
     for a in ax.flat:

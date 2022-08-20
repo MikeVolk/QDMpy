@@ -18,9 +18,6 @@ from pyqdm.utils import idx2rc, rc2idx
 class ODMR:
     LOG = logging.getLogger("pyQDM.ODMR")
 
-    def __repr__(self):
-        return f"ODMR(data={self.data.shape}, scan_dimensions={self.scan_dimensions}, n_pol={self.n_pol}, n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}, frequencies={self.frequencies.shape})"
-
     def __init__(self, data, scan_dimensions, frequencies, **kwargs):
         self.LOG.info("ODMR data object initialized")
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
@@ -62,15 +59,8 @@ class ODMR:
         self.is_cropped = False
         self.is_fcropped = False
 
-    def remove_overexposed(self, **kwargs):
-        """
-        Remove overexposed pixels from the data.
-        """
-        self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
-
-        if np.sum(self._overexposed) > 0:
-            self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
-            self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
+    def __repr__(self):
+        return f"ODMR(data={self.data.shape}, scan_dimensions={self.scan_dimensions}, n_pol={self.n_pol}, n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}, frequencies={self.frequencies.shape})"
 
     def __getitem__(self, item):
         """
@@ -142,6 +132,7 @@ class ODMR:
         d = d[:, fidx]
         return np.squeeze(d)
 
+    # index related
     def get_binned_pixel_indices(self, x, y):
         """
         Return the indices of the binned pixels. Reference is the data index.
@@ -163,7 +154,15 @@ class ODMR:
     def idx2rc(self, idx):
         return idx2rc(idx, self.scan_dimensions)
 
-    ### from methods ###
+    def get_most_divergent_from_mean(self):
+        """
+        Get the most divergent pixel from the mean in data coordinates.
+        """
+        delta = self.delta_mean.copy()
+        delta[delta > 0.001] = np.nan
+        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)
+
+    # from methods
 
     @classmethod
     def _qdmio_stack_data(cls, mfile):
@@ -248,6 +247,7 @@ class ODMR:
 
         return factors
 
+    # properties
     @property
     def scan_dimensions(self):
         return (self._scan_dimensions / self.bin_factor).astype(np.uint32)
@@ -294,27 +294,35 @@ class ODMR:
         return self.frequencies / 1e9
 
     @property
+    def global_factor(self):
+        return self._gf_factor
+
+    @property
     def data(self):
         if self._data_edited is None:
             return np.ascontiguousarray(self._raw_data)
         else:
             return np.ascontiguousarray(self._data_edited)
 
-    @cached_property
+    @property
+    def delta_mean(self):
+        return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
+
+    @property
     def mean_odmr(self):
         """
         Calculate the mean of the data.
         """
         return self.data.mean(axis=-2)
 
-    @cached_property
+    @property
     def raw_contrast(self):
         """
         Calculate the minimum of MW sweep for each pixel.
         """
         return np.min(self.data, -2)
 
-    @cached_property
+    @property
     def mean_contrast(self):
         """
         Calculate the mean contrast of the data.
@@ -322,8 +330,17 @@ class ODMR:
         return np.mean(self.raw_contrast)
 
     @property
+    def _mean_baseline(self):
+        baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
+        baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
+        baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
+        return baseline_left_mean, baseline_right_mean, baseline_mean
+
+    @property
     def bin_factor(self):
         return self._bin_factor * self._pre_bin_factor
+
+    # edit methods
 
     def _apply_edit_stack(self, **kwargs):
         """
@@ -408,22 +425,21 @@ class ODMR:
             f"--> {_odmr_binned.shape[0]}x{_odmr_binned.shape[1]}x{_odmr_binned.shape[2]}x{_odmr_binned.shape[3]}x{_odmr_binned.shape[4]}"
         )
 
-    @property
-    def delta_mean(self):
-        return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
+    def remove_overexposed(self, **kwargs):
+        """
+        Remove overexposed pixels from the data.
+        """
+        self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
 
-    def get_most_divergent_from_mean(self):
-        """
-        Get the most divergent pixel from the mean in data coordinates.
-        """
-        delta = self.delta_mean.copy()
-        delta[delta > 0.001] = np.nan
-        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)
+        if np.sum(self._overexposed) > 0:
+            self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
+            self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
+
 
     ### CORRECTION METHODS ###
-    @property
-    def global_factor(self):
-        return self._gf_factor
+    def get_gf_correction(self, gf):
+        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
+        return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
     def correct_glob_fluorescence(self, gf_factor, **kwargs):
         """
@@ -438,15 +454,12 @@ class ODMR:
             gf_factor = self._gf_factor
 
         self.LOG.debug(f"Correcting for global fluorescence with value {gf_factor}")
-        correction = self._get_gf_correction(gf=gf_factor)
+        correction = self.get_gf_correction(gf=gf_factor)
 
         self._data_edited -= correction[:, :, np.newaxis, :]
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
 
-    def _get_gf_correction(self, gf):
-        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
-        return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
     # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):
@@ -456,14 +469,14 @@ class ODMR:
         if gf_factor is None:
             gf_factor = self._gf_factor
 
-        new_correct = self._get_gf_correction(gf=gf_factor)
+        new_correct = self.get_gf_correction(gf=gf_factor)
 
         f, ax = plt.subplots(2, 2, sharex=False, sharey=True, figsize=(15, 10))
         for p in np.arange(self.n_pol):
             for f in np.arange(self.n_frange):
                 d = self.data[p, f, idx].copy()
 
-                old_correct = self._get_gf_correction(gf=self._gf_factor)
+                old_correct = self.get_gf_correction(gf=self._gf_factor)
                 if self._gf_factor != 0:
                     ax[p, f].plot(self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}")
 
@@ -486,10 +499,3 @@ class ODMR:
                 ax[p, f].legend()
                 # , ylim=(0, 1.5))
                 ax[p, f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]")
-
-    @cached_property
-    def _mean_baseline(self):
-        baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
-        baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-        baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
-        return baseline_left_mean, baseline_right_mean, baseline_mean

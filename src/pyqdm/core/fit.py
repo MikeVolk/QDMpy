@@ -522,12 +522,17 @@ def guess_width_single(data, freq):
     :return: np.array
         width of the data
     """
-    data = np.cumsum(data - 1, axis=-1)
-    data -= np.expand_dims(np.min(data, axis=-1), axis=2)
-    data /= np.expand_dims(np.max(data, axis=-1), axis=2)
+    data = normalized_cumsum(data)
     lidx = np.argmin(np.abs(data - 0.25), axis=-1)
     ridx = np.argmin(np.abs(data - 0.75), axis=-1)
     return freq[lidx] - freq[ridx]
+
+
+def normalized_cumsum(data):
+    data = np.cumsum(data - 1, axis=-1)
+    data -= np.expand_dims(np.min(data, axis=-1), axis=2)
+    data /= np.expand_dims(np.max(data, axis=-1), axis=2)
+    return data
 
 
 def guess_center_freq_single(data, freq):
@@ -541,9 +546,7 @@ def guess_center_freq_single(data, freq):
     :return: np.array
         center frequency of the data
     """
-    data = np.cumsum(data - 1, axis=-1)
-    data -= np.expand_dims(np.min(data, axis=-1), axis=2)
-    data /= np.expand_dims(np.max(data, axis=-1), axis=2)
+    data = normalized_cumsum(data)
     idx = np.argmin(np.abs(data - 0.5), axis=-1)
     return freq[idx]
 
