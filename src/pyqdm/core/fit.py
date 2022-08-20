@@ -186,6 +186,10 @@ class Fit:
             bound_type=default_constraints["offset_type"],
         )
 
+    @property
+    def constraints(self):
+        return self._constraints
+
     def constraints_changed(self, constraints, constraint_types):
         """
         Check if the constraints have changed.
