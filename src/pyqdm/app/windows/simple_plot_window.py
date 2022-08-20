@@ -36,7 +36,7 @@ class SimplePlotWindow(PyQdmWindow):
         vmin, vmax = np.min(d), np.max(d)
 
         if self.fix_clim_check_box.isChecked():
-            vmin, vmax = np.percentile(d, [100 - self.cLimSelector.value(), self.cLimSelector.value()])
+            vmin, vmax = np.percentile(d, [100 - self.clims_selector.value(), self.clims_selector.value()])
 
         img.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 

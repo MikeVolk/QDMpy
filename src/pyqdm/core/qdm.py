@@ -3,21 +3,16 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.io import savemat
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
 import pyqdm
 import pyqdm.core.fit
-from pyqdm import pygpufit_present
 from pyqdm.core.fit import MODELS, Fit
 from pyqdm.core.odmr import ODMR
 from pyqdm.exceptions import CantImportError, WrongFileNumber
 from pyqdm.utils import get_image, idx2rc, rc2idx
-
-if pygpufit_present:
-    pass
-
-from scipy.io import savemat
 
 GAMMA = 28.024 / 1e6  # GHz/muT;
 DIAMOND_TYPES = ["NaN", "MISC.", "N15", "N14"]
@@ -120,7 +115,7 @@ class QDM:
             data = self.b111_remanent.reshape(1, -1)
         elif dtype == "B111_induced":
             data = self.b111_remanent.reshape(1, -1)
-        elif dtype in self._fitting_params + self._fitting_params_unique:
+        elif dtype in self.fit.fitting_parameter + self.fit.fitting_parameter_unique:
             data = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
@@ -260,6 +255,10 @@ class QDM:
         return self.odmr.scan_dimensions
 
     # fitting
+    @property
+    def fit(self):
+        return self._fit
+
     @property
     def fitted(self):
         return self._fit.fitted

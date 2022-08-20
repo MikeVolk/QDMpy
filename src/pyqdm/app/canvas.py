@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 class FittingPropertyCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=5, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(top=0.966, bottom=0.06, left=0.056, right=0.985, hspace=0.325, wspace=1.0)
+        fig.subplots_adjust(top=0.974, bottom=0.051, left=0.051, right=0.992, hspace=0.245, wspace=0.716)
 
         self.fig = fig
 
@@ -59,7 +59,7 @@ class GlobalFluorescenceCanvas(FigureCanvas):
         heights = [1, 1]
         spec = fig.add_gridspec(ncols=6, nrows=2, width_ratios=widths, height_ratios=heights)
 
-        self.left_meanODMR_ax = fig.add_subplot(spec[0, :3])
+        self.left_mean_odmr_ax = fig.add_subplot(spec[0, :3])
         self.right_meanODMR_ax = fig.add_subplot(spec[0, 3:6])
 
         self.led_ax = fig.add_subplot(spec[1, :3])
@@ -78,16 +78,16 @@ class FluorescenceCanvas(FigureCanvas):
         self.fig = fig
         widths = [1, 1]
         heights = [1, 1, 1, 0.1]
-        spec = fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
+        gs = fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
 
-        self.lowF_meanODMR_ax = fig.add_subplot(spec[0, 0])
-        self.highF_meanODMR_ax = fig.add_subplot(spec[0, 1])
+        self.low_f_mean_odmr_ax = fig.add_subplot(gs[0, 0])
+        self.high_f_mean_odmr_ax = fig.add_subplot(gs[0, 1])
 
-        self.fluo_lowF_pos_ax = fig.add_subplot(spec[1, 0])
-        self.fluo_highF_pos_ax = fig.add_subplot(spec[1, 1])
-        self.fluo_lowF_neg_ax = fig.add_subplot(spec[2, 0])
-        self.fluo_highF_neg_ax = fig.add_subplot(spec[2, 1])
-        self.cbar_ax = fig.add_subplot(spec[3, :])
+        self.fluo_lowF_pos_ax = fig.add_subplot(gs[1, 0])
+        self.fluo_highF_pos_ax = fig.add_subplot(gs[1, 1])
+        self.fluo_lowF_neg_ax = fig.add_subplot(gs[2, 0])
+        self.fluo_highF_neg_ax = fig.add_subplot(gs[2, 1])
+        self.cbar_ax = fig.add_subplot(gs[3, :])
 
         self.fluo_lowF_pos_ax.get_shared_x_axes().join(
             self.fluo_lowF_pos_ax,
@@ -137,7 +137,7 @@ class SimpleCanvas(FigureCanvas):
 class QualityCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi, tight_layout=False)
-        fig.subplots_adjust(top=0.94, bottom=0.054, left=0.038, right=0.957, hspace=0.15, wspace=0.167)
+        fig.subplots_adjust(top=0.943, bottom=0.028, left=0.05, right=0.929, hspace=0.0, wspace=0.289)
 
         self.fig = fig
         widths = [1, 1]

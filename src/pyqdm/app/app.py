@@ -24,14 +24,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from pyqdm.app.models import PandasModel
-
 matplotlib.use("Agg")
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QComboBox,
     QDoubleSpinBox,
@@ -48,7 +45,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QStatusBar,
-    QTableView,
     QTableWidget,
     QTableWidgetItem,
     QToolBar,
@@ -60,9 +56,10 @@ import pyqdm
 from pyqdm.app.windows import fit_window
 from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
 from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
-from pyqdm.app.windows.misc import gf_applied_window
+from pyqdm.app.windows.misc import PandasWidget, gf_applied_window
 from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
 from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
+from pyqdm.core.fit import CONSTRAINT_TYPES
 from pyqdm.core.qdm import QDM
 from pyqdm.exceptions import CantImportError
 
@@ -81,6 +78,54 @@ matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle
 
 class PyQDMMainWindow(QMainWindow):
     _visible_if_QDMObj_present = []
+
+    def __init__(self, **kwargs):
+
+        super().__init__()
+        self.LOG = logging.getLogger("pyqdm." + self.__class__.__name__)
+        self.debug = kwargs.pop("debug", False)
+        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
+
+        if not pyqdm.pygpufit_present:
+            self.pygpufit_not_available_dialog()
+
+        screen = kwargs.pop("screen", None)
+        if screen is None:
+            self.screen_size = [1920, 1080]
+        else:
+            self.screen_size = screen.size().width(), screen.size().height()
+        self.screen_ratio = self.screen_size[1] / self.screen_size[0]
+        self.fluorescenceWindow = None
+        self.laserWindow = None
+        self.ledWindow = None
+        self.main_content_figure = None
+        self.qualityWindow = None
+
+        self.qdm = None
+        self.fitconstraints_widget = None
+        self.fitconstraints = {}
+
+        self._current_idx = None
+
+        self.setWindowTitle("pyqdm")
+        self.resize(
+            int(0.6 * self.screen_size[0]),
+            int(0.8 * self.screen_size[0]) * self.screen_ratio,
+        )
+
+        self.get_menu()
+        self.get_toolbar()
+        self.get_statusbar()
+
+        self.init_main_content()
+        self.get_infotable_widget()
+
+        self._change_tool_visibility()
+
+        self._data_windows = []
+
+        if self.debug:
+            self.debug_call()
 
     # TOOLBAR
     def get_toolbar(self):
@@ -350,13 +395,13 @@ class PyQDMMainWindow(QMainWindow):
             QComboBox(),
         ]
         self.fitconstraints[text][-1].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
-        self.fitconstraints[text][-1].setCurrentIndex(sCONSTRAINT_TYPES[constraint])
+        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES[constraint])
 
         self.fitconstraints[text][1].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][2].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][-1].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
         self._set_constraint_visibility(
-            self.qdm.CONSTRAINT_TYPES[constraint],
+            CONSTRAINT_TYPES[constraint],
             self.fitconstraints[text][1],
             self.fitconstraints[text][2],
         )
@@ -463,44 +508,6 @@ class PyQDMMainWindow(QMainWindow):
         self._visible_if_QDMObj_present.append(selector)
         return label, selector
 
-    def __init__(self, **kwargs):
-
-        super().__init__()
-        self.LOG = logging.getLogger("pyqdm." + self.__class__.__name__)
-        self.debug = kwargs.pop("debug", False)
-        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
-
-        if not pyqdm.pygpufit_present:
-            self.pygpufit_not_available_dialog()
-        self.fluorescenceWindow = None
-        self.laserWindow = None
-        self.ledWindow = None
-        self.main_content_figure = None
-        self.qualityWindow = None
-
-        self.qdm = None
-        self.fitconstraints_widget = None
-        self.fitconstraints = {}
-
-        self._current_idx = None
-
-        self.setWindowTitle("pyqdm")
-        self.resize(1200, 800)
-
-        self.get_menu()
-        self.get_toolbar()
-        self.get_statusbar()
-
-        self.init_main_content()
-        self.get_infotable_widget()
-
-        self._change_tool_visibility()
-
-        self._data_windows = []
-
-        if self.debug:
-            self.debug_call()
-
     # MAIN WINDOW
     def init_main_content(self):
         self.main_content_layout = QHBoxLayout()
@@ -525,12 +532,11 @@ class PyQDMMainWindow(QMainWindow):
         else:
             self.LOG.debug("QDM data fitted, plotting results.")
             if self.main_content_figure is None:
-                self._extracted_from_update_main_content_12()
+                self._replace_label_with_fit_window()
             else:
                 self.main_content_figure.redraw_all_plots()
 
-    # TODO Rename this here and in `update_main_content`
-    def _extracted_from_update_main_content_12(self):
+    def _replace_label_with_fit_window(self):
         self.main_content_layout.removeWidget(self.main_label)
         self.main_content_figure = fit_window.FitWindow(self, self.qdm, parent=self)
         self._data_windows.append(self.main_content_figure)
@@ -813,41 +819,15 @@ class PyQDMMainWindow(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"C:\Users\micha\github\pyqdm\tests\data")
+        self.import_file(r"C:\Users\micha\Desktop\synthetic_data")
         self.on_quick_start_button_press()
         self.on_fit_button_press()
 
 
-class PandasWidget(QGroupBox):
-    def __init__(self, caller, pdd, title="Outliers", parent=None):
-        super().__init__(parent)
-        v_layout = QVBoxLayout(self)
-        self.setTitle(title)
-        self.caller = caller
-        self.pandasTv = QTableView(self)
-
-        v_layout.addWidget(self.pandasTv)
-        self.pandasTv.setSortingEnabled(True)
-
-        model = PandasModel(pdd)
-        self.pandasTv.setModel(model)
-        self.pandasTv.resizeColumnsToContents()
-        self.pandasTv.setSelectionBehavior(QAbstractItemView.SelectRows)
-        selection = self.pandasTv.selectionModel()
-        selection.selectionChanged.connect(self.handle_selection_changed)
-        self.resize(150, 200)
-        self.setContentsMargins(0, 0, 0, 0)
-
-    def handle_selection_changed(self):
-        for index in self.pandasTv.selectionModel().selectedRows():
-            self.caller.set_current_idx(idx=int(index.data()))
-            self.caller.update_marker()
-            self.caller.update_pixel()
-
-
 def main(**kwargs):
     app = QApplication(sys.argv)
-    mainwindow = PyQDMMainWindow(**kwargs)
+    screen = app.primaryScreen()
+    mainwindow = PyQDMMainWindow(screen=screen, **kwargs)
     mainwindow.show()
 
     center = QScreen.availableGeometry(QApplication.primaryScreen()).center()
@@ -859,4 +839,4 @@ def main(**kwargs):
 
 
 if __name__ == "__main__":
-    main(debug=True)
+    main(debug=False)

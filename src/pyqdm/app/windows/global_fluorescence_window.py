@@ -73,7 +73,7 @@ class GlobalFluorescenceWindow(QMainWindow):
         # Create the maptlotlib FigureCanvas object,
         self.canvas = GlobalFluorescenceCanvas(self, width=12, height=6, dpi=100)
         self.canvas.mpl_connect("button_press_event", self.on_press)
-        self.pixel_axes = [self.canvas.left_meanODMR_ax, self.canvas.right_meanODMR_ax]
+        self.pixel_axes = [self.canvas.left_mean_odmr_ax, self.canvas.right_meanODMR_ax]
         self.img_axes = [self.canvas.led_ax, self.canvas.laser_ax]
 
         self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
@@ -216,7 +216,7 @@ class GlobalFluorescenceWindow(QMainWindow):
 
             self.pixel_axes[f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]", ylim=(mn, mx))
 
-        self.img_axes[0].imshow(self.qdm.led, cmap="gray", interpolation="none", origin="lower")
+        self.img_axes[0].imshow(self.qdm.light, cmap="gray", interpolation="none", origin="lower")
         self.img_axes[1].imshow(self.qdm.laser, cmap="inferno", interpolation="none", origin="lower")
         (self._marker_line[0],) = self.img_axes[0].plot(
             self._current_xy[1] * self.qdm.bin_factor,

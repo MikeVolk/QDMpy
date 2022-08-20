@@ -17,7 +17,7 @@ FIT_PARAMETER = {
     "ESRSINGLE": ["center", "width", "contrast", "offset"],
 }
 UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
-BOUND_TYPES = {
+CONSTRAINT_TYPES = {
     "FREE": 0,
     "LOWER": 1,
     "UPPER": 2,
@@ -129,34 +129,34 @@ class Fit:
     def n_parameter(self):
         return len(self.fitting_parameter)
 
-    def set_constraints(self, param, vmin=None, vmax=None, bound_type=None):
+    def set_constraints(self, param, vmin=None, vmax=None, constraint_type=None):
         """
         Set the constraints for the fit.
 
-        Parameters
-        ----------
-        param : str
+        :param param: str
             The parameter to set the constraints for.
-        values : list, optional
-            The values to set the constraints to. The default is None.
-        bound_type : str, int optional
+        :param vmin: float, optional
+            The minimum value to set the constraints to. The default is None.
+        :param vmax: float, optional
+            The maximum value to set the constraints to. The default is None.
+        :param constraint_type: str, int optional
             The bound type to set the constraints to. The default is None.
         """
-        if isinstance(bound_type, int):
-            bound_type = BOUND_TYPES[bound_type]
+        if isinstance(constraint_type, int):
+            constraint_type = CONSTRAINT_TYPES[constraint_type]
 
-        if bound_type is not None and bound_type not in BOUND_TYPES:
-            raise ValueError(f"Unknown constraint type: {bound_type} choose from {BOUND_TYPES}")
+        if constraint_type is not None and constraint_type not in CONSTRAINT_TYPES:
+            raise ValueError(f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}")
 
         if param == "contrast" and self.fitting_parameter_unique != self.fitting_parameter:
             for contrast in [v for v in self.fitting_parameter_unique if "contrast" in v]:
-                self.set_constraints(contrast, vmin=vmin, vmax=vmax, bound_type=bound_type)
+                self.set_constraints(contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type)
         else:
-            self.LOG.debug(f"Setting constraints for {param}: ({vmin}, {vmax}) with {bound_type}")
+            self.LOG.debug(f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}")
             self._constraints[param] = [
                 vmin,
                 vmax,
-                bound_type,
+                constraint_type,
                 UNITS[param.split("_")[0]],
             ]
             self._reset_fit()
@@ -166,7 +166,7 @@ class Fit:
         Set the constraints to be free.
         """
         for param in set(self.fitting_parameter_unique):
-            self.set_constraints(param, bound_type="FREE")
+            self.set_constraints(param, constraint_type="FREE")
 
     def _set_initial_constraints(self):
         """
@@ -177,25 +177,25 @@ class Fit:
             "center",
             default_constraints["center_min"],
             default_constraints["center_max"],
-            bound_type=default_constraints["center_type"],
+            constraint_type=default_constraints["center_type"],
         )
         self.set_constraints(
             "width",
             default_constraints["width_min"],
             default_constraints["width_max"],
-            bound_type=default_constraints["width_type"],
+            constraint_type=default_constraints["width_type"],
         )
         self.set_constraints(
             "contrast",
             default_constraints["contrast_min"],
             default_constraints["contrast_max"],
-            bound_type=default_constraints["contrast_type"],
+            constraint_type=default_constraints["contrast_type"],
         )
         self.set_constraints(
             "offset",
             default_constraints["offset_min"],
             default_constraints["offset_max"],
-            bound_type=default_constraints["offset_type"],
+            constraint_type=default_constraints["offset_type"],
         )
 
     @property
@@ -227,8 +227,13 @@ class Fit:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [BOUND_TYPES[self._constraints[k][2]] for k in self.fitting_parameter_unique]
+        fit_bounds = [CONSTRAINT_TYPES[self._constraints[k][2]] for k in self.fitting_parameter_unique]
         return np.array(fit_bounds).astype(np.int32)
+
+    # parameters
+    @property
+    def parameter(self):
+        return self._parameter
 
     def get_param(self, param):
         """
@@ -236,27 +241,24 @@ class Fit:
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
+        if param in ["chi2", "chi_squares", "chi_squared"]:
+            return self._chi_squares
+        idx = self._param_idx(param)
+        return self._parameter[:, :, :, idx]
 
-        if param == "chi2":
-            out = self._chi_squares
-        else:
-            idx = self._param_idx(param)
-            out = self._parameter[:, :, :, idx]
-        return out
-
-    def _param_idx(self, param):
+    def _param_idx(self, parameter):
         """
         Get the index of the fitted parameter.
-        :param param:
+        :param parameter:
         :return:
         """
-        if param == "resonance":
-            param = "center"
-        idx = [i for i, v in enumerate(self.fitting_parameter) if v == param]
+        if parameter == "resonance":
+            parameter = "center"
+        idx = [i for i, v in enumerate(self.fitting_parameter) if v == parameter]
         if not idx:
-            idx = [i for i, v in enumerate(self.fitting_parameter_unique) if v == param]
+            idx = [i for i, v in enumerate(self.fitting_parameter_unique) if v == parameter]
         if not idx:
-            raise ValueError(f"Unknown parameter: {param}")
+            raise ValueError(f"Unknown parameter: {parameter}")
         return idx
 
     # initial guess
@@ -369,7 +371,7 @@ class Fit:
             constraint_types=constraint_types,
             initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
             weights=None,
-            model_id=self.model_id,  # estimator_id = estimator_id,
+            model_id=self.model_id,
             max_number_iterations=settings["fitting"]["max_number_iterations"],
             tolerance=settings["fitting"]["tolerance"],
         )
@@ -546,74 +548,60 @@ def guess_center_freq_single(data, freq):
     return freq[idx]
 
 
-def make_dummy_data(
-    model: str = "esr14n",
-    n_freq: int = 100,
-    scan_dimensions=[120, 190],
-    noise=0.1,
-):
-    if model in MODELS:
-        model_func = MODELS[model][0]
-        n_params = MODELS[model][1]
-    else:
+def make_dummy_data(model: str = "esr14n", n_freq: int = 100, scan_dimensions=None, noise=0):
+    if scan_dimensions is None:
+        scan_dimensions = [120, 190]
+    if model not in MODELS:
         raise ValueError(f"Unknown model {model}")
+    model_func = MODELS[model][0]
+    n_parameter = MODELS[model][1]
 
-    f0 = np.linspace(2.84, 2.85, n_freq)  # in GHz
+    f0 = np.linspace(2.84, 2.85, n_freq)
     f1 = np.linspace(2.89, 2.9, n_freq)
-
     c0 = np.mean(f0)
     c1 = np.mean(f1)
     width = 0.0001
     contrast = 0.01
     offset = 0.0
-
-    params = {
+    parameter = {
         4: [width, contrast, offset],
         5: [width, contrast, contrast, offset],
         6: [width, contrast, contrast, contrast, offset],
     }
 
-    p = np.ones((scan_dimensions[0] * scan_dimensions[1], n_params))
-    # model for the left frange
-    # +
-    p00 = p.copy()
-    p00[:, 0] *= c0 - 0.0001
-    p00[:, 1:] *= params[n_params]
-    # -
-    p10 = p.copy()
-    p10[:, 0] *= c0 + 0.0001
-    p10[:, 1:] *= params[n_params]
-
-    # model for the right frange
-    # +
-    p01 = p.copy()
-    p01[:, 0] *= c1 - 0.0001
-    p01[:, 1:] *= params[n_params]
-
-    # -
-    p11 = p.copy()
-    p11[:, 0] *= c1 + 0.0001
-    p11[:, 1:] *= params[n_params]
+    p = np.ones((scan_dimensions[0] * scan_dimensions[1], n_parameter))
+    p00 = make_parameter_array(c0 - 0.0001, n_parameter, p, parameter)
+    p10 = make_parameter_array(c0 + 0.0001, n_parameter, p, parameter)
+    p01 = make_parameter_array(c1 - 0.0001, n_parameter, p, parameter)
+    p11 = make_parameter_array(c1 + 0.0001, n_parameter, p, parameter)
 
     m00 = model_func(f0, p00)
     m10 = model_func(f0, p10)
     m01 = model_func(f1, p01)
     m11 = model_func(f1, p11)
 
-    # combine the models
     mall = np.stack([np.stack([m00, m01]), np.stack([m10, m11])])
+
     if noise:
         mall += np.random.normal(0, noise, size=mall.shape)
+
     pall = np.stack([np.stack([p00, p01]), np.stack([p10, p11])])
     f_ghz = np.stack([f0, f1])
     return mall, f_ghz, pall
 
 
-def write_test_qdmio_file(path, scan_dimensions=[120, 190]):
+def make_parameter_array(c0, n_params, p, params):
+    p00 = p.copy()
+    p00[:, 0] *= c0 - 0.0001
+    p00[:, 1:] *= params[n_params]
+    return p00
+
+
+def write_test_qdmio_file(path, **kwargs):
     path = Path(path)
     path.mkdir(exist_ok=True)
 
-    data, freq, true_parameter = make_dummy_data(n_freq=100, model="esr15n", scan_dimensions=scan_dimensions)
+    data, freq, true_parameter = make_dummy_data(n_freq=100, model="esr15n", **kwargs)
 
     data = np.swapaxes(data, -1, -2)
 

@@ -103,8 +103,8 @@ class FitWindow(PyQdmWindow):
             vmin, vmax = np.percentile(
                 d,
                 [
-                    (100 - self.cLimSelector.value()) / 2,
-                    (100 + self.cLimSelector.value()) / 2,
+                    (100 - self.clims_selector.value()) / 2,
+                    (100 + self.clims_selector.value()) / 2,
                 ],
             )
 
@@ -145,7 +145,7 @@ class FitWindow(PyQdmWindow):
             self.subtractMedian.setChecked(False)
 
         for i in range(2):
-            if self.quad_background[i] is None or self.quad_background[i].shape != self.qdm.odmr.scan_dimensions:
+            if self.quad_background[i] is None or any(self.quad_background[i].shape != self.qdm.odmr.scan_dimensions):
                 self.LOG.debug(f'Calculating quad background for {["remanent", "induced"][i]} component')
                 x = np.arange(self.qdm.odmr.scan_dimensions[0])
                 y = np.arange(self.qdm.odmr.scan_dimensions[1])

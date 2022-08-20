@@ -76,14 +76,14 @@ class PyQdmWindow(QMainWindow):
         self.mainToolbar.addSeparator()
         self._add_pixel_box(self.mainToolbar)
         self.mainVerticalLayout.addWidget(self.canvas)
-        central_widget = QWidget()
-        central_widget.setLayout(self.mainVerticalLayout)
-        self.setCentralWidget(central_widget)
+        self.central_widget = QWidget()
+        self.central_widget.setLayout(self.mainVerticalLayout)
+        self.setCentralWidget(self.central_widget)
 
     def _add_cLim_selector(self, toolbar):
         clim_widget = QWidget()
         clim_selection_layout = QHBoxLayout()
-        clim_label, self.cLimSelector = get_label_box(
+        clim_label, self.clims_selector = get_label_box(
             label="clim",
             value=99,
             decimals=1,
@@ -97,7 +97,7 @@ class PyQdmWindow(QMainWindow):
         self.fix_clim_check_box.setStatusTip("Fix the color scale")
         self.fix_clim_check_box.stateChanged.connect(self.update_img_plots)
         clim_selection_layout.addWidget(clim_label)
-        clim_selection_layout.addWidget(self.cLimSelector)
+        clim_selection_layout.addWidget(self.clims_selector)
         clim_selection_layout.addWidget(clim_label_unit)
         clim_selection_layout.addWidget(self.fix_clim_check_box)
         clim_widget.setLayout(clim_selection_layout)
@@ -111,8 +111,8 @@ class PyQdmWindow(QMainWindow):
         self.addToolBar(self.toolbar)
 
     def _add_pixel_box(self, toolbar):
-        pixelBoxWidget = QWidget()
-        coordBox = QHBoxLayout()
+        pixel_box_widget = QWidget()
+        coord_box = QHBoxLayout()
         self.xlabel, self.xselect = get_label_box(
             "x",
             int(self._current_xy[0]),
@@ -139,13 +139,13 @@ class PyQdmWindow(QMainWindow):
         self.yselect.valueChanged.connect(self.on_xy_value_change)
         self.indexLabel = QLabel(f"[{self._current_idx}]")
         self.indexLabel.setFixedWidth(60)
-        coordBox.addWidget(self.xlabel)
-        coordBox.addWidget(self.xselect)
-        coordBox.addWidget(self.ylabel)
-        coordBox.addWidget(self.yselect)
-        coordBox.addWidget(self.indexLabel)
-        pixelBoxWidget.setLayout(coordBox)
-        toolbar.addWidget(pixelBoxWidget)
+        coord_box.addWidget(self.xlabel)
+        coord_box.addWidget(self.xselect)
+        coord_box.addWidget(self.ylabel)
+        coord_box.addWidget(self.yselect)
+        coord_box.addWidget(self.indexLabel)
+        pixel_box_widget.setLayout(coord_box)
+        toolbar.addWidget(pixel_box_widget)
 
     def _add_outlier_mask(self):
         for ax, img in self._outlier_masks.items():
@@ -359,8 +359,7 @@ class PyQdmWindow(QMainWindow):
         if not self._includes_fits:
             return
 
-        parameter = self.qdm.fitted_parameter[:, :, :, [self._current_idx]]
-        parameter = np.rollaxis(parameter, axis=0, start=4)
+        parameter = self.qdm.fit.parameter[:, :, [self._current_idx], :]
 
         for f in np.arange(self.qdm.odmr.n_frange):
             f_new = np.linspace(min(self.qdm.odmr.f_ghz[f]), max(self.qdm.odmr.f_ghz[f]), 200)
@@ -410,7 +409,7 @@ class PyQdmWindow(QMainWindow):
         self.canvas.draw()
 
     def need_extend(self):
-        return self.fix_clim_check_box.isChecked() and self.cLimSelector.value() != 100
+        return self.fix_clim_check_box.isChecked() and self.clims_selector.value() != 100
 
     def update_img_plots(self):
         """
@@ -426,7 +425,7 @@ class PyQdmWindow(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.esr_single, models.esr_15n, models.esr_14n][self.qdm._diamond_type]
+        return [None, models.esrsingle, models.esr15n, models.esr14n][self.qdm._diamond_type]
 
     @property
     def pixel_size(self):
