@@ -4,7 +4,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pygpufit.gpufit as gf
+
+import pyqdm
+
+if pyqdm.pygpufit_present:
+    import pygpufit.gpufit as gf
 from scipy.io import savemat
 
 from pyqdm import settings

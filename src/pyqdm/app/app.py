@@ -526,7 +526,7 @@ class PyQDMMainWindow(QMainWindow):
         if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
-        elif not sefl.qdm.fit.fitted:
+        elif not self.qdm.fit.fitted:
             self.LOG.debug("QDM data loaded, fitting possible.")
             self.main_label.setText("No fit calculated yet.")
         else:
