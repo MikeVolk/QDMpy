@@ -61,11 +61,10 @@ class GlobalFluorescenceWindow(QMainWindow):
     def _current_xy(self):
         return self.qdm.odmr.idx2rc(self._current_idx)[::-1]
 
-    def __init__(self, main_window, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
+    def __init__(self, main_window, qdm_instance=None, *args, **kwargs):
         self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
         self.main_window = main_window
         self.qdm = qdm_instance
-        self.pixelsize = pixelsize
 
         super().__init__(*args, **kwargs)
         self.setWindowTitle("Global Fluorescence Estimation")
@@ -87,24 +86,25 @@ class GlobalFluorescenceWindow(QMainWindow):
         label = QLabel("Data pixel:")
         horizontal_layout_top.addWidget(label)
         self.xlabel, self.xselect = get_label_box(
-            "x",
-            int(self._current_xy[0]),
-            0,
-            1,
-            0,
-            self.qdm.odmr.scan_dimensions[0],
-            self.on_xy_value_change,
+            label="x",
+            value=int(self._current_xy[0]),
+            decimals=0,
+            step=1,
+            vmin=0,
+            vmax=self.qdm.odmr.scan_dimensions[0],
+            callback=self.on_xy_value_change,
         )
         horizontal_layout_top.addWidget(self.xlabel)
         horizontal_layout_top.addWidget(self.xselect)
+
         self.ylabel, self.yselect = get_label_box(
-            "y",
-            int(self._current_xy[1]),
-            0,
-            1,
-            0,
-            self.qdm.odmr.scan_dimensions[1],
-            self.on_xy_value_change,
+            label="y",
+            value=int(self._current_xy[1]),
+            decimals=0,
+            step=1,
+            vmin=0,
+            vmax=self.qdm.odmr.scan_dimensions[1],
+            callback=self.on_xy_value_change,
         )
 
         self.xselect.valueChanged.disconnect(self.on_xy_value_change)
@@ -347,36 +347,3 @@ class GlobalFluorescenceWindow(QMainWindow):
 
         self.main_window.gf_select.setValue(self.gfSlider.value() / 100)
         self.close()
-
-
-# class MplCanvas(FigureCanvas):
-#     LOG = logging.getLogger('pyqdm.app')
-#
-#     def __init__(self, parent=None, width=5, height=4, dpi=100):
-#         self.fig = Figure(figsize=(width, height), dpi=dpi)
-#         self.axes = self.fig.add_subplot(111)
-#         super(MplCanvas, self).__init__(self.fig)
-#         self.LOG.debug("MplCanvas created")
-#
-#
-# class FluorescenceWindow(QWidget):
-#     """
-#     This "window" is a QWidget. If it has no parent,
-#     it will appear as a free-floating window.
-#     """
-#     LOG = logging.getLogger('pyqdm.app')
-#
-#     def __init__(self, QDMObj):
-#         self.QDMObj = QDMObj
-#         print(self.QDMObj.odmr.f_Hz)
-#         super().__init__()
-#         layout = QVBoxLayout()
-#         self.setWindowTitle("Fluorescence Plots")
-#
-#         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-#         self.LOG.debug("FluorescenceWindow created")
-#
-#         self.canvas.axes.plot(np.linspace(0, 1, 10), np.linspace(0, 1, 10))
-#         self.setLayout(layout)
-#         self.resize(920, 600)
-#         self.canvas.draw()

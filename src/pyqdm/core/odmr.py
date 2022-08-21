@@ -435,7 +435,6 @@ class ODMR:
             self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
             self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
 
-
     ### CORRECTION METHODS ###
     def get_gf_correction(self, gf):
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
@@ -459,7 +458,6 @@ class ODMR:
         self._data_edited -= correction[:, :, np.newaxis, :]
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
-
 
     # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):
