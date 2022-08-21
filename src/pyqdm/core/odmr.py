@@ -33,7 +33,7 @@ class ODMR:
         self._frequencies = frequencies
         self._frequencies_cropped = None
 
-        self._scan_dimensions = np.array(scan_dimensions)
+        self._img_schape = np.array(scan_dimensions)
 
         self._data_edited = None
         self._norm_method = "max"  # todo add to config
@@ -60,7 +60,7 @@ class ODMR:
         self.is_fcropped = False
 
     def __repr__(self):
-        return f"ODMR(data={self.data.shape}, scan_dimensions={self.scan_dimensions}, n_pol={self.n_pol}, n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}, frequencies={self.frequencies.shape})"
+        return f"ODMR(data={self.data.shape}, scan_dimensions={self.data_shape}, n_pol={self.n_pol}, n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}, frequencies={self.frequencies.shape})"
 
     def __getitem__(self, item):
         """
@@ -98,7 +98,7 @@ class ODMR:
             d = d[:, :, linear_idx]
         elif reshape:
             self.LOG.debug("ODMR: reshaping data")
-            d = d.reshape(self.n_pol, self.n_frange, *self.scan_dimensions, self.n_freqs)
+            d = d.reshape(self.n_pol, self.n_frange, *self.data_shape, self.n_freqs)
 
         # catch case where only indices are provided
         if len(item) == 0:
@@ -149,10 +149,10 @@ class ODMR:
         return xid, yid
 
     def rc2idx(self, rc):
-        return rc2idx(rc, self.scan_dimensions)
+        return rc2idx(rc, self.data_shape)
 
     def idx2rc(self, idx):
-        return idx2rc(idx, self.scan_dimensions)
+        return idx2rc(idx, self.data_shape)
 
     def get_most_divergent_from_mean(self):
         """
@@ -251,8 +251,8 @@ class ODMR:
 
     # properties
     @property
-    def scan_dimensions(self):
-        return (self._scan_dimensions / self.bin_factor).astype(np.uint32)
+    def data_shape(self):
+        return (self._img_schape / self.bin_factor).astype(np.uint32)
 
     @property
     def n_pixel(self):
@@ -260,7 +260,7 @@ class ODMR:
         Return the number of pixels.
         :return: int
         """
-        return int(self.scan_dimensions[0] * self.scan_dimensions[1])
+        return int(self.data_shape[0] * self.data_shape[1])
 
     @property
     def n_freqs(self):
@@ -406,7 +406,7 @@ class ODMR:
         reshape_data = self.data.reshape(
             self.n_pol,
             self.n_frange,
-            *(self._scan_dimensions / self._pre_bin_factor).astype(int),
+            *(self._img_schape / self._pre_bin_factor).astype(int),
             self.n_freqs,
         )  # reshapes the data to the scan dimensions
         _odmr_binned = downscale_local_mean(

@@ -53,7 +53,7 @@ class QDM:
 
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {odmr_instance.data.shape}")
-        self.LOG.debug(f"                      scan_dimensions: {odmr_instance.scan_dimensions}")
+        self.LOG.debug(f"                      scan_dimensions: {odmr_instance.data_shape}")
         self.LOG.debug(f"                      frequencies: {odmr_instance.f_ghz.shape}")
         self.LOG.debug(f"                      n_freqs: {odmr_instance.n_freqs}")
 
@@ -161,15 +161,15 @@ class QDM:
         self._fit.data = self.odmr.data
 
     def _check_bin_factor(self):
-        bin_factors = self.light.shape / self.odmr.scan_dimensions
+        bin_factors = self.light.shape / self.odmr.data_shape
 
-        if np.all(self.odmr._scan_dimensions != self.light.shape):
+        if np.all(self.odmr._img_schape != self.light.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.odmr._scan_dimensions}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+                f"Scan dimensions of ODMR ({self.odmr._img_schape}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
             )
             # set the true bin factor
             self.odmr._pre_bin_factor = bin_factors[0]
-            self.odmr._scan_dimensions = np.array(self.light.shape)
+            self.odmr._img_schape = np.array(self.light.shape)
 
     # global fluorescence
     def correct_glob_fluorescence(self, glob_fluo):
@@ -253,8 +253,8 @@ class QDM:
             self._fit.model = MODELS[self._diamond_type]
 
     @property
-    def scan_dimensions(self):
-        return self.odmr.scan_dimensions
+    def data_shape(self):
+        return self.odmr.data_shape
 
     # fitting
     @property
@@ -303,7 +303,7 @@ class QDM:
                 -1,
                 self.odmr.n_pol,
                 self.odmr.n_frange,
-                *self.odmr.scan_dimensions,
+                *self.odmr.data_shape,
             )
 
         return np.squeeze(out)
@@ -347,7 +347,7 @@ class QDM:
             laser = get_image(data_folder, laser_files)
         except WrongFileNumber as e:
             raise CantImportError(f'Cannot import QDM data from "{data_folder}"') from e
-        print(odmr_obj.data.shape)
+
         return cls(
             odmr_obj,
             light=light,
@@ -452,7 +452,7 @@ class QDM:
         :return: numpy.ndarray [idx]
         """
         if ref == "data":
-            idx = rc2idx(rc, self.scan_dimensions)
+            idx = rc2idx(rc, self.data_shape)
         elif ref == "img":
             idx = rc2idx(rc, self.light.shape)
         else:
@@ -472,7 +472,7 @@ class QDM:
         :return: numpy.ndarray ([row], [col]) -> [[y], [x]]
         """
         if ref == "data":
-            rc = idx2rc(idx, self.scan_dimensions)
+            rc = idx2rc(idx, self.data_shape)
         elif ref == "img":
             rc = idx2rc(idx, self.light.shape)
         else:

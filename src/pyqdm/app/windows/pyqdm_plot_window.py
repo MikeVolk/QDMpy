@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from pyqdm.app.windows.tools import get_label_box
 from pyqdm.core import models
+from pyqdm.app.models import Pix
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -53,18 +54,23 @@ class PyQdmWindow(QMainWindow):
 
     @property
     def _is_spectra(self):
-        return self.canvas._is_spectra
+        return self.canvas.odmr_axes
 
     # @property
     # def qdm(self):
     #     return self.caller.qdm
 
-    def __init__(self, caller, canvas, qdm_instance, includes_fits=False, *args, **kwargs):
+    def __init__(self, canvas, qdm_instance, includes_fits=False, *args, **kwargs):
         self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
-        self.caller = caller
         self.qdm = qdm_instance
         self._includes_fits = includes_fits
+        self.pix = Pix()
+        self.data_shape = self.qdm.data_shape
+        self.img_shape = self.qdm.light.shape
+
         super().__init__(*args, **kwargs)
+        self.caller = self.parent()
+
         self.setContentsMargins(0, 0, 0, 0)
         self.canvas = canvas
         self._xy_box = [[0, 0], [0, 0]]
@@ -174,7 +180,7 @@ class PyQdmWindow(QMainWindow):
             0,
             1,
             0,
-            self.qdm.odmr.scan_dimensions[1],
+            self.qdm.odmr.data_shape[1],
             self.on_xy_value_change,
         )
         self.ylabel, self.yselect = get_label_box(
@@ -183,7 +189,7 @@ class PyQdmWindow(QMainWindow):
             0,
             1,
             0,
-            self.qdm.odmr.scan_dimensions[0],
+            self.qdm.odmr.data_shape[0],
             self.on_xy_value_change,
         )
         self.xselect.valueChanged.disconnect(self.on_xy_value_change)
@@ -207,9 +213,9 @@ class PyQdmWindow(QMainWindow):
             self.LOG.debug(f"Adding outlier mask to axis {ax}")
             if img is None:
                 self._outlier_masks[ax] = ax.imshow(
-                    self.qdm.outliers.reshape(self.qdm.scan_dimensions),
+                    self.qdm.outliers.reshape(self.qdm.data_shape),
                     cmap="gist_rainbow",
-                    alpha=self.qdm.outliers.reshape(self.qdm.scan_dimensions).astype(float),
+                    alpha=self.qdm.outliers.reshape(self.qdm.data_shape).astype(float),
                     vmin=0,
                     vmax=1,
                     interpolation="none",
@@ -218,7 +224,7 @@ class PyQdmWindow(QMainWindow):
                     zorder=2,
                 )
             else:
-                img.set_data(self.qdm.outliers.reshape(self.qdm.scan_dimensions))
+                img.set_data(self.qdm.outliers.reshape(self.qdm.data_shape))
         self.canvas.draw()
 
     def toggle_outlier_mask(self, onoff="on"):
@@ -231,53 +237,6 @@ class PyQdmWindow(QMainWindow):
             if onoff == "off":
                 img.set_visible(False)
         self.canvas.draw()
-
-    def set_current_idx(self, x=None, y=None, idx=None):
-        self.caller.set_current_idx(x=x, y=y, idx=idx)
-
-    def add_laser_img(self, ax, cax=None):
-        im = ax.imshow(
-            self.qdm.laser,
-            cmap="magma",
-            interpolation="none",
-            origin="lower",
-            aspect="equal",
-            extent=[
-                0,
-                self.qdm.odmr.scan_dimensions[1],
-                0,
-                self.qdm.odmr.scan_dimensions[0],
-            ],
-        )
-        ax.set(
-            xlabel="px",
-            ylabel="px",
-            title="Laser",
-        )
-        if cax is not None:
-            self.cbar = plt.colorbar(im, cax=cax)
-
-    def add_light_img(self, ax):
-        ax.imshow(
-            self.qdm.light,
-            cmap="bone",
-            interpolation="none",
-            origin="lower",
-            aspect="equal",
-            extent=[
-                0,
-                self.qdm.odmr.scan_dimensions[1],
-                0,
-                self.qdm.odmr.scan_dimensions[0],
-            ],
-        )
-        ax.set(
-            xlabel="px",
-            ylabel="px",
-            title="Light",
-            xlim=(0, self.qdm.odmr.scan_dimensions[1]),
-            ylim=(0, self.qdm.odmr.scan_dimensions[0]),
-        )
 
     @property
     def _current_xy(self):
@@ -338,8 +297,7 @@ class PyQdmWindow(QMainWindow):
             self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
 
             self.caller.update_marker()
-            self.caller.update_pixel()
-            self.update_fit_lines()
+            self.caller.update_odmr()
 
     def on_xy_value_change(self):
         self.set_current_idx(x=self.xselect.value(), y=self.yselect.value())
@@ -347,139 +305,36 @@ class PyQdmWindow(QMainWindow):
         self.indexLabel.setText(f"[{self._current_idx}]")
 
         self.caller.update_marker()
-        self.caller.update_pixel()
+        self.caller.update_odmr()
+
+    def get_pixel_data(self):
+        gf_factor = self.gfSlider.value() / 100
+        new_correct = self.qdm.odmr.get_gf_correction(gf=gf_factor)
+        old_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
+        pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
+        uncorrected = pixel_spectra + old_correct
+        corrected = uncorrected - new_correct
+        mn = np.min([np.min(pixel_spectra), np.min(corrected), np.min(uncorrected)]) * 0.998
+        mx = np.max([np.max(pixel_spectra), np.max(corrected), np.max(uncorrected)]) * 1.002
+        return pixel_spectra, uncorrected, corrected, mn, mx
 
     def set_current_idx(self, x=None, y=None, idx=None):
         self.caller.set_current_idx(x=x, y=y, idx=idx)
-
-    def init_plots(self):
-        """
-        needs to be implemented by classes that inherit from pyqdm_window
-        """
-
-    def _add_scalebars(self):
-        for ax in self.img_axes:
-            # Create scale bar
-            if ax in self._is_image:
-                scalebar = ScaleBar(
-                    self.pixelsize,
-                    "m",
-                    length_fraction=0.25,
-                    frameon=True,
-                    box_alpha=0.5,
-                    location="lower left",
-                )
-            else:
-                scalebar = ScaleBar(
-                    self.pixelsize * self.qdm.bin_factor,
-                    "m",
-                    length_fraction=0.25,
-                    frameon=True,
-                    box_alpha=0.5,
-                    location="lower left",
-                )
-            ax.add_artist(scalebar)
-
-    def _init_lines(self):
-        if self._is_spectra is None:
-            return
-        # init the lists for marker, pixel and fit lines
-        self._pixel_marker = np.array([None for _ in self._is_img])
-        self._pixel_lines = np.array(
-            [[None for _ in np.arange(self.qdm.odmr.n_pol)] for _ in np.arange(self.qdm.odmr.n_frange)]
-        )
-        self._fit_lines = np.array(
-            [[None for _ in np.arange(self.qdm.odmr.n_pol)] for _ in np.arange(self.qdm.odmr.n_frange)]
-        )
-
-    def add_mean_odmr(self):
-        for f in np.arange(self.qdm.odmr.n_frange):
-            for p in np.arange(self.qdm.odmr.n_pol):
-                self._pixel_ax[p][f].plot(
-                    self.qdm.odmr.f_ghz[f],
-                    self.qdm.odmr.mean_odmr[p, f],
-                    marker="",
-                    ls="--",
-                    alpha=0.5,
-                    lw=1,
-                    label=f"mean ({self.POL[p]})",
-                )
-
-    def update_pixel_lines(self):
-        if len(self._pixel_ax) == 0:
-            return
-
-        pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
-        for f in np.arange(self.qdm.odmr.n_frange):
-            for p in np.arange(self.qdm.odmr.n_pol):
-                if self._pixel_lines[p][f] is None:
-                    (self._pixel_lines[p][f],) = self._pixel_ax[p][f].plot(
-                        self.qdm.odmr.f_ghz[f],
-                        pixel_spectra[p, f],
-                        marker=".",
-                        markersize=6,
-                        mfc="w",
-                        linestyle="" if self._includes_fits else "-",
-                    )
-                else:
-                    self._pixel_lines[p][f].set_data(self.qdm.odmr.f_ghz[f], pixel_spectra[p, f])
-                self._pixel_lines[p][f].set_label(f"p({self.POL[p]},{self._current_xy[0]},{self._current_xy[1]})")
-                self._pixel_ax[p][f].legend(loc="lower left", fontsize=8, ncol=2)
-        self.update_pixel_lims()
-        self.canvas.draw()
-
-    def update_fit_lines(self):
-
-        if not self._includes_fits:
-            return
-
-        parameter = self.qdm.fit.parameter[:, :, [self._current_idx], :]
-
-        for f in np.arange(self.qdm.odmr.n_frange):
-            f_new = np.linspace(min(self.qdm.odmr.f_ghz[f]), max(self.qdm.odmr.f_ghz[f]), 200)
-            for p in np.arange(self.qdm.odmr.n_pol):
-                m_fit = self.model(parameter=parameter[p, f], x=f_new)
-                if self._fit_lines[p][f] is None:
-                    (self._fit_lines[p][f],) = self._pixel_ax[p][f].plot(
-                        f_new,
-                        m_fit[0],
-                        marker="",
-                        linestyle="-",
-                        lw=0.8,
-                        color=self._pixel_lines[p][f].get_color(),
-                    )
-                else:
-                    self._fit_lines[p][f].set_ydata(m_fit[0])
-                self._fit_lines[p][f].set_label(f"fit ({self.POL[p]},{self._current_xy[0]},{self._current_xy[1]})")
-                self._pixel_ax[p][f].legend(loc="lower left", fontsize=8, ncol=3)
-
-        self.update_pixel_lims()
-        self.canvas.draw()
-
-    def update_pixel_lims(self):
-        self.LOG.debug("updating xy limits for the pixel plots")
-        for ax in self._pixel_ax.flatten():
-            mn = np.min([np.min(l.get_ydata()) for l in ax.get_lines()])
-            mx = np.max([np.max(l.get_ydata()) for l in ax.get_lines()])
-            ax.set(ylim=(mn * 0.999, mx * 1.001))
 
     def update_marker(self):
         """
         Update the marker position on the image plots.
         """
-        self.LOG.debug(
-            f"Updating marker to ({self._current_xy[0] * self.qdm.bin_factor},"
-            f"{self._current_xy[1] * self.qdm.bin_factor})"
-        )
-
         x, y = self._current_xy
+        self.canvas.update_marker(x, y)
 
-        for i, a in enumerate(self._is_img):
-            if self._pixel_marker[i] is None:
-                (self._pixel_marker[i],) = a.plot(x, y, marker="x", color="chartreuse", zorder=100)
-            else:
-                self._pixel_marker[i].set_data(self._current_xy[0], self._current_xy[1])
-
+    def update_odmr(self):
+        """
+        Update the marker position on the image plots.
+        """
+        pixel_spectra, uncorrected, corrected, mn, mx = self.get_pixel_data()
+        self.canvas.update_odmr(data=pixel_spectra, uncorrected=uncorrected, corrected=corrected)
+        self.canvas.update_odmr_lims()
         self.canvas.draw()
 
     def need_extend(self):
@@ -489,9 +344,7 @@ class PyQdmWindow(QMainWindow):
         """
         needs to be implemented by classes that inherit from pyqdm_window
         """
-
-    def update_pixel(self):
-        self.caller.update_pixel()
+        pass
 
     def redraw_all_plots(self):
         self.update_img_plots()

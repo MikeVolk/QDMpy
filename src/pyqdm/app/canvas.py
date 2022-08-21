@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import pyqdm.plotting as qdmplot
+from matplotlib_scalebar.scalebar import ScaleBar
 
 
 class PyQdmCanvas(FigureCanvas):
@@ -20,11 +21,11 @@ class PyQdmCanvas(FigureCanvas):
     @property
     def img_axes(self):
         return (
-            list(self.light.keys())
-            + list(self.laser.keys())
-            + list(self.data.keys())
-            + list(self.outlier.keys())
-            + list(self.overlay.keys())
+                list(self.light.keys())
+                + list(self.laser.keys())
+                + list(self.data.keys())
+                + list(self.outlier.keys())
+                + list(self.overlay.keys())
         )
 
     @property
@@ -35,87 +36,143 @@ class PyQdmCanvas(FigureCanvas):
         self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super(PyQdmCanvas, self).__init__(self.fig)
+        self.img_dict = {'data': None,
+                         'outlier': None,
+                         'overlay': None,
+                         'marker': None,
+                         'cax': False,
+                         'cax_locator': None}
+        self.odmr_dict = {'data': [[None, None], [None, None]],
+                          'pol': [],
+                          'frange': [],
+                          'mean': [[None, None], [None, None]],
+                          'fit': [[None, None], [None, None]],
+                          'corrected': [[None, None], [None, None]],
+                          'uncorrected': [[None, None], [None, None]]}
         self.light = {}  # dict of ax : led img
         self.laser = {}  # laser is a dictionary of dictionaries
-        self.data = {}  # data is a dictionary of dictionaries
-        self.outlier = {}  # outlier is a dictionary of ax: outlier data
-        self.overlay = {}  # dictionary of ax: overlay img objects
-        self.cbar = {}  # dictionary of ax: colorbar object
-
+        self.data = {}
         self.odmr = {}  # dictionary of ax : odmr data lines
-        self.corrected = {}  # dictionary of ax : corrected data lines
-        self.uncorrected = {}  # dictionary of ax : uncorrected data lines
 
-        self.fit = {}  # dictionary of ax : odmr fit lines
-        self.markers = {}  # dictionary of Line2D objects containing the markers for all axes in _is_img
-
-    @staticmethod
-    def add_cax(ax):
+    def add_cax(self, ax):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         original_locator = cax.get_axes_locator()
         return cax, original_locator
 
-    def set_led(self):
+    def set_img(self):
         for a in self.light:
             a.set(xlabel="px", ylabel="px", title="Light", aspect="equal", origin="lower")
 
-    def set_laser(self):
-        for a in self.laser:
-            a.set(xlabel="px", ylabel="px", title="Laser", aspect="equal", origin="lower")
-
-    def set_data(self):
-        for a in self.data:
-            a.set(xlabel="px", ylabel="px", title="Data", aspect="equal", origin="lower")
-
     def add_light(self, light, data_dimensions):
-        for ax, img in self.light.items():
+        for ax in self.light.keys():
             self.LOG.debug(f"Adding Light image to axis {ax}")
-            self.light[ax] = qdmplot.plot_laser_img(
-                ax,
-                light,
-                img,
+            self.light[ax]['data'] = qdmplot.plot_light_img(
+                ax=ax, data=light, img=self.light[ax]['data'],
                 extent=[0, data_dimensions[1], 0, data_dimensions[0]],
             )
 
     def add_laser(self, laser, data_dimensions):
-        for ax, img in self.laser.items():
+        for ax in self.laser:
             self.LOG.debug(f"Adding laser to axis {ax}")
-            self.laser[ax] = qdmplot.plot_laser_img(
-                ax,
-                laser,
-                img,
+            self.laser[ax]['data'] = qdmplot.plot_laser_img(
+                ax, laser, self.laser[ax]['data'],
                 extent=[0, data_dimensions[1], 0, data_dimensions[0]],
             )
-            if ax in self.cbar:
-                self.cbar[ax][0] = plt.colorbar(self.laser[ax], cax=self.cbar[ax])
-                self.cbar[ax][1] = self.laser[ax]
+            if self.laser[ax]['cax']:
+                plt.colorbar(self.laser[ax]['data'], cax=self.laser[ax]['cax'])
 
     def add_outlier_masks(self, outlier):
-        for ax, img in self.outlier.items():
-            self.LOG.debug(f"Adding outlier mask to axis {ax}")
-            if img is None:
-                self.outlier[ax] = ax.imshow(
-                    outlier,
-                    cmap="gist_rainbow",
-                    alpha=outlier.astype(float),
-                    vmin=0,
-                    vmax=1,
-                    interpolation="none",
-                    origin="lower",
-                    aspect="equal",
-                    zorder=2,
-                )
+        for axdict in [self.light, self.laser, self.data]:
+            for ax in axdict:
+                if axdict[ax]['outlier'] is None:
+                    self.LOG.debug(f"Adding outlier mask to axis {ax}")
+                    axdict[ax]['outlier'] = ax.imshow(
+                        outlier,
+                        cmap="gist_rainbow",
+                        alpha=outlier.astype(float),
+                        vmin=0,
+                        vmax=1,
+                        interpolation="none",
+                        origin="lower",
+                        aspect="equal",
+                        zorder=2,
+                    )
+
+    def add_scalebars(self, pixelsize   ):
+        for axdict in [self.light, self.laser, self.data]:
+            # Create scale bar
+            scalebar = ScaleBar(pixelsize, "m", length_fraction=0.25, location="lower left")
+            for ax in axdict:
+                ax.add_artist(scalebar)
+
+    def update_marker(self, x, y):
+        for axdict in [self.light, self.laser, self.data]:
+            for ax in axdict:
+                if axdict[ax]['marker'] is None:
+                    self.LOG.debug(f"Adding marker to axis {ax}")
+                    axdict[ax]['marker'], = ax.plot(x, y, marker="x", c="c", zorder=100)
+                else:
+                    self.LOG.debug(f"Updating marker to axis {ax}")
+                    axdict[ax]['marker'].set_data(x, y)
+        self.draw()
 
     def update_outlier_masks(self, outlier):
         for ax, img in self.outlier.items():
             self.LOG.debug(f"Updating outlier mask to axis {ax}")
             img.set_data(outlier)
 
-    def add_odmr(self):
-        for ax, line in self.odmr:
-            if line is None:
-                pass
+    def add_odmr(self, freq, data=None, fit=None, corrected=None, uncorrected=None):
+        for ax in self.odmr:
+            for p in self.odmr[ax]['pol']:
+                for f in self.odmr[ax]['frange']:
+                    self.LOG.debug(f"Adding odmr to axis {ax}")
+                    if data is not None:
+                        pl, = ax.plot(freq[f], data[p, f], '.',
+                                      zorder=1, mfc='w', ms=5)
+                        self.odmr[ax]['data'][p][f] = pl
+
+                    if fit is not None:
+                        fl, = ax.plot(freq[f], fit[p, f], '-',
+                                      zorder=2, color=pl.get_color(), lw=1)
+                        self.odmr[ax]['fit'][p][f] = fl
+
+                    if corrected is not None:
+                        cl, = ax.plot(freq[f], corrected[p, f], '-',
+                                      zorder=3, color=pl.get_color(), lw=1)
+                        self.odmr[ax]['corrected'][p][f] = cl
+
+                    if uncorrected is not None:
+                        if np.all(uncorrected[p, f] == data[p, f]):
+                            continue
+                        ul, = ax.plot(freq[f], uncorrected[p, f], '-.',
+                                      zorder=4, color=pl.get_color(), lw=0.7)
+                        self.odmr[ax]['uncorrected'][p][f] = ul
+
+    def update_odmr(self, data=None, fit=None, corrected=None, uncorrected=None):
+        for ax in self.odmr:
+            for p in self.odmr[ax]['pol']:
+                for f in self.odmr[ax]['frange']:
+                    self.LOG.debug(f"Updating odmr in axis {ax}")
+                    if data is not None and self.odmr[ax]['data'][p][f] is not None:
+                        self.odmr[ax]['data'][p][f].set_ydata(data[p, f])
+                    if fit is not None and self.odmr[ax]['fit'][p][f] is not None:
+                        self.odmr[ax]['fit'][p][f].set_ydata(fit[p, f])
+                    if corrected is not None and self.odmr[ax]['corrected'][p][f] is not None:
+                        self.odmr[ax]['corrected'][p][f].set_ydata(corrected[p, f])
+                    if uncorrected is not None and self.odmr[ax]['uncorrected'][p][f] is not None:
+                        self.odmr[ax]['uncorrected'][p][f].set_ydata(uncorrected[p, f])
+        self.draw()
+
+    def update_odmr_lims(self):
+        self.LOG.debug("updating xy limits for the pixel plots")
+        for ax in self.odmr:
+            mn = np.min([np.min(l.get_ydata()) for l in ax.get_lines()])
+            mx = np.max([np.max(l.get_ydata()) for l in ax.get_lines()])
+            for p in self.odmr[ax]['pol']:
+                for f in self.odmr[ax]['frange']:
+                    ax.set(ylim=(mn * 0.999, mx * 1.001))
+        self.draw()
 
 
 class GlobalFluorescenceCanvas(PyQdmCanvas):
@@ -129,18 +186,25 @@ class GlobalFluorescenceCanvas(PyQdmCanvas):
         self.left_mean_odmr_ax = self.fig.add_subplot(spec[0, :3])
         self.right_mean_odmr_ax = self.fig.add_subplot(spec[0, 3:6])
 
-        self.led_ax = self.fig.add_subplot(spec[1, :3])
+        self.light_ax = self.fig.add_subplot(spec[1, :3])
         self.laser_ax = self.fig.add_subplot(spec[1, 3:])
 
-        self.led_ax.get_shared_x_axes().join(self.led_ax, self.laser_ax)
-        self.led_ax.get_shared_y_axes().join(self.led_ax, self.laser_ax)
+        self.light_ax.get_shared_x_axes().join(self.light_ax, self.laser_ax)
+        self.light_ax.get_shared_y_axes().join(self.light_ax, self.laser_ax)
 
-        self.led = {self.led_ax: None}
-        self.laser = {self.laser_ax: None}
+        # setup the dictionaries for the data
+        self.light = {self.light_ax: self.img_dict.copy()}
+        self.laser = {self.laser_ax: self.img_dict.copy()}
+        cax, original_locator = self.add_cax(self.laser_ax)
+        self.laser[self.laser_ax]['cax'] = cax
+        self.laser[self.laser_ax]['cax_locator'] = original_locator
 
-        self.odmr = {self.left_mean_odmr_ax: None, self.right_mean_odmr_ax: None}
-
-        self.cax = {self.laser_ax: [*self.add_cax(self.laser_ax), None]}  # entries are cax, original_locator, img
+        self.odmr = {self.left_mean_odmr_ax: self.odmr_dict.copy(),
+                     self.right_mean_odmr_ax: self.odmr_dict.copy()}
+        self.odmr[self.left_mean_odmr_ax]['pol'] = [0, 1]
+        self.odmr[self.left_mean_odmr_ax]['frange'] = [0]
+        self.odmr[self.right_mean_odmr_ax]['pol'] = [0, 1]
+        self.odmr[self.right_mean_odmr_ax]['frange'] = [1]
 
 
 class FittingPropertyCanvas(FigureCanvas):

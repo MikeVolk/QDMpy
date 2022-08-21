@@ -132,7 +132,7 @@ matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle
 
 
 class PyQDMMainWindow(QMainWindow):
-    _visible_if_QDMObj_present = []
+    _visible_if_qdm_present = []
 
     def __init__(self, **kwargs):
 
@@ -149,12 +149,13 @@ class PyQDMMainWindow(QMainWindow):
             self.screen_size = [1920, 1080]
         else:
             self.screen_size = screen.size().width(), screen.size().height()
+
         self.screen_ratio = self.screen_size[1] / self.screen_size[0]
-        self.fluorescenceWindow = None
-        self.laserWindow = None
-        self.ledWindow = None
+        self.fluorescence_window = None
+        self.laser_window = None
+        self.light_window = None
         self.main_content_figure = None
-        self.qualityWindow = None
+        self.quality_window = None
 
         self.qdm = None
         self.fitconstraints_widget = None
@@ -217,7 +218,7 @@ class PyQDMMainWindow(QMainWindow):
         self.infoButton = QAction("I", self)
         self.infoButton.triggered.connect(self.on_info_button_press)
         self.infoButton.setShortcut(QKeySequence("Ctrl+I"))
-        self._visible_if_QDMObj_present.append(self.infoButton)
+        self._visible_if_qdm_present.append(self.infoButton)
         self.infoButton.setEnabled(False)
         icon = QIcon("assets/icons/info.png")
         self.infoButton.setIcon(icon)
@@ -244,7 +245,7 @@ class PyQDMMainWindow(QMainWindow):
         self.fluorescencePlotButton.setStatusTip("Open fluorescence plots")
         self.fluorescencePlotButton.triggered.connect(self.on_fluorescence_button_press)
         self.fluorescencePlotButton.setShortcut(QKeySequence("Ctrl+F"))
-        self._visible_if_QDMObj_present.append(self.fluorescencePlotButton)
+        self._visible_if_qdm_present.append(self.fluorescencePlotButton)
         toolbar.addAction(self.fluorescencePlotButton)
 
     def _add_laser_plot_toolbar(self, toolbar):
@@ -256,7 +257,7 @@ class PyQDMMainWindow(QMainWindow):
         self.laserPlotButton.triggered.connect(self.on_laser_button_press)
         self.laserPlotButton.setShortcut(QKeySequence("Ctrl+L"))
         self.laserPlotButton.setEnabled(False)
-        self._visible_if_QDMObj_present.append(self.laserPlotButton)
+        self._visible_if_qdm_present.append(self.laserPlotButton)
         toolbar.addAction(self.laserPlotButton)
 
     def _add_led_plot_toolbar(self, toolbar):
@@ -268,7 +269,7 @@ class PyQDMMainWindow(QMainWindow):
         self.ledPlotButton.triggered.connect(self.on_led_button_press)
         self.ledPlotButton.setShortcut(QKeySequence("Ctrl+R"))
         self.ledPlotButton.setEnabled(False)
-        self._visible_if_QDMObj_present.append(self.ledPlotButton)
+        self._visible_if_qdm_present.append(self.ledPlotButton)
         toolbar.addAction(self.ledPlotButton)
 
     def _add_fit_toolbar(self, toolbar):
@@ -279,12 +280,12 @@ class PyQDMMainWindow(QMainWindow):
         self.fit_button.clicked.connect(self.on_fit_button_press)
         self.fit_button.setFixedSize(50, 25)
 
-        self._visible_if_QDMObj_present.append(self.fit_button)
+        self._visible_if_qdm_present.append(self.fit_button)
         toolbar.addWidget(self.fit_button)
         self.fit_constraints_button = QPushButton("Constraints")
         self.fit_constraints_button.setStatusTip("Edit the fit constraints")
         self.fit_constraints_button.clicked.connect(self.on_set_fitconstraints_button_press)
-        self._visible_if_QDMObj_present.append(self.fit_constraints_button)
+        self._visible_if_qdm_present.append(self.fit_constraints_button)
         toolbar.addWidget(self.fit_constraints_button)
 
     def _add_pixelsize_toolbar(self, toolbar):
@@ -322,7 +323,7 @@ class PyQDMMainWindow(QMainWindow):
         self.bin_button.setStatusTip("Bin the data")
         self.bin_button.setFixedSize(50, 25)
         self.bin_button.clicked.connect(self.on_bin_button_press)
-        self._visible_if_QDMObj_present.append(self.bin_button)
+        self._visible_if_qdm_present.append(self.bin_button)
         bin_box.addWidget(self.bin_button)
         bin_widget.setLayout(bin_box)
         toolbar.addWidget(bin_widget)
@@ -344,7 +345,7 @@ class PyQDMMainWindow(QMainWindow):
         global_box.addWidget(self.gf_select)
         global_box.addWidget(self.gf_apply_button)
         global_box.addWidget(self.gf_detect_button)
-        self._visible_if_QDMObj_present.extend([self.gf_detect_button, self.gf_apply_button])
+        self._visible_if_qdm_present.extend([self.gf_detect_button, self.gf_apply_button])
         global_widget.setLayout(global_box)
         toolbar.addWidget(global_widget)
 
@@ -438,7 +439,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def fill_fitconstraints_widget(self):
         self.get_fitconstraints_widget()
-        for i, (k, v) in enumerate(sefl.qdm.fit.constraints.items()):
+        for i, (k, v) in enumerate(self.qdm.fit.constraints.items()):
             self.set_fitconstraints_widget_line(i, k, v[0], v[1], v[3], v[2])
 
     def set_fitconstraints_widget_line(self, row, text, vmin, vmax, unit, constraint):
@@ -560,7 +561,7 @@ class PyQDMMainWindow(QMainWindow):
         selector.valueChanged.connect(callback)
         selector.setEnabled(False)
         selector.setFixedWidth(50)
-        self._visible_if_QDMObj_present.append(selector)
+        self._visible_if_qdm_present.append(selector)
         return label, selector
 
     def __init__(self, **kwargs):
@@ -572,14 +573,16 @@ class PyQDMMainWindow(QMainWindow):
 
         if not pyqdm.pygpufit_present:
             self.pygpufit_not_available_dialog()
-        self.fluorescenceWindow = None
-        self.laserWindow = None
-        self.ledWindow = None
+
         self.main_content_figure = None
-        self.qualityWindow = None
+        self.fluorescence_window = None
+        self.laser_window = None
+        self.light_window = None
+        self.gf_window = None
+        self.quality_window = None
         self.work_directory = ""
 
-        self.QDMObj = None
+        self.qdm = None
         self.fitconstraints_widget = None
         self.fitconstraints = {}
 
@@ -620,7 +623,7 @@ class PyQDMMainWindow(QMainWindow):
         if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
-        elif not sefl.qdm.fit.fitted:
+        elif not self.qdm.fit.fitted:
             self.LOG.debug("QDM data loaded, fitting possible.")
             self.main_label.setText("No fit calculated yet.")
         else:
@@ -641,10 +644,10 @@ class PyQDMMainWindow(QMainWindow):
     @property
     def _need_marker_update(self):
         return [
-            self.laserWindow,
-            self.ledWindow,
+            self.laser_window,
+            self.light_window,
             self.main_content_figure,
-            self.qualityWindow,
+            self.quality_window,
         ]
 
     @property
@@ -653,16 +656,13 @@ class PyQDMMainWindow(QMainWindow):
 
     def update_marker(self):
         self.LOG.debug(f"update_marker in {self._need_marker_update}")
-        for window in self._need_marker_update:
-            if window is not None:
-                window.update_marker()
+        for window in self.findChildren(QMainWindow):
+            window.update_marker()
 
-    def update_pixel(self):
+    def update_odmr(self):
         self.LOG.debug(f"Updating pixel in {self._need_pixel_update}")
-        for window in self._need_pixel_update:
-            if window is not None:
-                window.update_pixel_lines()
-                window.update_fit_lines()
+        for window in self.findChildren(QMainWindow):
+            window.update_odmr()
 
     # DATA RELATED
     def set_current_idx(self, x=None, y=None, idx=None):
@@ -682,45 +682,45 @@ class PyQDMMainWindow(QMainWindow):
     # BUTTON ACTION
     # toolbar / menu
     def on_fluorescence_button_press(self):
-        if self.fluorescenceWindow is None:
-            self.fluorescenceWindow = FluorescenceWindow(self.qdm)
-            self.fluorescenceWindow.show()
-        elif self.fluorescenceWindow.isVisible():
-            self.fluorescenceWindow.hide()
+        if self.fluorescence_window is None:
+            self.fluorescence_window = FluorescenceWindow(self.qdm)
+            self.fluorescence_window.show()
+        elif self.fluorescence_window.isVisible():
+            self.fluorescence_window.hide()
         else:
-            self.fluorescenceWindow.show()
+            self.fluorescence_window.show()
 
     def on_laser_button_press(self):
-        if self.laserWindow is None:
-            self.laserWindow = SimplePlotWindow(
+        if self.laser_window is None:
+            self.laser_window = SimplePlotWindow(
                 QDMObj=self.qdm,
                 title="Laser Scan",
                 caller=self,
                 cmap="magma",
                 cbar=True,
             )
-            self.laserWindow.add_laser_img(self.laserWindow.ax, cax=self.laserWindow.cax)
-            self.laserWindow.show()
-        elif self.laserWindow.isVisible():
-            self.laserWindow.hide()
+            self.laser_window.add_laser_img(self.laser_window.ax, cax=self.laser_window.cax)
+            self.laser_window.show()
+        elif self.laser_window.isVisible():
+            self.laser_window.hide()
         else:
-            self.laserWindow.show()
+            self.laser_window.show()
 
     def on_led_button_press(self):
-        if self.ledWindow is None:
-            self.ledWindow = SimplePlotWindow(
+        if self.light_window is None:
+            self.light_window = SimplePlotWindow(
                 QDMObj=self.qdm,
                 title="Reflected Light Image",
                 caller=self,
                 cmap="bone",
                 cbar=False,
             )
-            self.ledWindow.add_light_img(self.ledWindow.ax)
-            self.ledWindow.show()
-        elif self.ledWindow.isVisible():
-            self.ledWindow.hide()
+            self.light_window.add_light_img(self.light_window.ax)
+            self.light_window.show()
+        elif self.light_window.isVisible():
+            self.light_window.hide()
         else:
-            self.ledWindow.show()
+            self.light_window.show()
 
     def on_info_button_press(self):
         if self.infotableWidget.isVisible():
@@ -800,11 +800,13 @@ class PyQDMMainWindow(QMainWindow):
         self.fill_fitconstraints_widget()
 
     def on_gf_detect_button_press(self):
-        self.gf_window = GlobalFluorescenceWindow(caller=self, qdm_instance=self.QDMObj)
+        if self.gf_window is None:
+            self.gf_window = GlobalFluorescenceWindow(parent=self, qdm_instance=self.qdm)
         if self.gf_window.isVisible():
             self.gf_window.hide()
         else:
             self.gf_window.show()
+
 
     def on_gf_apply_button_press(self):
         self.LOG.debug("GF Apply Button clicked")
@@ -826,7 +828,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def get_infos(self):
         return [
-            self.qdm.odmr.scan_dimensions,
+            self.qdm.odmr.data_shape,
             self.qdm.odmr.n_pol,
             self.qdm.odmr.n_frange,
             self.qdm.odmr.data.size,
@@ -835,7 +837,7 @@ class PyQDMMainWindow(QMainWindow):
         ]
 
     def _change_tool_visibility(self):
-        for action in self._visible_if_QDMObj_present:
+        for action in self._visible_if_qdm_present:
             action.setEnabled(self.qdm is not None)
 
     def _fill_info_table(self, infos=None):
@@ -916,9 +918,9 @@ class PyQDMMainWindow(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"C:\Users\micha\Desktop\synthetic_data")
-        self.on_quick_start_button_press()
-        self.on_fit_button_press()
+        self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+        # self.on_quick_start_button_press()
+        # self.on_fit_button_press()
 
 
 def main(**kwargs):
@@ -936,4 +938,4 @@ def main(**kwargs):
 
 
 if __name__ == "__main__":
-    main(debug=False)
+    main(debug=True)
