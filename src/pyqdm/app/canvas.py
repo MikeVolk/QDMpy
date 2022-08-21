@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import pyqdm.plotting as qdmplot
 from matplotlib_scalebar.scalebar import ScaleBar
-
+from matplotlib import colors
 
 class PyQdmCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
@@ -173,6 +173,30 @@ class PyQdmCanvas(FigureCanvas):
                 for f in self.odmr[ax]['frange']:
                     ax.set(ylim=(mn * 0.999, mx * 1.001))
         self.draw()
+
+    def update_clims(self, percentile, extend):
+        
+            self.LOG.debug("updating clims for the pixel plots")
+        for ax in self.data:
+            if percentile:
+                mn, mx = np.percentile(self.data[ax]['data'].get_array(),
+                                       [(100 - percentile)/2, 100-(percentile - 100)/2])
+            else:
+                mn, mx = self.data[ax]['data'].get_array().min(), self.data[ax]['data'].get_array().max()
+
+            if mn < 0 < mx:
+                norm = colors.TwoSlopeNorm(vmin=mn, vmax=mx, vcenter=0)
+            else:
+                norm = colors.Normalize(vmin=mn, vmax=mx)
+
+            self.data[ax]['img'].set(norm=norm)
+            if self.data[ax]['cax']:
+                cax = self.data[ax]['cax']
+                cax.clear()
+                plt.colorbar(self.data[ax]['img'], cax=cax, extend=extend, norm=norm)
+        self.draw()
+
+
 
 
 class GlobalFluorescenceCanvas(PyQdmCanvas):

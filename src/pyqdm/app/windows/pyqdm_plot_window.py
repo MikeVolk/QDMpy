@@ -151,12 +151,12 @@ class PyQdmWindow(QMainWindow):
             step=1,
             vmin=1,
             vmax=100,
-            callback=self.update_img_plots,
+            callback=self.update_clims,
         )
         clim_label_unit = QLabel("[%]")
         self.fix_clim_check_box = QCheckBox("set ")
         self.fix_clim_check_box.setStatusTip("Fix the color scale")
-        self.fix_clim_check_box.stateChanged.connect(self.update_img_plots)
+        self.fix_clim_check_box.stateChanged.connect(self.update_clims)
         clim_selection_layout.addWidget(clim_label)
         clim_selection_layout.addWidget(self.clims_selector)
         clim_selection_layout.addWidget(clim_label_unit)
@@ -340,11 +340,8 @@ class PyQdmWindow(QMainWindow):
     def need_extend(self):
         return self.fix_clim_check_box.isChecked() and self.clims_selector.value() != 100
 
-    def update_img_plots(self):
-        """
-        needs to be implemented by classes that inherit from pyqdm_window
-        """
-        pass
+    def update_clims(self):
+        self.canvas.update_clims(self.clims_selector.value(), self.need_extend())
 
     def redraw_all_plots(self):
         self.update_img_plots()
