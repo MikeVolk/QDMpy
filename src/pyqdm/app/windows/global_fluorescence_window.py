@@ -1,24 +1,10 @@
-import logging
-
 import matplotlib
-import numpy as np
-from matplotlib.backend_bases import MouseButton
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QPushButton,
-    QSlider,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider
 
 from pyqdm.app.canvas import GlobalFluorescenceCanvas
 from pyqdm.app.windows.misc import gf_applied_window
 from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
-from pyqdm.app.windows.tools import get_label_box
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -30,58 +16,74 @@ matplotlib.rcParams.update(
 
 
 class GlobalFluorescenceWindow(PyQdmWindow):
+    def add_odmr(self):
+        self.canvas.add_odmr(
+            freq=self.qdm.odmr.f_ghz,
+            data=self.get_uncorrected_odmr(),
+            uncorrected=self.get_current_odmr(),
+            corrected=self.get_corrected_odmr(self.global_slider.value()),
+        )
+
     def __init__(self, qdm_instance, *args, **kwargs):
         canvas = GlobalFluorescenceCanvas()
-        super().__init__(canvas=canvas, qdm_instance=qdm_instance, *args, **kwargs)
+        super().__init__(canvas=canvas, *args, **kwargs)
+        self.LOG.debug("GlobalFluorescenceWindow.__init__")
         self.setWindowTitle("Global Fluorescence")
-        self.gf_label = QLabel(f"Global Fluorescence: {self.qdm.global_factor:.2f}")
-        self.gfSlider = QSlider()
-        self.gfSlider.setValue(self.caller.gf_select.value())
-        self.gfSlider.setRange(0, 100)
-        self.gfSlider.setOrientation(Qt.Horizontal)
-        self.gfSlider.valueChanged.connect(self.on_slider_value_changed)
+        self.global_label = QLabel(f"Global Fluorescence: {self.qdm.global_factor:.2f}")
+        self.global_slider = QSlider()
+        self.global_slider.setValue(self.caller.gf_select.value())
+        self.global_slider.setRange(0, 100)
+        self.global_slider.setOrientation(Qt.Horizontal)
+        self.global_slider.valueChanged.connect(self.on_global_slider_change)
         self.applyButton = QPushButton("Apply")
         self.applyButton.clicked.connect(self.apply_global_factor)
 
-        self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
-        self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
-        self.canvas.add_scalebars(self.qdm.pixel_size)
-        self.update_marker()
-
-        pixel_spectra, uncorrected, corrected, mn, mx = self.get_pixel_data()
-        self.canvas.add_odmr(self.qdm.odmr.f_ghz, data=pixel_spectra,
-                             uncorrected=uncorrected, corrected=corrected)
-        self.canvas.update_odmr_lims()
-
         # finish main layout
         horizontal_layout = QHBoxLayout()
-        horizontal_layout.addWidget(self.gf_label)
-        horizontal_layout.addWidget(self.gfSlider)
+        horizontal_layout.addWidget(self.global_label)
+        horizontal_layout.addWidget(self.global_slider)
         horizontal_layout.addWidget(self.applyButton)
         self.mainVerticalLayout.addLayout(horizontal_layout)
         self.set_main_window()
 
-    def get_pixel_data(self):
-        gf_factor = self.gfSlider.value() / 100
-        new_correct = self.qdm.odmr.get_gf_correction(gf=gf_factor)
-        old_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
-        pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
-        uncorrected = pixel_spectra + old_correct
-        corrected = uncorrected - new_correct
-        mn = np.min([np.min(pixel_spectra), np.min(corrected), np.min(uncorrected)]) * 0.998
-        mx = np.max([np.max(pixel_spectra), np.max(corrected), np.max(uncorrected)]) * 1.002
-        return pixel_spectra, uncorrected, corrected, mn, mx
+        # add plotting elements
+        self.add_mean_odmr()
+        self.add_light()
+        self.add_laser()
+        self.add_scalebars()
+        self.update_marker()
+        # data and uncorrected are swapped so that the markers are always for
+        # the uncorrected data. Other windows will not have this.
+        self.canvas.add_odmr(
+            freq=self.qdm.odmr.f_ghz,
+            data=self.get_uncorrected_odmr(),
+            uncorrected=self.get_current_odmr(),
+            corrected=self.get_corrected_odmr(self.global_slider.value()),
+        )
+        self.canvas.update_odmr_lims()
+        self.canvas.set_img()
+        self.canvas.draw()
 
-    def on_slider_value_changed(self):
-        print(self.canvas.odmr)
-        self.gf_label.setText(f"Global Fluorescence: {self.gfSlider.value() / 100:.2f}")
-        pixel_spectra, uncorrected, corrected, mn, mx = self.get_pixel_data()
-        self.canvas.update_odmr(data=uncorrected, corrected=corrected)
+    def on_global_slider_change(self):
+        self.global_label.setText(f"Global Fluorescence: {self.global_slider.value() / 100:.2f}")
+        self.update_odmr()
+        self.canvas.draw()
+
+    def update_odmr(self):
+        """
+        Update the marker position on the image plots.
+        """
+        self.canvas.update_odmr(
+            data=self.get_uncorrected_odmr(),
+            uncorrected=self.get_current_odmr(),
+            corrected=self.get_corrected_odmr(self.global_slider.value()),
+        )
         self.canvas.update_odmr_lims()
 
     def apply_global_factor(self):
-        self.LOG.debug(f"applying global factor {self.gfSlider.value() / 100:.2f}")
-        self.qdm.odmr.correct_glob_fluorescence(self.gfSlider.value() / 100)
-        gf_applied_window(self.gfSlider.value() / 100)
-        self.caller.gf_select.setValue(self.gfSlider.value() / 100)
+        self.LOG.debug(f"applying global factor {self.global_slider.value() / 100:.2f}")
+        self.qdm.odmr.correct_glob_fluorescence(self.global_slider.value() / 100)
+        gf_applied_window(self.global_slider.value() / 100)
+        self.caller.gf_select.setValue(self.global_slider.value() / 100)
+        self.update_odmr()
         self.close()
