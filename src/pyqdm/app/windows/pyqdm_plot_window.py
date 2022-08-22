@@ -1,11 +1,8 @@
 import logging
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib_scalebar.scalebar import ScaleBar
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -17,29 +14,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pyqdm.app.models import Pix
 from pyqdm.app.windows.tools import get_label_box
 from pyqdm.core import models
-from pyqdm.app.models import Pix
-
-matplotlib.rcParams.update(
-    {  # 'font.size': 8,
-        # 'axes.labelsize': 8,
-        "grid.linestyle": "-",
-        "grid.alpha": 0.5,
-    }
-)
 
 
 class PyQdmWindow(QMainWindow):
     """
     Window for checking the global fluorescence correction.
     """
-
-    _pixel_marker = []  # Line2D objects that contain the pixel marker
-    _pixel_lines = [[None, None], [None, None]]  # Line2D for selected pixel
-    _fit_lines = [[None, None], [None, None]]  # Line2D for fit line
-
-    _need_cLim_update = []
 
     POL = ["+", "-"]
     RANGE = ["<", ">"]
@@ -56,24 +39,40 @@ class PyQdmWindow(QMainWindow):
     def _is_spectra(self):
         return self.canvas.odmr_axes
 
-    # @property
-    # def qdm(self):
-    #     return self.caller.qdm
+    @property
+    def qdm(self):
+        return self.parent().qdm
 
-    def __init__(self, canvas, qdm_instance, includes_fits=False, *args, **kwargs):
-        self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
-        self.qdm = qdm_instance
-        self._includes_fits = includes_fits
-        self.pix = Pix()
-        self.data_shape = self.qdm.data_shape
-        self.img_shape = self.qdm.light.shape
+    # canvas wrapper methods
+    def add_light(self):
+        self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
 
+    def add_laser(self):
+        self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
+
+    def add_scalebars(self):
+        self.canvas.add_scalebars(self.qdm.pixel_size)
+
+    def add_mean_odmr(self):
+        self.canvas.add_mean_odmr(self.qdm.odmr.f_ghz, self.qdm.odmr.mean_odmr)
+
+    def add_odmr(self, mean=False):
+        self.canvas.add_odmr(
+            self.qdm.odmr.f_ghz, self.get_current_odmr(), mean=self.qdm.odmr.mean_odmr if mean else None
+        )
+
+    def __init__(self, canvas, includes_fits=False, clim_select=True, pixel_select=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
         self.caller = self.parent()
 
         self.setContentsMargins(0, 0, 0, 0)
         self.canvas = canvas
         self._xy_box = [[0, 0], [0, 0]]
+
+        self.pix = Pix()
+        self.data_shape = self.qdm.data_shape
+        self.img_shape = self.qdm.light.shape
 
         self.data_ax_img = {}
         self.led_ax_img = {}
@@ -82,20 +81,29 @@ class PyQdmWindow(QMainWindow):
         self.canvas.mpl_connect("button_press_event", self.on_press)
         self.canvas.mpl_connect("button_release_event", self.on_release)
 
+        # layout
         self.mainToolbar = QToolBar("Toolbar")
         self.mainToolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
         self._add_plt_toolbar()
         self.addToolBar(self.mainToolbar)
-        self._outlier_masks = {}
         self.mainVerticalLayout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.mainToolbar.addSeparator()
-        self._add_cLim_selector(self.mainToolbar)
-        self.mainToolbar.addSeparator()
-        self._add_pixel_box(self.mainToolbar)
+
+        if clim_select:
+            self._add_cLim_select(self.mainToolbar)
+            self.mainToolbar.addSeparator()
+
+        if pixel_select:
+            self._add_pixel_select(self.mainToolbar)
+
         self.mainVerticalLayout.addWidget(self.canvas)
 
     def set_main_window(self):
+        """
+        Sets the final widget to the layout.
+        THis is separate so you can add additional things to the toplayout ....
+        """
         central_widget = QWidget()
         central_widget.setLayout(self.mainVerticalLayout)
         self.setCentralWidget(central_widget)
@@ -141,7 +149,7 @@ class PyQdmWindow(QMainWindow):
 
         self.data_img
 
-    def _add_cLim_selector(self, toolbar):
+    def _add_cLim_select(self, toolbar):
         clim_widget = QWidget()
         clim_selection_layout = QHBoxLayout()
         clim_label, self.clims_selector = get_label_box(
@@ -171,7 +179,7 @@ class PyQdmWindow(QMainWindow):
         self.toolbar.addSeparator()
         self.addToolBar(self.toolbar)
 
-    def _add_pixel_box(self, toolbar):
+    def _add_pixel_select(self, toolbar):
         pixel_box_widget = QWidget()
         coord_box = QHBoxLayout()
         self.xlabel, self.xselect = get_label_box(
@@ -296,10 +304,16 @@ class PyQdmWindow(QMainWindow):
             self.indexLabel.setText(f"[{self._current_idx}]")
             self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
 
-            self.caller.update_marker()
-            self.caller.update_odmr()
+            if self.canvas.has_img:
+                self.caller.update_marker()
+            if self.canvas.has_odmr:
+                self.caller.update_odmr()
 
     def on_xy_value_change(self):
+        """
+        Changes the current ODMR spectra on all odmr axes and the marker on all image axes
+        for the current pixel.
+        """
         self.set_current_idx(x=self.xselect.value(), y=self.yselect.value())
         self.LOG.debug(f"XY value changed to {self._current_xy} ({self._current_idx})")
         self.indexLabel.setText(f"[{self._current_idx}]")
@@ -307,16 +321,92 @@ class PyQdmWindow(QMainWindow):
         self.caller.update_marker()
         self.caller.update_odmr()
 
-    def get_pixel_data(self):
-        gf_factor = self.gfSlider.value() / 100
-        new_correct = self.qdm.odmr.get_gf_correction(gf=gf_factor)
-        old_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
-        pixel_spectra = self.qdm.odmr.data[:, :, self._current_idx].copy()  # possibly already corrected
-        uncorrected = pixel_spectra + old_correct
-        corrected = uncorrected - new_correct
-        mn = np.min([np.min(pixel_spectra), np.min(corrected), np.min(uncorrected)]) * 0.998
-        mx = np.max([np.max(pixel_spectra), np.max(corrected), np.max(uncorrected)]) * 1.002
-        return pixel_spectra, uncorrected, corrected, mn, mx
+    def get_current_odmr(self):
+        """
+        Returns the current odmr spectra for all polarities and franges.
+        The spectra may or may not be corrected for the global fluorescence.
+
+        Returns
+        -------
+        np.array of shape (n_polarities, n_franges, n_freqs)
+            ODMR spectrum of current_idx
+        """
+        return self.qdm.odmr.data[:, :, self._current_idx]
+
+    def get_uncorrected_odmr(self):
+        """
+        Returns the uncorrected odmr spectra for all polarities and franges.
+
+        Returns
+        -------
+        np.array of shape (n_polarities, n_franges, n_freqs)
+            uncorrected ODMR spectrum of current_idx
+        """
+        # get current pixel data, may be corrected
+        current_data = self.qdm.odmr.data[:, :, self._current_idx].copy()
+
+        # get current correction
+        if self.qdm.odmr.global_factor > 0:
+            current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
+            # make uncorrected
+            current_data += current_correct
+        return current_data
+
+    def get_corrected_odmr(self, slider_value=None):
+        """
+        Returns the corrected odmr spectra for all polarities and franges.
+
+        Parameters
+        ----------
+        slider_value : int,float, optional
+            Slider value from gf_window, by default None
+
+        Returns
+        -------
+        np.array of shape (n_polarities, n_franges, n_freqs)
+            corrected ODMR spectrum of current_idx
+        """
+        uncorrected_odmr = self.get_uncorrected_odmr()
+
+        if slider_value is not None:
+            new_correct = self.qdm.odmr.get_gf_correction(gf=slider_value / 100)
+            corrected = uncorrected_odmr - new_correct
+        else:
+            corrected = np.empty(uncorrected_odmr.shape)
+            corrected[:, :] = np.nan
+
+        return corrected
+
+    def get_pixel_data(self, slider_value=None):
+        """GEt the GF-corrected data for the current pixel
+
+        Parameters
+        ----------
+        slider_value : int, optional
+            the slider value of the gf, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
+        # get current pixel data, may be corrected
+        current_data = self.qdm.odmr.data[:, :, self._current_idx].copy()
+
+        # get current correction
+        current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
+        # make uncorrected
+        uncorrected = current_data + current_correct
+
+        if slider_value is not None:
+            new_correct = self.qdm.odmr.get_gf_correction(gf=slider_value / 100)
+            corrected = uncorrected - new_correct
+        else:
+            corrected = np.empty(current_correct.shape)
+            corrected[:, :] = np.nan
+
+        return current_data, uncorrected, corrected
 
     def set_current_idx(self, x=None, y=None, idx=None):
         self.caller.set_current_idx(x=x, y=y, idx=idx)
@@ -332,16 +422,14 @@ class PyQdmWindow(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        pixel_spectra, uncorrected, corrected, mn, mx = self.get_pixel_data()
-        self.canvas.update_odmr(data=pixel_spectra, uncorrected=uncorrected, corrected=corrected)
+        self.canvas.update_odmr(data=self.get_corrected_odmr())
         self.canvas.update_odmr_lims()
-        self.canvas.draw()
-
-    def need_extend(self):
-        return self.fix_clim_check_box.isChecked() and self.clims_selector.value() != 100
 
     def update_clims(self):
-        self.canvas.update_clims(self.clims_selector.value(), self.need_extend())
+        self.canvas.update_clims(
+            use_percentile=self.fix_clim_check_box.isChecked(),
+            percentile=self.clims_selector.value(),
+        )
 
     def redraw_all_plots(self):
         self.update_img_plots()
