@@ -3,13 +3,20 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib_scalebar.scalebar import ScaleBar
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMainWindow, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
 
-from pyqdm.app.canvas import FluorescenceCanvas
+from pyqdm.app.canvas import FluorescenceImgCanvas
+from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -20,39 +27,37 @@ matplotlib.rcParams.update(
 )
 
 
-class FluorescenceWindow(QMainWindow):
-    def on_press(self, event):
-        if event.inaxes in self.pixel_axes:
-            self.LOG.debug(f"clicked in {event.inaxes}")
-            return
+class FluorescenceWindow(PyQdmWindow):
+    def __init__(self, *args, **kwargs) -> None:
+        canvas = FluorescenceImgCanvas()
+        super().__init__(canvas=canvas, *args, **kwargs)
+        self.setWindowTitle("Global Fluorescence")
 
-        if event.xdata is None or event.ydata is None:
-            self.LOG.debug("clicked outside of axes")
-            return
+        h_layout = QHBoxLayout()
+        index_label = QLabel("Freq. index:")
+        self.index_slider = QSlider()
+        self.index_slider.setOrientation(Qt.Horizontal)
+        self.index_slider.setMinimum(0)
+        self.index_slider.setMaximum(self.qdm.odmr.n_freqs - 1)
+        self.index_slider.setSingleStep(1)
+        # self.index_slider.valueChanged.connect(self.on_slider_value_changed)
+        self.freq_label = QLabel()
+        self.freq_label.setText(f"| {self.qdm.odmr.f_ghz[0,0]:.2f}, {self.qdm.odmr.f_ghz[1,0]:.2f} [GHz]")
+        h_layout.addWidget(index_label)
+        h_layout.addWidget(self.index_slider)
+        h_layout.addWidget(self.freq_label)
+        self.mainVerticalLayout.addLayout(h_layout)
+        self.set_main_window()
 
-        if event.button == MouseButton.LEFT and not self.toolbar.mode:
-            bin_factor = self.qdm.bin_factor
-            # event is in image coordinates
-            if event.inaxes in self._is_data:
-                xy = [event.xdata, event.ydata]
-            else:
-                xy = [event.xdata / bin_factor, event.ydata / bin_factor]
+        self.add_mean_odmr()
+        self.add_light()
+        self.add_laser()
+        self.add_scalebars()
+        self.update_marker()
+        self.canvas.draw()
 
-            x, y = np.round(xy).astype(int)
 
-            self.xselect.valueChanged.disconnect(self.onXYValueChange)
-            self.xselect.setValue(x)
-            self.xselect.valueChanged.connect(self.onXYValueChange)
-
-            self.yselect.valueChanged.disconnect(self.onXYValueChange)
-            self.yselect.setValue(y)
-            self.yselect.valueChanged.connect(self.onXYValueChange)
-
-            self.set_current_idx(x, y)
-            self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
-            self.update_marker()
-            self.update_plots()
-
+class FluorescenceWindowOLD(QMainWindow):
     def __init__(self, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
         self.qdm = qdm_instance
         self.pixelsize = pixelsize
