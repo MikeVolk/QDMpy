@@ -13,14 +13,30 @@ CONTRAST_LABEL = "c [%]"
 
 def plot_light_img(ax, data, img=None, **plt_props):
     img = update_img(
-        ax, img, data, cmap="bone", interpolation="none", origin="lower", aspect="equal", zorder=0, **plt_props
+        ax,
+        img,
+        data,
+        cmap="bone",
+        interpolation="none",
+        origin="lower",
+        aspect="equal",
+        zorder=0,
+        **plt_props,
     )
     return img
 
 
 def plot_laser_img(ax, data, img=None, **plt_props):
     img = update_img(
-        ax, img, data, cmap="magma", interpolation="none", origin="lower", aspect="equal", zorder=0, **plt_props
+        ax,
+        img,
+        data,
+        cmap="magma",
+        interpolation="none",
+        origin="lower",
+        aspect="equal",
+        zorder=0,
+        **plt_props,
     )
     return img
 
@@ -61,26 +77,24 @@ def update_clim(img, vmin, vmax):
     img.set(norm=norm)
 
 
-def update_cbar(img, cbar, vmin, vmax, original_cax_locator):
-    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array.min(), mx=img.get_array().max())
+def update_cbar(img, cax, vmin, vmax, original_cax_locator):
+    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
 
-    cax = cbar.ax
-    label = cbar.get_label()
+    label = cax.get_ylabel()
     cax.clear()
     cax.set_axes_locator(original_cax_locator)
-    cbar = plt.colorbar(img, cax=cax, extend=extent, label=label)
-    return cbar
+    plt.colorbar(img, cax=cax, extend=extent, label=label)
 
 
 def detect_extent(vmin, vmax, mn, mx):
     if vmin == mn and vmax == mx:
-        return "none"
+        return "neither"
     elif vmin > mn and vmax < mx:
         return "both"
     elif vmin > mn:
-        return "lower"
+        return "min"
     else:
-        return "upper"
+        return "umaxpper"
 
 
 def update_img(ax, img, data, **plt_props):
