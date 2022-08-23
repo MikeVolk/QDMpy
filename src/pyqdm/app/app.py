@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import contextlib
 import logging
 import sys
@@ -38,12 +37,11 @@ from PySide6.QtWidgets import (
 )
 
 import pyqdm
-from pyqdm.app.windows import fit_window
-from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
-from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
-from pyqdm.app.windows.misc import PandasWidget, gf_applied_window
-from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
-from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
+from pyqdm.app.widgets.fluo_widget import FluoWidget
+from pyqdm.app.widgets.global_widget import GlobalWidget
+from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
+from pyqdm.app.widgets.simple_widget import SimpleWidget
+from pyqdm.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
 from pyqdm.core.qdm import QDM
 from pyqdm.exceptions import CantImportError
 
@@ -108,12 +106,11 @@ from PySide6.QtWidgets import (
 )
 
 import pyqdm
-from pyqdm.app.windows import fit_window
-from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
-from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
-from pyqdm.app.windows.misc import PandasWidget, gf_applied_window
-from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
-from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
+from pyqdm.app.widgets.fluo_widget import FluoWidget
+from pyqdm.app.widgets.global_widget import GlobalWidget
+from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
+from pyqdm.app.widgets.simple_widget import SimpleWidget
+from pyqdm.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
 from pyqdm.core.fit import CONSTRAINT_TYPES
 from pyqdm.core.qdm import QDM
 from pyqdm.exceptions import CantImportError
@@ -331,7 +328,7 @@ class PyQDMMainWindow(QMainWindow):
     def _add_gf_toolbar(self, toolbar):
         global_widget = QWidget()
         global_box = QHBoxLayout()
-        gf_label, self.gf_select = self.get_label_box("Global Fluorescence", 0, 1, 0.1, 0, 1, self.on_gf_changed)
+        gf_label, self.gf_select = self.get_label_box("Global Fluorescence", 0, 1, 0.1, 0, 1, None)
         self.gf_detect_button = QPushButton("detect")
         self.gf_detect_button.setStatusTip("Detect global fluoresence")
         self.gf_detect_button.clicked.connect(self.on_gf_detect_button_press)
@@ -541,7 +538,7 @@ class PyQDMMainWindow(QMainWindow):
         Show a warning dialog if pyGPUfit is not installed
         """
         if not self.debug:
-            dlg = pyGPUfitNotInstalledDialog()
+            dlg = PyGPUfitNotInstalledDialog()
             if dlg.exec():
                 logging.debug("pyGPUfit not installed continuing without it")
             else:
@@ -558,7 +555,8 @@ class PyQDMMainWindow(QMainWindow):
         selector.setMinimum(vmin)
         selector.setMaximum(vmax)
         selector.setKeyboardTracking(False)
-        selector.valueChanged.connect(callback)
+        if callback is not None:
+            selector.valueChanged.connect(callback)
         selector.setEnabled(False)
         selector.setFixedWidth(50)
         self._visible_if_qdm_present.append(selector)
@@ -635,7 +633,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def _replace_label_with_fit_window(self):
         self.main_content_layout.removeWidget(self.main_label)
-        self.main_content_figure = fit_window.FitWindow(self, self.qdm, parent=self)
+        self.main_content_figure = fit_window.FitWidget(self, self.qdm, parent=self)
         self._data_windows.append(self.main_content_figure)
         self.main_content_layout.addWidget(self.main_content_figure)
         self.setCentralWidget(self.main_content_figure)
@@ -683,23 +681,15 @@ class PyQDMMainWindow(QMainWindow):
     # toolbar / menu
     def on_fluorescence_button_press(self):
         if self.fluorescence_window is None:
-            self.fluorescence_window = FluorescenceWindow(self.qdm)
-            self.fluorescence_window.show()
-        elif self.fluorescence_window.isVisible():
+            self.fluorescence_window = FluoWidget(parent=self)
+        if self.fluorescence_window.isVisible():
             self.fluorescence_window.hide()
         else:
             self.fluorescence_window.show()
 
     def on_laser_button_press(self):
         if self.laser_window is None:
-            self.laser_window = SimplePlotWindow(
-                QDMObj=self.qdm,
-                title="Laser Scan",
-                caller=self,
-                cmap="magma",
-                cbar=True,
-            )
-            self.laser_window.add_laser_img(self.laser_window.ax, cax=self.laser_window.cax)
+            self.laser_window = SimpleWidget(dtype="laser", parent=self)
             self.laser_window.show()
         elif self.laser_window.isVisible():
             self.laser_window.hide()
@@ -708,14 +698,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_led_button_press(self):
         if self.light_window is None:
-            self.light_window = SimplePlotWindow(
-                QDMObj=self.qdm,
-                title="Reflected Light Image",
-                caller=self,
-                cmap="bone",
-                cbar=False,
-            )
-            self.light_window.add_light_img(self.light_window.ax)
+            self.light_window = SimpleWidget(dtype="light", clim_select=False, parent=self)
             self.light_window.show()
         elif self.light_window.isVisible():
             self.light_window.hide()
@@ -801,21 +784,19 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_gf_detect_button_press(self):
         if self.gf_window is None:
-            self.gf_window = GlobalFluorescenceWindow(parent=self, qdm_instance=self.qdm)
+            self.gf_window = GlobalWidget(parent=self, qdm_instance=self.qdm)
         if self.gf_window.isVisible():
             self.gf_window.hide()
         else:
+            self.gf_window.global_slider.setValue(self.gf_select.value() * 100)
+            self.gf_window.update_odmr()
             self.gf_window.show()
-
 
     def on_gf_apply_button_press(self):
         self.LOG.debug("GF Apply Button clicked")
         self.qdm.correct_glob_fluorescence(self.gf_select.value())
         if not self.debug:
             gf_applied_window(self.gf_select.value())
-
-    def on_gf_changed(self):
-        self.LOG.debug(f"GF changed to {self.gf_select.value()}")
 
     def on_set_fitconstraints_button_press(self):
         self.on_fitconstraints_button_press()
@@ -918,7 +899,8 @@ class PyQDMMainWindow(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+        self.import_file(r"C:\Users\micha\Desktop\diamond_testing\FOV18x")
+        # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.on_quick_start_button_press()
         # self.on_fit_button_press()
 

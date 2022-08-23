@@ -3,8 +3,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider
 
 from pyqdm.app.canvas import GlobalFluorescenceCanvas
-from pyqdm.app.windows.misc import gf_applied_window
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from pyqdm.app.widgets.misc import gf_applied_window
+from pyqdm.app.widgets.qdm_widget import PyQdmWindow
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -15,7 +15,7 @@ matplotlib.rcParams.update(
 )
 
 
-class GlobalFluorescenceWindow(PyQdmWindow):
+class GlobalWidget(PyQdmWindow):
     def add_odmr(self):
         self.canvas.add_odmr(
             freq=self.qdm.odmr.f_ghz,
@@ -53,7 +53,7 @@ class GlobalFluorescenceWindow(PyQdmWindow):
         self.add_scalebars()
         self.update_marker()
         # data and uncorrected are swapped so that the markers are always for
-        # the uncorrected data. Other windows will not have this.
+        # the uncorrected data. Other widgets will not have this.
         self.canvas.add_odmr(
             freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),

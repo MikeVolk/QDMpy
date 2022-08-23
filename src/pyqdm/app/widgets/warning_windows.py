@@ -4,22 +4,16 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
 from pyqdm import projectdir
 
-#
-# class progressDialog(QProgressDialog):
-#     super().__init__()
-#     self.maximum = 0
-#     self.minimum = 0
 
-# noinspection PyUnresolvedReferences
-class pyGPUfitNotInstalledDialog(QDialog):
+class PyGPUfitNotInstalledDialog(QDialog):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("pyGPUfit needs to be installed")
 
-        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        q_btn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
 
-        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox = QDialogButtonBox(q_btn)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 

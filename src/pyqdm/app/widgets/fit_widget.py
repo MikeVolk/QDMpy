@@ -11,12 +11,12 @@ from PySide6.QtWidgets import (
 )
 
 from pyqdm.app.canvas import FittingPropertyCanvas
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
-from pyqdm.app.windows.quality_window import QualityWindow
+from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from pyqdm.app.widgets.quality_widget import QualityWidget
 from pyqdm.utils import polyfit2d
 
 
-class FitWindow(PyQdmWindow):
+class FitWidget(PyQdmWindow):
     def __init__(self, caller, *args, **kwargs):
         canvas = FittingPropertyCanvas(self, width=12, height=12, dpi=100)
         self._spectra_ax = [
@@ -162,7 +162,7 @@ class FitWindow(PyQdmWindow):
 
     def on_quality_clicked(self):
         if self.qualityWindow is None:
-            self.qualityWindow = QualityWindow(self.caller, self.qdm)
+            self.qualityWindow = QualityWidget(self.caller, self.qdm)
             self.caller.qualityWindow = self.qualityWindow
         if self.qualityWindow.isVisible():
             self.qualityWindow.hide()

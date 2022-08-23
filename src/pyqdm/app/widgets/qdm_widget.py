@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from pyqdm.app.models import Pix
-from pyqdm.app.windows.tools import get_label_box
+from pyqdm.app.widgets.tools import get_label_box
 from pyqdm.core import models
 
 
@@ -304,10 +304,7 @@ class PyQdmWindow(QMainWindow):
             self.indexLabel.setText(f"[{self._current_idx}]")
             self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
 
-            if self.canvas.has_img:
-                self.caller.update_marker()
-            if self.canvas.has_odmr:
-                self.caller.update_odmr()
+            self.on_xy_value_change()
 
     def on_xy_value_change(self):
         """
@@ -318,8 +315,11 @@ class PyQdmWindow(QMainWindow):
         self.LOG.debug(f"XY value changed to {self._current_xy} ({self._current_idx})")
         self.indexLabel.setText(f"[{self._current_idx}]")
 
-        self.caller.update_marker()
-        self.caller.update_odmr()
+        if self.canvas.has_img:
+            self.caller.update_marker()
+        if self.canvas.has_odmr:
+            self.caller.update_odmr()
+        self.canvas.draw()
 
     def get_current_odmr(self):
         """

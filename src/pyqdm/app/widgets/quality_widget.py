@@ -4,10 +4,14 @@ from matplotlib import pyplot as plt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 from pyqdm.app.canvas import QualityCanvas
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+
+AU = "[a.u.]"
+PERCENT = "[%]"
+GHZ = "[GHz]"
 
 
-class QualityWindow(PyQdmWindow):
+class QualityWidget(PyQdmWindow):
     TITLES = {
         "center": r"f$_{\mathrm{resonance}}$",
         "contrast": r"$\Sigma$contrast",
@@ -20,15 +24,15 @@ class QualityWindow(PyQdmWindow):
         "chi_squared": r"$\chi^2$",
     }
     UNITS = {
-        "center": "f [GHz]",
-        "contrast": "[a.u.]",
-        "contrast_0": "[%]",
-        "contrast_1": "[%]",
-        "contrast_2": "[%]",
-        "contrast_3": "[%]",
-        "offset": "[a.u.]",
-        "width": "[GHz]",
-        "chi_squared": "[a.u.]",
+        "center": GHZ,
+        "contrast": PERCENT,
+        "contrast_0": PERCENT,
+        "contrast_1": PERCENT,
+        "contrast_2": PERCENT,
+        "contrast_3": PERCENT,
+        "offset": AU,
+        "width": GHZ,
+        "chi_squared": AU,
     }
 
     def __init__(self, caller, *args, **kwargs):

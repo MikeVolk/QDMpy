@@ -15,8 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.canvas import FluorescenceImgCanvas
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from pyqdm.app.canvas import FluoImgCanvas
+from pyqdm.app.widgets.qdm_widget import PyQdmWindow
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -25,14 +25,16 @@ matplotlib.rcParams.update(
         "grid.alpha": 0.5,
     }
 )
+SCALEBAR_LOC = "lower left"
 
 
-class FluorescenceWindow(PyQdmWindow):
+class FluoWidget(PyQdmWindow):
     def __init__(self, *args, **kwargs) -> None:
-        canvas = FluorescenceImgCanvas()
+        canvas = FluoImgCanvas()
         super().__init__(canvas=canvas, *args, **kwargs)
         self.setWindowTitle("Global Fluorescence")
 
+        slider_widget = QWidget()
         h_layout = QHBoxLayout()
         index_label = QLabel("Freq. index:")
         self.index_slider = QSlider()
@@ -46,15 +48,25 @@ class FluorescenceWindow(PyQdmWindow):
         h_layout.addWidget(index_label)
         h_layout.addWidget(self.index_slider)
         h_layout.addWidget(self.freq_label)
-        self.mainVerticalLayout.addLayout(h_layout)
+        slider_widget.setLayout(h_layout)
+        slider_widget.setContentsMargins(0, 0, 0, 0)
+        slider_widget.setMaximumHeight(30)
+        self.mainVerticalLayout.addWidget(slider_widget)
         self.set_main_window()
 
-        self.add_mean_odmr()
-        self.add_light()
-        self.add_laser()
+        self.add_odmr(mean=True)
+        self.canvas.add_fluorescence(
+            fluorescence=self.qdm.odmr.data[:, :, :, self.index_slider.value()].reshape(
+                self.qdm.odmr.n_pol, self.qdm.odmr.n_frange, *self.qdm.odmr.data_shape
+            )
+        )
         self.add_scalebars()
         self.update_marker()
         self.canvas.draw()
+
+    def on_slider_value_changed(self, value):
+        # self.clear_axes()
+        self.update_plot(value)
 
 
 class FluorescenceWindowOLD(QMainWindow):
@@ -62,7 +74,7 @@ class FluorescenceWindowOLD(QMainWindow):
         self.qdm = qdm_instance
         self.pixelsize = pixelsize
         self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
-        super(FluorescenceWindow, self).__init__(*args, **kwargs)
+        super(FluoWidget, self).__init__(*args, **kwargs)
         self.setWindowTitle("Fluorescence Plots")
 
         # Create the maptlotlib FigureCanvas object,
@@ -185,7 +197,7 @@ class FluorescenceWindowOLD(QMainWindow):
     def _add_scalebars(self):
         for ax in self.fluo_axes:
             # Create scale bar
-            scalebar = ScaleBar(self.pixelsize, "m", length_fraction=0.25, location="lower left")
+            scalebar = ScaleBar(self.pixelsize, "m", length_fraction=0.25, location=SCALEBAR_LOC)
             ax.add_artist(scalebar)
 
     def _init_odmr_plots(self):
@@ -323,8 +335,6 @@ class FluorescenceWindowOLD(QMainWindow):
         self.lowF_line.set_xdata([self.qdm.odmr.f_ghz[0, idx], self.qdm.odmr.f_ghz[0, idx]])
         self.highF_line.set_xdata([self.qdm.odmr.f_ghz[1, idx], self.qdm.odmr.f_ghz[1, idx]])
 
-        # self.cbar.vmin= vmin
-        # self.cbar.vmax= vmax
         self.cbar.update_normal(self.fluo_lowF_pos_img)
         # self.canvas.cbar_ax.clear()
         # print(self.canvas.cbar_ax)

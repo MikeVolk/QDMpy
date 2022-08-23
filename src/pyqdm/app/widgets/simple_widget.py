@@ -1,8 +1,8 @@
 from pyqdm.app.canvas import SimpleCanvas
-from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import PyQdmWindow
 
 
-class SimplePlotWindow(PyQdmWindow):
+class SimpleWidget(PyQdmWindow):
     def __init__(self, dtype, *args, **kwargs):
         canvas = SimpleCanvas(dtype=dtype)
 

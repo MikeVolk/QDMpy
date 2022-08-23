@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QLabel, QDoubleSpinBox
+from PySide6.QtWidgets import QDoubleSpinBox, QLabel
 
 
 def get_label_box(label, value, decimals, step, vmin, vmax, callback):
