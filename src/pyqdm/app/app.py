@@ -142,6 +142,7 @@ class PyQDMMainWindow(QMainWindow):
             self.pygpufit_not_available_dialog()
 
         screen = kwargs.pop("screen", None)
+
         if screen is None:
             self.screen_size = [1920, 1080]
         else:
@@ -745,9 +746,8 @@ class PyQDMMainWindow(QMainWindow):
         about_message_box = QMessageBox.about(
             self,
             "About pyqdm",
-            "pyqdm is written by Mike Volk during his hollidays in 2022...\n" "What a dork... - Chrissi -",
+            "pyqdm is written by Mike Volk during his hollidays in 2022...\nWhat a dork... - Chrissi -",
         )
-        about_message_box.show()
 
     def on_quick_start_button_press(self):
         if self.qdm.bin_factor == 1:

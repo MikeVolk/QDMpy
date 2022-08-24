@@ -76,9 +76,13 @@ class QDMCanvas(FigureCanvas):
         return cax, original_locator
 
     def set_img(self):
-        for axdict in [self.data, self.laser, self.light]:
+        for axdict in [self.data, self.laser, self.light, self.fluorescence]:
             for a in axdict:
                 a.set(xlabel="px", ylabel="px")
+
+    def set_odmr(self):
+        for a in self.odmr:
+            a.set(xlabel="GHz", ylabel="contrast [a.u.]")
 
     def add_light(self, light, data_dimensions):
         for ax in self.light.keys():
@@ -182,19 +186,22 @@ class QDMCanvas(FigureCanvas):
             for p, f in itertools.product(self.fluorescence[ax]["pol"], self.fluorescence[ax]["frange"]):
                 if p in self.fluorescence[ax]["pol"] and f in self.fluorescence[ax]["frange"]:
                     self.LOG.debug(f"Adding fluorescence of {POL[p]}, {FRANGE[f]} to axis {ax}")
-                    self.fluorescence[ax]["data"] = ax.imshow(
-                        fluorescence[p][f],
-                        interpolation="none",
-                        origin="lower",
-                        aspect="equal",
-                        zorder=2,
-                    )
+                    if self.fluorescence[ax]["data"] is None:
+                        self.fluorescence[ax]["data"] = ax.imshow(
+                            fluorescence[p][f],
+                            interpolation="none",
+                            origin="lower",
+                            aspect="equal",
+                            zorder=2,
+                        )
+                    else:
+                        self.fluorescence[ax]["data"].set_data(fluorescence[p][f])
 
     def update_odmr(self, data=None, fit=None, corrected=None, uncorrected=None):
         for ax in self.odmr:
             for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
-                self.LOG.debug(f"Updating odmr in axis {ax}")
                 if data is not None and self.odmr[ax]["data"][p][f] is not None:
+                    self.LOG.debug(f"Updating odmr in axis {ax}")
                     self.odmr[ax]["data"][p][f].set_ydata(data[p, f])
                 if fit is not None and self.odmr[ax]["fit"][p][f] is not None:
                     self.odmr[ax]["fit"][p][f].set_ydata(fit[p, f])
@@ -206,14 +213,15 @@ class QDMCanvas(FigureCanvas):
     def update_odmr_lims(self):
         self.LOG.debug("updating xy limits for the pixel plots")
         for ax in self.odmr:
-            mn = np.nanmin([np.min(l.get_ydata()) for l in ax.get_lines()])
-            mx = np.nanmax([np.max(l.get_ydata()) for l in ax.get_lines()])
+            lines = np.array(self.odmr[ax]["data"] + self.odmr[ax]["mean"]).flatten()
+            lines = [l for l in lines if l is not None]
+            mn = np.nanmin([np.min(l.get_ydata()) for l in lines])
+            mx = np.nanmax([np.max(l.get_ydata()) for l in lines])
             ax.set(ylim=(mn * 0.999, mx * 1.001))
 
     def update_clims(self, use_percentile, percentile):
 
-        self.LOG.debug("updating clims for the data plots")
-        for axdict in [self.data, self.laser]:
+        for axdict in [self.data, self.laser, self.fluorescence]:
             for ax in axdict:
                 if percentile and use_percentile:
                     mn, mx = np.percentile(
@@ -233,9 +241,14 @@ class QDMCanvas(FigureCanvas):
 
                 axdict[ax]["data"].set(norm=norm)
                 if axdict[ax]["cax"]:
+                    cax = axdict[ax]["cax"]
+                    self.LOG.debug(
+                        f"updating clims for the img of ax {ax} on cax {cax} with"
+                        f" {use_percentile} -- {percentile} percentile ({mn}, {mx})"
+                    )
                     qdmplot.update_cbar(
                         axdict[ax]["data"],
-                        axdict[ax]["cax"],
+                        cax,
                         mn,
                         mx,
                         axdict[ax]["cax_locator"],
@@ -326,7 +339,7 @@ class FluoImgCanvas(QDMCanvas):
         widths = [1, 1]
         heights = [1, 1, 1, 0.1]
         gs = self.fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
-
+        self.fig.subplots_adjust(top=0.981, bottom=0.019, left=0.097, right=0.93, hspace=0.47, wspace=0.406)
         self.low_f_mean_odmr_ax = self.fig.add_subplot(gs[0, 0])
         self.high_f_mean_odmr_ax = self.fig.add_subplot(gs[0, 1])
 
@@ -365,6 +378,9 @@ class FluoImgCanvas(QDMCanvas):
         self.odmr[self.low_f_mean_odmr_ax]["frange"] = [0]
         self.odmr[self.high_f_mean_odmr_ax]["pol"] = [0, 1]
         self.odmr[self.high_f_mean_odmr_ax]["frange"] = [1]
+
+        self.set_img()
+        self.set_odmr()
 
 
 class FluorescenceCanvasOLD(FigureCanvas):

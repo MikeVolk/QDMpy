@@ -94,7 +94,7 @@ def detect_extent(vmin, vmax, mn, mx):
     elif vmin > mn:
         return "min"
     else:
-        return "umaxpper"
+        return "max"
 
 
 def update_img(ax, img, data, **plt_props):

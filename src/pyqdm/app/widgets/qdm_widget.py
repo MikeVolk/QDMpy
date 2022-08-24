@@ -372,8 +372,9 @@ class PyQdmWindow(QMainWindow):
             new_correct = self.qdm.odmr.get_gf_correction(gf=slider_value / 100)
             corrected = uncorrected_odmr - new_correct
         else:
-            corrected = np.empty(uncorrected_odmr.shape)
-            corrected[:, :] = np.nan
+            corrected = self.get_current_odmr()
+            # corrected = np.empty(uncorrected_odmr.shape)
+            # corrected[:, :] = np.nan
 
         return corrected
 
@@ -430,6 +431,7 @@ class PyQdmWindow(QMainWindow):
             use_percentile=self.fix_clim_check_box.isChecked(),
             percentile=self.clims_selector.value(),
         )
+        self.canvas.draw()
 
     def redraw_all_plots(self):
         self.update_img_plots()
