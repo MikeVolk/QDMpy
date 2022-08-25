@@ -337,6 +337,17 @@ class PyQdmWindow(QMainWindow):
         """
         return self.qdm.odmr.data[:, :, self._current_idx]
 
+    def get_current_fit(self):
+        parameter = self.qdm.fit.parameter[:, :, self._current_idx]
+        model_func = self.qdm.fit.model[0]
+        freqs = np.empty((parameter.shape[1], 200))
+        models = np.empty((parameter.shape[0], parameter.shape[1], 200))
+        for f in np.arange(parameter.shape[1]):
+            freqs[f] = np.linspace(self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200)
+            for p in np.arange(parameter.shape[0]):
+                models[p, f, :] = model_func(freqs[f], parameter[p, f])
+        return models
+
     def get_uncorrected_odmr(self):
         """
         Returns the uncorrected odmr spectra for all polarities and franges.
