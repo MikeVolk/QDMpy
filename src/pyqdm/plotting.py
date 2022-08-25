@@ -26,6 +26,21 @@ def plot_light_img(ax, data, img=None, **plt_props):
     return img
 
 
+def plot_fluorescence(ax, data, img=None, **plt_props):
+    img = update_img(
+        ax,
+        img,
+        data,
+        cmap="inferno",
+        interpolation="none",
+        origin="lower",
+        aspect="equal",
+        zorder=0,
+        **plt_props,
+    )
+    return img
+
+
 def plot_laser_img(ax, data, img=None, **plt_props):
     img = update_img(
         ax,
@@ -41,17 +56,57 @@ def plot_laser_img(ax, data, img=None, **plt_props):
     return img
 
 
+def update_line(ax, x, y=None, line=None, **plt_props):
+    if y is None:
+        return
+    if line is None:
+        (line,) = ax.plot(x, y, **plt_props)
+    else:
+        if all(y == line.get_ydata()):
+            return line
+        line.set_ydata(y)
+        # ax.draw_artist(line)
+    return line
+
+
+def update_marker(ax, x, y, line=None, **plt_props):
+    if line is None:
+        (line,) = ax.plot(x, y, **plt_props)
+    else:
+        line.set_data(x, y)
+        ax.draw_artist(line)
+    return line
+
+
 def plot_data(ax, data, img=None, **plt_props):
+
     norm = get_color_norm(data.min(), data.max())
-    plt_props["cmap"] = ""
+    # plt_props["cmap"] = ""
     plt_props["norm"] = norm
     img = update_img(ax, img, data, **plt_props)
     return img
 
 
+def get_vmin_vmax(img, percentile, use_percentile):
+    if img is None:
+        return 0, 1
+
+    if percentile and use_percentile:
+        vmin, vmax = np.percentile(
+            img.get_array(),
+            [(100 - percentile) / 2, 100 - (100 - percentile) / 2],
+        )
+    else:
+        vmin, vmax = (
+            img.get_array().min(),
+            img.get_array().max(),
+        )
+    return vmin, vmax
+
+
 def get_color_norm(vmin, vmax):
     if vmin < 0 < vmax:
-        return colors.TwoSlopeNorm(vmin=vmin, vmax=vmax)
+        return colors.CenteredNorm(halfrange=vmax, vcenter=0)
     else:
         return colors.Normalize(vmin=vmin, vmax=vmax)
 
@@ -98,6 +153,8 @@ def detect_extent(vmin, vmax, mn, mx):
 
 
 def update_img(ax, img, data, **plt_props):
+    data_dimensions = plt_props.pop("data_dimensions", data.shape)
+    plt_props["extent"] = [0, data_dimensions[1], 0, data_dimensions[0]]
     if img is None:
         img = ax.imshow(data, **plt_props)
     else:
@@ -213,41 +270,41 @@ def plot_fit_params(qdm_obj, param, save=False):
         f.savefig(save)
 
 
-def plot_fluorescence(qdm_obj, f_idx):
-    # noinspection PyTypeChecker
-    f, ax = plt.subplots(2, 2, figsize=(9, 5), sharex=True, sharey=True)
-    f.suptitle(
-        f"Fluorescence of frequency " f"({qdm_obj.odmr.f_ghz[0, f_idx]:.5f};" f"{qdm_obj.odmr.f_ghz[1, f_idx]:.5f}) GHz"
-    )
-
-    vmin = np.min(qdm_obj.odmr.data)
-    vmax = 1
-
-    d = qdm_obj.odmr["r"]
-
-    # low frequency
-    ax[0, 0].imshow(d[0, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-    ax[1, 0].imshow(d[1, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-    # high frequency
-    ax[0, 1].imshow(d[0, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-    c = ax[1, 1].imshow(d[1, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-
-    cb = f.colorbar(c, ax=ax[:, 1], shrink=0.97)
-    cb.ax.set_ylabel("fluorescence intensity")
-
-    pol = ["+", "-"]
-    side = ["l", "h"]
-    for i, j in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
-        a = ax[i, j]
-        a.set_title(rf"B$^{pol[i]}_\mathrm{{{side[j]}f}}$")
-        a.text(
-            0.0,
-            1,
-            f"{qdm_obj.odmr.f_ghz[j, f_idx]:.5f} GHz",
-            va="bottom",
-            ha="left",
-            transform=a.transAxes,
-            color="k",
-            zorder=100,
-        )
-    plt.show()
+# def plot_fluorescence(qdm_obj, f_idx):
+#     # noinspection PyTypeChecker
+#     f, ax = plt.subplots(2, 2, figsize=(9, 5), sharex=True, sharey=True)
+#     f.suptitle(
+#         f"Fluorescence of frequency " f"({qdm_obj.odmr.f_ghz[0, f_idx]:.5f};" f"{qdm_obj.odmr.f_ghz[1, f_idx]:.5f}) GHz"
+#     )
+#
+#     vmin = np.min(qdm_obj.odmr.data)
+#     vmax = 1
+#
+#     d = qdm_obj.odmr["r"]
+#
+#     # low frequency
+#     ax[0, 0].imshow(d[0, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
+#     ax[1, 0].imshow(d[1, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
+#     # high frequency
+#     ax[0, 1].imshow(d[0, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
+#     c = ax[1, 1].imshow(d[1, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
+#
+#     cb = f.colorbar(c, ax=ax[:, 1], shrink=0.97)
+#     cb.ax.set_ylabel("fluorescence intensity")
+#
+#     pol = ["+", "-"]
+#     side = ["l", "h"]
+#     for i, j in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
+#         a = ax[i, j]
+#         a.set_title(rf"B$^{pol[i]}_\mathrm{{{side[j]}f}}$")
+#         a.text(
+#             0.0,
+#             1,
+#             f"{qdm_obj.odmr.f_ghz[j, f_idx]:.5f} GHz",
+#             va="bottom",
+#             ha="left",
+#             transform=a.transAxes,
+#             color="k",
+#             zorder=100,
+#         )
+#     plt.show()
