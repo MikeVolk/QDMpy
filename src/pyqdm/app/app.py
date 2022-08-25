@@ -477,7 +477,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_fitconstraints_widget_item_changed(self):
         for k, v in self.fitconstraints.items():
-            self.qdm.set_constraints(k, [float(v[1].text()), float(v[2].text())], v[-1].currentIndex())
+            self.qdm.set_constraints(k, float(v[1].text()), float(v[2].text()), v[-1].currentIndex())
         self.fill_fitconstraints_widget()
 
     # info widget #todo make into txt
