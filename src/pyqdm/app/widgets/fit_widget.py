@@ -148,16 +148,16 @@ class FitWidgetOLD(PyQdmWindow):
 
         self._pixel_ax = np.array(
             [
-                [self.canvas.left_ODMR_ax, self.canvas.right_ODMR_ax],
-                [self.canvas.left_ODMR_ax, self.canvas.right_ODMR_ax],
+                [self.canvas.left_odmr_ax, self.canvas.right_odmr_ax],
+                [self.canvas.left_odmr_ax, self.canvas.right_odmr_ax],
             ]
         )
-        self.data_ax = self.canvas.main_ax
+        self.data_ax = self.canvas.data_ax
         self._outlier_masks = {self.data_ax: None}
 
         self._init_lines()
 
-        self.add_light_img(self.canvas.led_ax)
+        self.add_light_img(self.canvas.light_ax)
         self.add_laser_img(self.canvas.laser_ax)
         self.add_mean_odmr()
 
