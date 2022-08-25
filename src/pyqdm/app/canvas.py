@@ -79,6 +79,10 @@ class QDMCanvas(FigureCanvas):
         for axdict in [self.data, self.laser, self.light, self.fluorescence]:
             for a in axdict:
                 a.set(xlabel="px", ylabel="px")
+                if axdict == self.data and self.data[a]["cax"] is not None:
+                    self.data[a]["cax"].set_ylabel(r"B$_{111}$ [$\mu$T]")
+                elif isinstance(axdict[a]["cax"], Axes):
+                    axdict[a]["cax"].set_ylabel("intensity [a.u.]")
 
     def set_odmr(self):
         for a in self.odmr:
