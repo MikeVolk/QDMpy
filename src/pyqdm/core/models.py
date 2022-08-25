@@ -31,6 +31,7 @@ def esr15n(x, parameter):
     """
     out = []
     AHYP = 0.0015
+    parameter = np.atleast_2d(parameter)
 
     for i in range(parameter.shape[0]):
         p = parameter[i]

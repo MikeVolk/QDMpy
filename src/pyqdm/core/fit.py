@@ -45,7 +45,7 @@ class Fit:
 
         # fit results
         self._reset_fit()
-        self._constraints: dict = {}
+        self._constraints: dict = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
         self._constraint_types: np.array = None
 
         self.estimator_id = ESTIMATOR_ID[settings["fitting"]["estimator"]]  # 0 for LSE, 1 for MLE
@@ -80,7 +80,7 @@ class Fit:
 
     @property
     def model(self):
-        return self._model
+        return MODELS[self._model.lower()]
 
     @model.setter
     def model(self, model):
@@ -138,7 +138,7 @@ class Fit:
             The minimum value to set the constraints to. The default is None.
         :param vmax: float, optional
             The maximum value to set the constraints to. The default is None.
-        :param constraint_type: str, int optional
+        :param constraint_type: str optional
             The bound type to set the constraints to. The default is None.
         """
         if isinstance(constraint_type, int):
