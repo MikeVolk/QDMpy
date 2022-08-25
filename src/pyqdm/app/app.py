@@ -449,13 +449,13 @@ class PyQDMMainWindow(QMainWindow):
             QComboBox(),
         ]
         self.fitconstraints[text][-1].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
-        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES[constraint])
+        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES.index(constraint))
 
         self.fitconstraints[text][1].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][2].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][-1].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
         self._set_constraint_visibility(
-            CONSTRAINT_TYPES[constraint],
+            CONSTRAINT_TYPES.index(constraint),
             self.fitconstraints[text][1],
             self.fitconstraints[text][2],
         )

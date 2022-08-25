@@ -21,12 +21,7 @@ FIT_PARAMETER = {
     "ESRSINGLE": ["center", "width", "contrast", "offset"],
 }
 UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
-CONSTRAINT_TYPES = {
-    "FREE": 0,
-    "LOWER": 1,
-    "UPPER": 2,
-    "LOWER_UPPER": 3,
-}
+CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
 MODELS = {
@@ -228,7 +223,7 @@ class Fit:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [CONSTRAINT_TYPES[self._constraints[k][2]] for k in self.fitting_parameter_unique]
+        fit_bounds = [CONSTRAINT_TYPES.index(self._constraints[k][2]) for k in self.fitting_parameter_unique]
         return np.array(fit_bounds).astype(np.int32)
 
     # parameters
