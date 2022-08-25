@@ -785,7 +785,7 @@ class PyQDMMainWindow(QMainWindow):
         self.qdm.fit_ODMR()
         self.update_main_content()
         self.update_marker()
-        self.update_pixel()
+        self.update_odmr()
         self._fill_info_table()
         self.fill_fitconstraints_widget()
 

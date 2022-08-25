@@ -17,7 +17,7 @@ matplotlib.rcParams.update(
 
 class GlobalWidget(PyQdmWindow):
     def add_odmr(self):
-        self.canvas.add_odmr(
+        self.canvas.update_odmr(
             freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),
             uncorrected=self.get_current_odmr(),
@@ -54,7 +54,7 @@ class GlobalWidget(PyQdmWindow):
         self.update_marker()
         # data and uncorrected are swapped so that the markers are always for
         # the uncorrected data. Other widgets will not have this.
-        self.canvas.add_odmr(
+        self.canvas.update_odmr(
             freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),
             uncorrected=self.get_current_odmr(),
@@ -74,6 +74,7 @@ class GlobalWidget(PyQdmWindow):
         Update the marker position on the image plots.
         """
         self.canvas.update_odmr(
+            freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),
             uncorrected=self.get_current_odmr(),
             corrected=self.get_corrected_odmr(self.global_slider.value()),

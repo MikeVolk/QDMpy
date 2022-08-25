@@ -50,6 +50,10 @@ class PyQdmWindow(QMainWindow):
     def add_laser(self):
         self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
 
+    def update_data(self):
+        # empty, needs to be implemented in the child
+        pass
+
     def add_scalebars(self):
         self.canvas.add_scalebars(self.qdm.pixel_size)
 
@@ -57,7 +61,7 @@ class PyQdmWindow(QMainWindow):
         self.canvas.add_mean_odmr(self.qdm.odmr.f_ghz, self.qdm.odmr.mean_odmr)
 
     def add_odmr(self, mean=False):
-        self.canvas.add_odmr(
+        self.canvas.update_odmr(
             self.qdm.odmr.f_ghz, self.get_current_odmr(), mean=self.qdm.odmr.mean_odmr if mean else None
         )
 
@@ -423,7 +427,7 @@ class PyQdmWindow(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.canvas.update_odmr(data=self.get_corrected_odmr())
+        self.canvas.update_odmr(freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr())
         self.canvas.update_odmr_lims()
 
     def update_clims(self):
@@ -434,7 +438,8 @@ class PyQdmWindow(QMainWindow):
         self.canvas.draw()
 
     def redraw_all_plots(self):
-        self.update_img_plots()
+        self.update_data()
+        self.update_odmr()
         self.update_marker()
 
     @property
