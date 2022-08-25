@@ -215,15 +215,12 @@ class Fit:
     def get_constraints_array(self, n_pixel):
         """
         Return the constraints as an array (pixel, 2*fitting_parameters).
-
         :return: np.array
         """
-        constraints = np.zeros((n_pixel, 2 * len(self.fitting_parameter)), dtype=np.float32)
-
         constraints_list = []
         for k in self.fitting_parameter_unique:
             constraints_list.extend((self._constraints[k][0], self._constraints[k][1]))
-        constraints[:, :] = constraints_list
+        constraints = np.tile(constraints_list, (n_pixel, 1))
         return constraints
 
     def get_constraint_types(self):
