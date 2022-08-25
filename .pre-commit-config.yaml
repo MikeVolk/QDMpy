@@ -13,11 +13,6 @@ repos:
       - id: mixed-line-ending
 -   repo: local
     hooks:
-      - id: autoflake
-        name: autoflake
-        entry: poetry run autoflake -r -i --remove-all-unused-imports --remove-unused-variables
-        language: system
-        types: [ python ]
       - id: pyupgrade
         name: pyupgrade
         entry: poetry run pyupgrade --py37-plus
