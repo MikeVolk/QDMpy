@@ -158,7 +158,7 @@ class PyQdmWindow(QMainWindow):
         clim_selection_layout = QHBoxLayout()
         clim_label, self.clims_selector = get_label_box(
             label="clim",
-            value=99,
+            value=99.5,
             decimals=1,
             step=1,
             vmin=1,

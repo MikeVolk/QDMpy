@@ -19,6 +19,7 @@ class SimpleWidget(PyQdmWindow):
             raise ValueError(f"dtype {dtype} not recognized")
 
         self.canvas.add_scalebars(self.qdm.pixel_size)
+        self.update_clims()
         self.update_marker()
         self.canvas.set_img()
         self.canvas.draw()

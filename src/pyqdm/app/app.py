@@ -106,6 +106,7 @@ from PySide6.QtWidgets import (
 )
 
 import pyqdm
+from pyqdm.app.widgets.fit_widget import FitWidget
 from pyqdm.app.widgets.fluo_widget import FluoWidget
 from pyqdm.app.widgets.global_widget import GlobalWidget
 from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
@@ -440,7 +441,7 @@ class PyQDMMainWindow(QMainWindow):
         for i, (k, v) in enumerate(self.qdm.fit.constraints.items()):
             self.set_fitconstraints_widget_line(i, k, v[0], v[1], v[3], v[2])
 
-    def set_fitconstraints_widget_line(self, row, text, vmin, vmax, unit, constraint):
+    def set_fitconstraints_widget_line(self, row: int, text: str, vmin: float, vmax: float, unit: str, constraint: int):
         self.fitconstraints[text] = [
             QLabel(text),
             QLineEdit(str(vmin)),
@@ -909,7 +910,7 @@ class PyQDMMainWindow(QMainWindow):
         self.import_file(r"C:\Users\micha\Desktop\diamond_testing\FOV18x")
         # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.on_quick_start_button_press()
-        # self.on_fit_button_press()
+        self.on_fit_button_press()
 
 
 def main(**kwargs):

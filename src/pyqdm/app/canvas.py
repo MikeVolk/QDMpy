@@ -1,9 +1,8 @@
 import itertools
 import logging
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import colors
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib_scalebar.scalebar import ScaleBar
@@ -92,10 +91,7 @@ class QDMCanvas(FigureCanvas):
         for ax in self.light.keys():
             self.LOG.debug(f"Adding Light image to axis {ax}")
             self.light[ax]["data"] = qdmplot.plot_light_img(
-                ax=ax,
-                data=light,
-                img=self.light[ax]["data"],
-                extent=[0, data_dimensions[1], 0, data_dimensions[0]],
+                ax=ax, data=light, img=self.light[ax]["data"], data_dimensions=data_dimensions
             )
 
     def add_laser(self, laser, data_dimensions):
