@@ -21,7 +21,7 @@ A python package for calculating magnetic maps from ODMR spectra measured on a q
 ## Installation
 
 ```sh
-pip install pyqdm
+pip install QDMpy
 ```
 
 ## Development
