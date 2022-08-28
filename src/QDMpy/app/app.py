@@ -36,29 +36,29 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import pyqdm
-from pyqdm.app.widgets.fluo_widget import FluoWidget
-from pyqdm.app.widgets.global_widget import GlobalWidget
-from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
-from pyqdm.app.widgets.simple_widget import SimpleWidget
-from pyqdm.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from pyqdm.core.qdm import QDM
-from pyqdm.exceptions import CantImportError
+import QDMpy
+from QDMpy.app.widgets.fluo_widget import FluoWidget
+from QDMpy.app.widgets.global_widget import GlobalWidget
+from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
+from QDMpy.app.widgets.simple_widget import SimpleWidget
+from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
+from QDMpy.core.qdm import QDM
+from QDMpy.exceptions import CantImportError
 
 """
-This file contains the pyqdm mainwindow for the gui.
-pyqdm is free software: you can redistribute it and/or modify
+This file contains the QDMpy mainwindow for the gui.
+QDMpy is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-pyqdm is distributed in the hope that it will be useful,
+QDMpy is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
-along with pyqdm. If not, see <https://www.gnu.org/licenses/>.
-Copyright (c) the pyqdm Developers. See the COPYRIGHT.txt file at the
-top-level directory of this distribution and at <https://github.com/mikevolk/pyqdm>
+along with QDMpy. If not, see <https://www.gnu.org/licenses/>.
+Copyright (c) the QDMpy Developers. See the COPYRIGHT.txt file at the
+top-level directory of this distribution and at <https://github.com/mikevolk/QDMpy>
 """
 
 colors = {
@@ -105,15 +105,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import pyqdm
-from pyqdm.app.widgets.fluo_widget import FluoWidget
-from pyqdm.app.widgets.global_widget import GlobalWidget
-from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
-from pyqdm.app.widgets.simple_widget import SimpleWidget
-from pyqdm.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from pyqdm.core.fit import CONSTRAINT_TYPES
-from pyqdm.core.qdm import QDM
-from pyqdm.exceptions import CantImportError
+import QDMpy
+from QDMpy.app.widgets.fluo_widget import FluoWidget
+from QDMpy.app.widgets.global_widget import GlobalWidget
+from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
+from QDMpy.app.widgets.simple_widget import SimpleWidget
+from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
+from QDMpy.core.fit import CONSTRAINT_TYPES
+from QDMpy.core.qdm import QDM
+from QDMpy.exceptions import CantImportError
 
 colors = {
     "Bright Gray": "#EAEFF9",
@@ -134,11 +134,11 @@ class PyQDMMainWindow(QMainWindow):
     def __init__(self, **kwargs):
 
         super().__init__()
-        self.LOG = logging.getLogger("pyqdm." + self.__class__.__name__)
+        self.LOG = logging.getLogger("QDMpy." + self.__class__.__name__)
         self.debug = kwargs.pop("debug", False)
         self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
 
-        if not pyqdm.pygpufit_present:
+        if not QDMpy.pygpufit_present:
             self.pygpufit_not_available_dialog()
 
         screen = kwargs.pop("screen", None)
@@ -161,7 +161,7 @@ class PyQDMMainWindow(QMainWindow):
 
         self._current_idx = None
 
-        self.setWindowTitle("pyqdm")
+        self.setWindowTitle("QDMpy")
         self.resize(
             int(0.6 * self.screen_size[0]),
             int(0.8 * self.screen_size[0] * self.screen_ratio),
@@ -356,10 +356,10 @@ class PyQDMMainWindow(QMainWindow):
         self.setStatusBar(QStatusBar(self))
         menu = self.menuBar()
 
-        # About_pyqdm
-        about_pyqdm_button = QAction("&About pyqdm", self)
-        about_pyqdm_button.setStatusTip("This is your button")
-        about_pyqdm_button.triggered.connect(self.on_about_pyqdm_button_press)
+        # About_QDMpy
+        about_QDMpy_button = QAction("&About QDMpy", self)
+        about_QDMpy_button.setStatusTip("This is your button")
+        about_QDMpy_button.triggered.connect(self.on_about_QDMpy_button_press)
 
         # file menu
         file_menu = menu.addMenu("&File")
@@ -378,7 +378,7 @@ class PyQDMMainWindow(QMainWindow):
         file_submenu_export.addAction(export_qdmio_button)
 
         file_menu.addSeparator()
-        file_menu.addAction(about_pyqdm_button)
+        file_menu.addAction(about_QDMpy_button)
         close_action = file_menu.addAction("&Quit", self.close)
         close_action.setShortcut(QKeySequence("Ctrl+Q"))
 
@@ -514,7 +514,7 @@ class PyQDMMainWindow(QMainWindow):
     # status bar # todo add statusbar updates
     def get_statusbar(self):
         self.setStatusBar(QStatusBar(self))
-        self.statusBar().showMessage("Welcome to pyqdm")
+        self.statusBar().showMessage("Welcome to QDMpy")
 
     # loading dialog
     @staticmethod
@@ -570,7 +570,7 @@ class PyQDMMainWindow(QMainWindow):
         self.debug = kwargs.pop("debug", False)
         self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
 
-        if not pyqdm.pygpufit_present:
+        if not QDMpy.pygpufit_present:
             self.pygpufit_not_available_dialog()
 
         self.main_content_figure = None
@@ -742,11 +742,11 @@ class PyQDMMainWindow(QMainWindow):
 
         self.outlierListWidget.show()
 
-    def on_about_pyqdm_button_press(self):
+    def on_about_QDMpy_button_press(self):
         about_message_box = QMessageBox.about(
             self,
-            "About pyqdm",
-            "pyqdm is written by Mike Volk during his hollidays in 2022...\nWhat a dork... - Chrissi -",
+            "About QDMpy",
+            "QDMpy is written by Mike Volk during his hollidays in 2022...\nWhat a dork... - Chrissi -",
         )
 
     def on_quick_start_button_press(self):

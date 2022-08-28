@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from pyqdm.app.models import PandasModel
+from QDMpy.app.models import PandasModel
 
 
 def gf_applied_window(value):

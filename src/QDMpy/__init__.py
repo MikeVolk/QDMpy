@@ -37,7 +37,7 @@ package = "pygpufit"
 pygpufit_present = importlib.util.find_spec(package)  # find_spec will look for the package
 if pygpufit_present is None:
     LOG.error(
-        "Can't import pyGpufit. The package is necessary for most of the calculations. Functionality of pyqdm "
+        "Can't import pyGpufit. The package is necessary for most of the calculations. Functionality of QDMpy "
         "will be greatly diminished."
     )
     LOG.error(

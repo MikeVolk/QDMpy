@@ -14,9 +14,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.models import Pix
-from pyqdm.app.widgets.tools import get_label_box
-from pyqdm.core import models
+from QDMpy.app.models import Pix
+from QDMpy.app.widgets.tools import get_label_box
+from QDMpy.core import models
 
 
 class PyQdmWindow(QMainWindow):
@@ -63,7 +63,7 @@ class PyQdmWindow(QMainWindow):
 
     def __init__(self, canvas, includes_fits=False, clim_select=True, pixel_select=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
+        self.LOG = logging.getLogger(f"QDMpy.{self.__class__.__name__}")
         self.caller = self.parent()
 
         self.setContentsMargins(0, 0, 0, 0)

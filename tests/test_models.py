@@ -3,7 +3,7 @@ import numpy as np
 from skimage.transform import downscale_local_mean
 import itertools
 import unittest
-from pyqdm.app.models import Pix
+from QDMpy.app.models import Pix
 
 
 class Pix_test(unittest.TestCase):

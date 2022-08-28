@@ -3,8 +3,8 @@ from matplotlib import colors
 from matplotlib import pyplot as plt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
-from pyqdm.app.canvas import QualityCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.canvas import QualityCanvas
+from QDMpy.app.widgets.qdm_widget import PyQdmWindow
 
 AU = "[a.u.]"
 PERCENT = "[%]"

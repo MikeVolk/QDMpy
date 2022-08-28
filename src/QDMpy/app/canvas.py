@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import pyqdm.plotting as qdmplot
+import QDMpy.plotting as qdmplot
 
 POL = ["+", "-"]
 FRANGE = ["<", ">"]

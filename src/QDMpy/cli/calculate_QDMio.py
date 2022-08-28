@@ -4,8 +4,8 @@ import argparse
 import sys
 import time
 
-import pyqdm
-from pyqdm.core.qdm import QDM
+import QDMpy
+from QDMpy.core.qdm import QDM
 
 
 def main(argv):
@@ -53,16 +53,16 @@ def main(argv):
     args = parser.parse_args()
 
     if args.debug:
-        pyqdm.LOG.setLevel("DEBUG")
+        QDMpy.LOG.setLevel("DEBUG")
     else:
-        pyqdm.LOG.setLevel("INFO")
+        QDMpy.LOG.setLevel("INFO")
 
     qdm_obj = QDM.from_qdmio(args.input, diamond_type=args.diamond)
     qdm_obj.bin_data(bin_factor=args.binfactor)
     qdm_obj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
     qdm_obj.fit_ODMR()
     qdm_obj.export_QDMio()
-    pyqdm.LOG.info(f"pyqdm finished in {time.process_time() - tstart:.2f} seconds")
+    QDMpy.LOG.info(f"QDMpy finished in {time.process_time() - tstart:.2f} seconds")
 
 
 if __name__ == "__main__":

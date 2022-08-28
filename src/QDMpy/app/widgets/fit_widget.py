@@ -10,10 +10,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.canvas import FittingPropertyCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
-from pyqdm.app.widgets.quality_widget import QualityWidget
-from pyqdm.utils import polyfit2d
+from QDMpy.app.canvas import FittingPropertyCanvas
+from QDMpy.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.widgets.quality_widget import QualityWidget
+from QDMpy.utils import polyfit2d
 
 
 class FitWidget(PyQdmWindow):

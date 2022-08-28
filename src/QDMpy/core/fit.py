@@ -5,14 +5,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import pyqdm
+import QDMpy
 
-if pyqdm.pygpufit_present:
+if QDMpy.pygpufit_present:
     import pygpufit.gpufit as gf
 from scipy.io import savemat
 
-from pyqdm import settings
-from pyqdm.core import models
+from QDMpy import settings
+from QDMpy.core import models
 
 FIT_PARAMETER = {
     "GAUSS_1D": ["contrast", "center", "width", "offset"],

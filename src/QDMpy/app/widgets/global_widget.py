@@ -2,9 +2,9 @@ import matplotlib
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider
 
-from pyqdm.app.canvas import GlobalFluorescenceCanvas
-from pyqdm.app.widgets.misc import gf_applied_window
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.canvas import GlobalFluorescenceCanvas
+from QDMpy.app.widgets.misc import gf_applied_window
+from QDMpy.app.widgets.qdm_widget import PyQdmWindow
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,

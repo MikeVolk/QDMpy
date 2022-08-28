@@ -11,8 +11,8 @@ from numpy import ma as ma
 from scipy.io import loadmat
 from skimage.transform import downscale_local_mean
 
-from pyqdm.exceptions import WrongFileNumber
-from pyqdm.utils import idx2rc, rc2idx
+from QDMpy.exceptions import WrongFileNumber
+from QDMpy.utils import idx2rc, rc2idx
 
 
 class ODMR:

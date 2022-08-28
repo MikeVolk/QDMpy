@@ -15,8 +15,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.canvas import FluoImgCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.canvas import FluoImgCanvas
+from QDMpy.app.widgets.qdm_widget import PyQdmWindow
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,

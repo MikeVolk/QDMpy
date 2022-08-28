@@ -2,7 +2,7 @@ import unittest
 
 from numpy import testing as npt
 
-from pyqdm.core import fit
+from QDMpy.core import fit
 
 
 class Fit_object(unittest.TestCase):

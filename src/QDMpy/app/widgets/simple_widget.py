@@ -1,5 +1,5 @@
-from pyqdm.app.canvas import SimpleCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.canvas import SimpleCanvas
+from QDMpy.app.widgets.qdm_widget import PyQdmWindow
 
 
 class SimpleWidget(PyQdmWindow):

@@ -6,11 +6,11 @@ import matplotlib.image as mpimg
 import numpy as np
 import tomli
 
-import pyqdm
+import QDMpy
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-LOG = logging.getLogger(f"pyqdm.{__name__}")
+LOG = logging.getLogger(f"QDMpy.{__name__}")
 
 
 def idx2rc(idx, shape):
@@ -102,7 +102,7 @@ def load_config(config_file="config.ini"):
     :return: dict
         config file
     """
-    with open(os.path.join(pyqdm.projectdir, config_file)) as fileObj:
+    with open(os.path.join(QDMpy.projectdir, config_file)) as fileObj:
         content = fileObj.read()
         return tomli.loads(content)
 
