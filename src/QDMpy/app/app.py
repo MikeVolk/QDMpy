@@ -128,13 +128,13 @@ plt.style.use("fast")
 matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5})
 
 
-class PyQDMMainWindow(QMainWindow):
+class QDMpyApp(QMainWindow):
     _visible_if_qdm_present = []
 
     def __init__(self, **kwargs):
 
+        self.LOG = logging.getLogger(f"QDMpy.{self.__class__.__name__}")
         super().__init__()
-        self.LOG = logging.getLogger("QDMpy." + self.__class__.__name__)
         self.debug = kwargs.pop("debug", False)
         self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
 
@@ -152,6 +152,7 @@ class PyQDMMainWindow(QMainWindow):
         self.fluorescence_window = None
         self.laser_window = None
         self.light_window = None
+        self.gf_window = None
         self.main_content_figure = None
         self.quality_window = None
 
@@ -563,47 +564,6 @@ class PyQDMMainWindow(QMainWindow):
         self._visible_if_qdm_present.append(selector)
         return label, selector
 
-    def __init__(self, **kwargs):
-
-        super().__init__()
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
-        self.debug = kwargs.pop("debug", False)
-        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
-
-        if not QDMpy.pygpufit_present:
-            self.pygpufit_not_available_dialog()
-
-        self.main_content_figure = None
-        self.fluorescence_window = None
-        self.laser_window = None
-        self.light_window = None
-        self.gf_window = None
-        self.quality_window = None
-        self.work_directory = ""
-
-        self.qdm = None
-        self.fitconstraints_widget = None
-        self.fitconstraints = {}
-
-        self._current_idx = None
-
-        self.setWindowTitle("pyQDM")
-        self.resize(1200, 800)
-
-        self.get_menu()
-        self.get_toolbar()
-        self.get_statusbar()
-
-        self.init_main_content()
-        self.get_infotable_widget()
-
-        self._change_tool_visibility()
-
-        self._data_windows = []
-
-        if self.debug:
-            self.debug_call()
-
     # MAIN WINDOW
     def init_main_content(self):
         self.main_content_layout = QHBoxLayout()
@@ -899,7 +859,7 @@ class PyQDMMainWindow(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"C:\Users\micha\Desktop\diamond_testing\FOV18x")
+        self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.on_quick_start_button_press()
         # self.on_fit_button_press()
@@ -908,7 +868,7 @@ class PyQDMMainWindow(QMainWindow):
 def main(**kwargs):
     app = QApplication(sys.argv)
     screen = app.primaryScreen()
-    mainwindow = PyQDMMainWindow(screen=screen, **kwargs)
+    mainwindow = QDMpyApp(screen=screen, **kwargs)
     mainwindow.show()
 
     center = QScreen.availableGeometry(QApplication.primaryScreen()).center()

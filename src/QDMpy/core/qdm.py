@@ -23,8 +23,9 @@ FRANGES = ["high", "low"]
 import pandas as pd
 from scipy.io import savemat
 
+
 class QDM:
-    LOG = logging.getLogger(f"pyQDM.QDM")
+    LOG = logging.getLogger(__name__)
 
     @property
     def outliers(self):
@@ -290,6 +291,9 @@ class QDM:
         """
         Fit the data using the current fit type.
         """
+        if not QDMpy.pygpufit_present:
+            self.LOG.error("pygpufit not installed. Skipping fitting.")
+            raise ImportError("pygpufit not installed.")
         self._fit.fit_odmr()
 
     def get_param(self, param, reshape=True):

@@ -99,10 +99,11 @@ class FluoWidget(PyQdmWindow):
 
 
 class FluorescenceWindowOLD(QMainWindow):
+    LOG = logging.getLogger(__name__)
+
     def __init__(self, qdm_instance=None, pixelsize=1e-6, *args, **kwargs):
         self.qdm = qdm_instance
         self.pixelsize = pixelsize
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
         super(FluoWidget, self).__init__(*args, **kwargs)
         self.setWindowTitle("Fluorescence Plots")
 

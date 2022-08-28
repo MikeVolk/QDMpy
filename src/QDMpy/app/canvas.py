@@ -18,6 +18,8 @@ FRANGE = ["<", ">"]
 class QDMCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
+    LOG = logging.getLogger(__name__)
+
     @property
     def data_axes(self):
         return list(self.data.keys())
@@ -41,7 +43,6 @@ class QDMCanvas(FigureCanvas):
         return len(self.img_axes) != 0
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super().__init__(self.fig)
         self.img_dict = {

@@ -19,13 +19,14 @@ class Pix:
             self.img_shape = None
 
         def __str__(self):
-            return f'img index: {self._idx} ({self.y}, {self.x}) ' \
-                   f'data index: {self.data_idx} ({self.data_y}, {self.data_x}) ' \
-                # f'with scan dimensions: ' \
+            return (
+                f"img index: {self._idx} ({self.y}, {self.x}) "
+                f"data index: {self.data_idx} ({self.data_y}, {self.data_x}) "
+            )  # f'with scan dimensions: ' \
             # f'data {self.data_shape}; ' \
             # f'img: {self.img_shape}'
 
-        def set_idx(self, x=None, y=None, idx=None, ref='img'):
+        def set_idx(self, x=None, y=None, idx=None, ref="img"):
             """
             Set the current index.
             :param x: int, optional
@@ -37,23 +38,23 @@ class Pix:
             :param ref: str, optional
                 reference: 'img' or 'data'
             """
-            if ref == 'data':
+            if ref == "data":
                 scan_dimensions = self.data_shape
-            elif ref == 'img':
+            elif ref == "img":
                 scan_dimensions = self.img_shape
             else:
-                raise ValueError(f'{ref} is not a valid reference')
+                raise ValueError(f"{ref} is not a valid reference")
 
             if x is not None and y is not None:
                 self._idx = rc2idx([y, x], shape=scan_dimensions)
             elif idx is not None:
-                if ref == 'data':
+                if ref == "data":
                     r, c = idx2rc(idx, shape=self.data_shape)
                     self._idx = rc2idx([r * self.bin_factor, c * self.bin_factor], shape=self.img_shape)
-                elif ref == 'img':
+                elif ref == "img":
                     self._idx = idx
             else:
-                raise ValueError('x and y or idx must be specified')
+                raise ValueError("x and y or idx must be specified")
 
         @property
         def bin_factor(self):
@@ -62,9 +63,7 @@ class Pix:
         @property
         def data_idx(self):
             r, c = idx2rc(self._idx, self.img_shape)
-            return rc2idx([r / self.bin_factor,
-                           c / self.bin_factor],
-                          self.data_shape)
+            return rc2idx([r / self.bin_factor, c / self.bin_factor], self.data_shape)
 
         @property
         def binned_pixel_idx(self):
@@ -76,7 +75,8 @@ class Pix:
                 itertools.product(
                     np.arange(self.data_y * self.bin_factor, (self.data_y + 1) * self.bin_factor),
                     np.arange(self.data_x * self.bin_factor, (self.data_x + 1) * self.bin_factor),
-                ))
+                )
+            )
             return rc2idx(np.array(rc_idx).T, self.img_shape)
 
         @property

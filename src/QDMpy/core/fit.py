@@ -37,9 +37,10 @@ MODELS = {
 
 
 class Fit:
+    LOG = logging.getLogger(__name__)
     def __init__(self, data, frequencies, model, constraints=None):
 
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
+        # self.LOG = logging.getLogger(f"{__name__}")
         self._data = data
         self.f_ghz = frequencies
         self.LOG.debug(

@@ -16,7 +16,7 @@ from QDMpy.utils import idx2rc, rc2idx
 
 
 class ODMR:
-    LOG = logging.getLogger("pyQDM.ODMR")
+    LOG = logging.getLogger(__name__)
 
     def __init__(self, data, scan_dimensions, frequencies, **kwargs):
         self.LOG.info("ODMR data object initialized")
@@ -209,8 +209,9 @@ class ODMR:
             data = d if data is None else np.stack((data, d), axis=0)
         if data.ndim == 3:
             data = data[np.newaxis, :, :, :]
-        scan_dimensions = np.array([np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(
-            raw_data[0]["imgNumCols"])], dtype=int)
+        scan_dimensions = np.array(
+            [np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(raw_data[0]["imgNumCols"])], dtype=int
+        )
 
         scan_dimensions = np.array(
             [
@@ -437,7 +438,6 @@ class ODMR:
             self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
             self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
 
-
     ### CORRECTION METHODS ###
     def get_gf_correction(self, gf):
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
@@ -461,7 +461,6 @@ class ODMR:
         self._data_edited -= correction[:, :, np.newaxis, :]
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
-
 
     # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):

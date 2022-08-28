@@ -10,7 +10,7 @@ import QDMpy
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-LOG = logging.getLogger(f"QDMpy.{__name__}")
+LOG = logging.getLogger(__name__)
 
 
 def idx2rc(idx, shape):

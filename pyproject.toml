@@ -41,6 +41,7 @@ numba = "^0.56.0"
 scipy = "^1.9.1"
 matplotlib = "^3.5.3"
 matplotlib-scalebar = "^0.8.1"
+coloredlogs = "^15.0.1"
 
 
 [tool.poetry.dev-dependencies]

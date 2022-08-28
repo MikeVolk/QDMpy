@@ -24,6 +24,8 @@ class PyQdmWindow(QMainWindow):
     Window for checking the global fluorescence correction.
     """
 
+    LOG = logging.getLogger(__name__)
+
     POL = ["+", "-"]
     RANGE = ["<", ">"]
 
@@ -63,7 +65,6 @@ class PyQdmWindow(QMainWindow):
 
     def __init__(self, canvas, includes_fits=False, clim_select=True, pixel_select=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.LOG = logging.getLogger(f"QDMpy.{self.__class__.__name__}")
         self.caller = self.parent()
 
         self.setContentsMargins(0, 0, 0, 0)
