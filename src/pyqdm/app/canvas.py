@@ -74,12 +74,12 @@ class QDMCanvas(FigureCanvas):
         original_locator = cax.get_axes_locator()
         return cax, original_locator
 
-    def set_img(self):
+    def set_img(self, cbar_label=r"B$_{111}$ [$\mu$T]"):
         for axdict in [self.data, self.laser, self.light, self.fluorescence]:
             for a in axdict:
                 a.set(xlabel="px", ylabel="px")
                 if axdict == self.data and self.data[a]["cax"] is not None:
-                    self.data[a]["cax"].set_ylabel(r"B$_{111}$ [$\mu$T]")
+                    self.data[a]["cax"].set_ylabel(cbar_label)
                 elif isinstance(axdict[a]["cax"], Axes):
                     axdict[a]["cax"].set_ylabel("intensity [a.u.]")
 
