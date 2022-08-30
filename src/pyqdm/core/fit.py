@@ -45,10 +45,14 @@ class Fit:
 
         # fit results
         self._reset_fit()
-        self._constraints: dict = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
+        self._constraints: dict = (
+            {}
+        )  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
         self._constraint_types: np.array = None
 
-        self.estimator_id = ESTIMATOR_ID[settings["fitting"]["estimator"]]  # 0 for LSE, 1 for MLE
+        self.estimator_id = ESTIMATOR_ID[
+            settings["fitting"]["estimator"]
+        ]  # 0 for LSE, 1 for MLE
         self._set_initial_constraints()
         if constraints is not None:
             for k in constraints:
@@ -145,13 +149,24 @@ class Fit:
             constraint_type = CONSTRAINT_TYPES[constraint_type]
 
         if constraint_type is not None and constraint_type not in CONSTRAINT_TYPES:
-            raise ValueError(f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}")
+            raise ValueError(
+                f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}"
+            )
 
-        if param == "contrast" and self.fitting_parameter_unique != self.fitting_parameter:
-            for contrast in [v for v in self.fitting_parameter_unique if "contrast" in v]:
-                self.set_constraints(contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type)
+        if (
+            param == "contrast"
+            and self.fitting_parameter_unique != self.fitting_parameter
+        ):
+            for contrast in [
+                v for v in self.fitting_parameter_unique if "contrast" in v
+            ]:
+                self.set_constraints(
+                    contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type
+                )
         else:
-            self.LOG.debug(f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}")
+            self.LOG.debug(
+                f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}"
+            )
             self._constraints[param] = [
                 vmin,
                 vmax,
@@ -205,7 +220,10 @@ class Fit:
         """
         Check if the constraints have changed.
         """
-        return self._constraints != constraints or self._constraint_types != constraint_types
+        return (
+            self._constraints != constraints
+            or self._constraint_types != constraint_types
+        )
 
     def get_constraints_array(self, n_pixel):
         """
@@ -223,7 +241,10 @@ class Fit:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [CONSTRAINT_TYPES.index(self._constraints[k][2]) for k in self.fitting_parameter_unique]
+        fit_bounds = [
+            CONSTRAINT_TYPES.index(self._constraints[k][2])
+            for k in self.fitting_parameter_unique
+        ]
         return np.array(fit_bounds).astype(np.int32)
 
     # parameters
@@ -252,7 +273,9 @@ class Fit:
             parameter = "center"
         idx = [i for i, v in enumerate(self.fitting_parameter) if v == parameter]
         if not idx:
-            idx = [i for i, v in enumerate(self.fitting_parameter_unique) if v == parameter]
+            idx = [
+                i for i, v in enumerate(self.fitting_parameter_unique) if v == parameter
+            ]
         if not idx:
             raise ValueError(f"Unknown parameter: {parameter}")
         return idx
@@ -263,7 +286,9 @@ class Fit:
         Guess the center of the ODMR spectra.
         """
         center = guess_center(self.data, self.f_ghz)
-        self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
+        self.LOG.debug(
+            f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
+        )
         return center
 
     def _guess_contrast(self):
@@ -332,7 +357,9 @@ class Fit:
                 self._parameter = np.stack((self._parameter, results[0]))
                 self._states = np.stack((self._states, results[1]))
                 self._chi_squares = np.stack((self._chi_squares, results[2]))
-                self._number_iterations = np.stack((self._number_iterations, results[3]))
+                self._number_iterations = np.stack(
+                    (self._number_iterations, results[3])
+                )
                 self._execution_time = np.stack((self._execution_time, results[4]))
 
             self.LOG.info(f"fit finished in {results[4]:.2f} seconds")
@@ -365,7 +392,9 @@ class Fit:
             user_info=np.ascontiguousarray(freq, dtype=np.float32),
             constraints=np.ascontiguousarray(constraints, dtype=np.float32),
             constraint_types=constraint_types,
-            initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
+            initial_parameters=np.ascontiguousarray(
+                initial_parameters, dtype=np.float32
+            ),
             weights=None,
             model_id=self.model_id,
             max_number_iterations=settings["fitting"]["max_number_iterations"],
@@ -547,7 +576,9 @@ def guess_center_freq_single(data, freq):
     return freq[idx]
 
 
-def make_dummy_data(model: str = "esr14n", n_freq: int = 100, scan_dimensions=None, noise=0):
+def make_dummy_data(
+    model: str = "esr14n", n_freq: int = 100, scan_dimensions=None, noise=0
+):
     if scan_dimensions is None:
         scan_dimensions = [120, 190]
     if model not in MODELS:

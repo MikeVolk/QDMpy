@@ -1,8 +1,8 @@
 from pyqdm.app.canvas import SimpleCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import QDMWidget
 
 
-class SimpleWidget(PyQdmWindow):
+class SimpleWidget(QDMWidget):
     def __init__(self, dtype, *args, **kwargs):
         canvas = SimpleCanvas(dtype=dtype)
 
@@ -10,7 +10,9 @@ class SimpleWidget(PyQdmWindow):
         self.set_main_window()
         if dtype == "laser":
             self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
-            self.canvas.fig.subplots_adjust(top=0.97, bottom=0.124, left=0.049, right=0.951, hspace=0.2, wspace=0.2)
+            self.canvas.fig.subplots_adjust(
+                top=0.97, bottom=0.124, left=0.049, right=0.951, hspace=0.2, wspace=0.2
+            )
             self.setWindowTitle("Laser scan")
         elif dtype == "light":
             self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
@@ -22,4 +24,4 @@ class SimpleWidget(PyQdmWindow):
         self.update_clims()
         self.update_marker()
         self.canvas.set_img()
-        self.canvas.draw()
+        self.canvas.draw_idle()

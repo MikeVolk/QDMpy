@@ -34,7 +34,9 @@ desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 import importlib.util
 
 package = "pygpufit"
-pygpufit_present = importlib.util.find_spec(package)  # find_spec will look for the package
+pygpufit_present = importlib.util.find_spec(
+    package
+)  # find_spec will look for the package
 if pygpufit_present is None:
     LOG.error(
         "Can't import pyGpufit. The package is necessary for most of the calculations. Functionality of pyqdm "

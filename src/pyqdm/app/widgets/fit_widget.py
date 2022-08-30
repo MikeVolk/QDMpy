@@ -11,14 +11,14 @@ from PySide6.QtWidgets import (
 )
 
 from pyqdm.app.canvas import FitCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import QDMWidget
 from pyqdm.app.widgets.quality_widget import QualityWidget
 from pyqdm.utils import polyfit2d
 
 B111 = "B$_{111}$"
 
 
-class FitWidget(PyQdmWindow):
+class FitWidget(QDMWidget):
     def __init__(self, *args, **kwargs):
         canvas = FitCanvas(self, width=12, height=12, dpi=100)
 

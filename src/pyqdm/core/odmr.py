@@ -175,14 +175,18 @@ class ODMR:
         if n_img_stacks == 2:
             # IF ONLY 2 IMGSTACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
-            cls.LOG.debug("Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
+            cls.LOG.debug(
+                "Two ImgStacks found: Stacking data from imgStack1 and imgStack2."
+            )
             img_stack1 = mfile["imgStack1"].T
             img_stack2 = mfile["imgStack2"].T
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
-            cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-            img_stack1 = np.concatenate([mfile["imgStack1"].T, mfile["imgStack2"].T])
-            img_stack2 = np.concatenate([mfile["imgStack3"].T, mfile["imgStack4"].T])
+            cls.LOG.debug(
+                "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4."
+            )
+            img_stack1 = np.concatenate([mfile["imgStack1"], mfile["imgStack2"]]).T
+            img_stack2 = np.concatenate([mfile["imgStack3"], mfile["imgStack4"]]).T
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
@@ -191,7 +195,11 @@ class ODMR:
         Loads QDM data from a Matlab file.
         """
         files = os.listdir(data_folder)
-        run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
+        run_files = [
+            f
+            for f in files
+            if f.endswith(".mat") and "run_" in f and not f.startswith("#")
+        ]
 
         if not run_files:
             raise WrongFileNumber("No run files found in folder.")
@@ -199,9 +207,13 @@ class ODMR:
         cls.LOG.info(f"Reading {len(run_files)} run_* files.")
 
         try:
-            raw_data = [loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
+            raw_data = [
+                loadmat(os.path.join(data_folder, mfile)) for mfile in run_files
+            ]
         except NotImplementedError:
-            raw_data = [mat73.loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
+            raw_data = [
+                mat73.loadmat(os.path.join(data_folder, mfile)) for mfile in run_files
+            ]
 
         data = None
         for mfile in raw_data:
@@ -209,8 +221,13 @@ class ODMR:
             data = d if data is None else np.stack((data, d), axis=0)
         if data.ndim == 3:
             data = data[np.newaxis, :, :, :]
-        scan_dimensions = np.array([np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(
-            raw_data[0]["imgNumCols"])], dtype=int)
+        scan_dimensions = np.array(
+            [
+                np.squeeze(raw_data[0]["imgNumRows"]),
+                np.squeeze(raw_data[0]["imgNumCols"]),
+            ],
+            dtype=int,
+        )
 
         scan_dimensions = np.array(
             [
@@ -308,7 +325,9 @@ class ODMR:
 
     @property
     def delta_mean(self):
-        return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
+        return np.sum(
+            np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1
+        )
 
     @property
     def mean_odmr(self):
@@ -335,7 +354,9 @@ class ODMR:
     def _mean_baseline(self):
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-        baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
+        baseline_mean = np.mean(
+            np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1
+        )
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
     @property
@@ -431,12 +452,17 @@ class ODMR:
         """
         Remove overexposed pixels from the data.
         """
-        self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
+        self._overexposed = (
+            np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
+        )
 
         if np.sum(self._overexposed) > 0:
-            self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
-            self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
-
+            self.LOG.warning(
+                f"ODMR: {np.sum(self._overexposed)} pixels are overexposed"
+            )
+            self._data_edited = ma.masked_where(
+                self._data_edited == 1, self._data_edited
+            )
 
     ### CORRECTION METHODS ###
     def get_gf_correction(self, gf):
@@ -462,7 +488,6 @@ class ODMR:
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
 
-
     # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):
         if idx is None:
@@ -480,7 +505,9 @@ class ODMR:
 
                 old_correct = self.get_gf_correction(gf=self._gf_factor)
                 if self._gf_factor != 0:
-                    ax[p, f].plot(self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}")
+                    ax[p, f].plot(
+                        self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}"
+                    )
 
                 (l,) = ax[p, f].plot(
                     self.f_ghz[f],
@@ -496,7 +523,9 @@ class ODMR:
                     label="corrected",
                     color=l.get_color(),
                 )
-                ax[p, f].plot(self.f_ghz[f], 1 + new_correct[p, f], "r--", label="correction")
+                ax[p, f].plot(
+                    self.f_ghz[f], 1 + new_correct[p, f], "r--", label="correction"
+                )
                 ax[p, f].set_title(f"{['+', '-'][p]},{['<', '>'][f]}")
                 ax[p, f].legend()
                 # , ylim=(0, 1.5))

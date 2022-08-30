@@ -19,7 +19,7 @@ from pyqdm.app.widgets.tools import get_label_box
 from pyqdm.core import models
 
 
-class PyQdmWindow(QMainWindow):
+class QDMWidget(QMainWindow):
     """
     Window for checking the global fluorescence correction.
     """
@@ -306,7 +306,9 @@ class PyQdmWindow(QMainWindow):
 
             self.set_current_idx(x, y)
             self.indexLabel.setText(f"[{self._current_idx}]")
-            self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
+            self.LOG.debug(
+                f"clicked in {event.inaxes} with new index: {self._current_idx}"
+            )
 
             self.on_xy_value_change()
 
@@ -323,7 +325,8 @@ class PyQdmWindow(QMainWindow):
             self.caller.update_marker()
         if self.canvas.has_odmr:
             self.caller.update_odmr()
-        self.canvas.draw()
+        self.caller.update_odmr()
+        self.caller.update_marker()
 
     def get_current_odmr(self):
         """
@@ -343,7 +346,9 @@ class PyQdmWindow(QMainWindow):
         freqs = np.empty((parameter.shape[1], 200))
         models = np.empty((parameter.shape[0], parameter.shape[1], 200))
         for f in np.arange(parameter.shape[1]):
-            freqs[f] = np.linspace(self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200)
+            freqs[f] = np.linspace(
+                self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200
+            )
             for p in np.arange(parameter.shape[0]):
                 models[p, f, :] = model_func(freqs[f], parameter[p, f])
         return models
@@ -362,7 +367,9 @@ class PyQdmWindow(QMainWindow):
 
         # get current correction
         if self.qdm.odmr.global_factor > 0:
-            current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
+            current_correct = self.qdm.odmr.get_gf_correction(
+                gf=self.qdm.odmr.global_factor
+            )
             # make uncorrected
             current_data += current_correct
         return current_data
@@ -455,7 +462,9 @@ class PyQdmWindow(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.esrsingle, models.esr15n, models.esr14n][self.qdm._diamond_type]
+        return [None, models.esrsingle, models.esr15n, models.esr14n][
+            self.qdm._diamond_type
+        ]
 
     @property
     def pixel_size(self):

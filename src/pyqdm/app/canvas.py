@@ -24,7 +24,10 @@ class QDMCanvas(FigureCanvas):
     @property
     def img_axes(self):
         return (
-            list(self.light.keys()) + list(self.laser.keys()) + list(self.data.keys()) + list(self.fluorescence.keys())
+                list(self.light.keys())
+                + list(self.laser.keys())
+                + list(self.data.keys())
+                + list(self.fluorescence.keys())
         )
 
     @property
@@ -91,7 +94,10 @@ class QDMCanvas(FigureCanvas):
         for ax in self.light.keys():
             self.LOG.debug(f"Adding Light image to axis {ax}")
             self.light[ax]["data"] = qdmplot.plot_light_img(
-                ax=ax, data=light, img=self.light[ax]["data"], data_dimensions=data_dimensions
+                ax=ax,
+                data=light,
+                img=self.light[ax]["data"],
+                data_dimensions=data_dimensions,
             )
 
     def add_laser(self, laser, data_dimensions):

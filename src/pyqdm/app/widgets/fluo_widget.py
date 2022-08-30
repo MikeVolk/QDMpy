@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from pyqdm.app.canvas import FluoImgCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import QDMWidget
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -28,7 +28,7 @@ matplotlib.rcParams.update(
 SCALEBAR_LOC = "lower left"
 
 
-class FluoWidget(PyQdmWindow):
+class FluoWidget(QDMWidget):
     def __init__(self, *args, **kwargs) -> None:
         canvas = FluoImgCanvas()
         super().__init__(canvas=canvas, *args, **kwargs)
@@ -75,14 +75,20 @@ class FluoWidget(PyQdmWindow):
             )
         )
 
-        self.lowF_line = self.update_line(self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line)
-        self.highF_line = self.update_line(self.canvas.high_f_mean_odmr_ax, 1, self.highF_line)
+        self.lowF_line = self.update_line(
+            self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line
+        )
+        self.highF_line = self.update_line(
+            self.canvas.high_f_mean_odmr_ax, 1, self.highF_line
+        )
 
         self.index_label.setText(f"Freq. index ({value}): ")
-        self.freq_label.setText(f"| {self.qdm.odmr.f_ghz[0,value]:5.4f}, {self.qdm.odmr.f_ghz[1,value]:5.4f} [GHz]")
+        self.freq_label.setText(
+            f"| {self.qdm.odmr.f_ghz[0,value]:5.4f}, {self.qdm.odmr.f_ghz[1,value]:5.4f} [GHz]"
+        )
 
         self.update_clims()
-        self.canvas.draw()
+        # self.canvas.draw()
 
     def update_line(self, ax, frange, line=None):
         if line is None:

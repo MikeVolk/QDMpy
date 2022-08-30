@@ -41,4 +41,4 @@ class PandasWidget(QGroupBox):
         for index in self.pandasTv.selectionModel().selectedRows():
             self.caller.set_current_idx(idx=int(index.data()))
             self.caller.update_marker()
-            self.caller.update_pixel()
+            self.caller.update_odmr()

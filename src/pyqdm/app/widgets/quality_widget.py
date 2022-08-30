@@ -1,17 +1,87 @@
+import itertools
+
 import numpy as np
 from matplotlib import colors
 from matplotlib import pyplot as plt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 from pyqdm.app.canvas import QualityCanvas
-from pyqdm.app.widgets.qdm_widget import PyQdmWindow
+from pyqdm.app.widgets.qdm_widget import QDMWidget
 
 AU = "[a.u.]"
 PERCENT = "[%]"
 GHZ = "[GHz]"
 
+TITLES = {
+    "center": r"f$_{\mathrm{resonance}}$",
+    "contrast": r"$\Sigma$contrast",
+    "contrast_0": "contrast$_0$",
+    "contrast_1": "contrast$_1$",
+    "contrast_2": "contrast$_2$",
+    "contrast_3": "contrast$_3$",
+    "offset": "offset",
+    "width": "width",
+    "chi_squared": r"$\chi^2$",
+}
+UNITS = {
+    "center": GHZ,
+    "contrast": PERCENT,
+    "contrast_0": PERCENT,
+    "contrast_1": PERCENT,
+    "contrast_2": PERCENT,
+    "contrast_3": PERCENT,
+    "offset": AU,
+    "width": GHZ,
+    "chi_squared": AU,
+}
 
-class QualityWidget(PyQdmWindow):
+
+class QualityWidget(QDMWidget):
+    def __init__(self, *args, **kwargs) -> None:
+        canvas = QualityCanvas()
+        super().__init__(canvas=canvas, *args, **kwargs)
+        self._add_dtype_selector(self.mainToolbar)
+        self.set_main_window()
+
+        self.update_data()
+
+        self.canvas.draw_idle()
+
+        self.resize(1000, 700)
+
+    def update_data(self):
+        d = self.qdm.get_param(self.data_select.currentText())
+
+        for p, f in itertools.product(
+            range(self.qdm.odmr.n_pol), range(self.qdm.odmr.n_frange)
+        ):
+            self.canvas.add_data(d[p][f], self.qdm.data_shape, p=p, f=f, cmap="inferno")
+
+        # set the colorbar label
+        self.canvas.fig.suptitle(f"{TITLES[self.data_select.currentText()]}")
+        self.canvas.set_img(
+            cbar_label=f"{TITLES[self.data_select.currentText()]} {UNITS[self.data_select.currentText()]}"
+        )
+        self.update_clims()
+        self.canvas.draw_idle()
+
+    def _add_dtype_selector(self, toolbar):
+        dtype_select_widget = QWidget()
+        parameter_box = QHBoxLayout()
+        parameter_label = QLabel("param: ")
+        self.data_select = QComboBox()
+        self.data_select.addItems(
+            self.qdm.fit.fitting_parameter_unique + ["chi_squared"]
+        )
+        self.data_select.setCurrentText("chi_squared")
+        self.data_select.currentTextChanged.connect(self.update_data)
+        parameter_box.addWidget(parameter_label)
+        parameter_box.addWidget(self.data_select)
+        dtype_select_widget.setLayout(parameter_box)
+        toolbar.addWidget(dtype_select_widget)
+
+
+class QualityWidgetOLD(QDMWidget):
     TITLES = {
         "center": r"f$_{\mathrm{resonance}}$",
         "contrast": r"$\Sigma$contrast",
@@ -43,19 +113,7 @@ class QualityWidget(PyQdmWindow):
         self.init_plots()
         self.resize(1000, 700)
         self.setWindowTitle("Quality plots")
-
-    def _add_dtype_selector(self, toolbar):
-        dtype_select_widget = QWidget()
-        parameter_box = QHBoxLayout()
-        parameter_label = QLabel("param: ")
-        self.data_select = QComboBox()
-        self.data_select.addItems(self.qdm.fit.fitting_parameter_unique + ["contrast", "chi_squared"])
-        self.data_select.setCurrentText("chi_squared")
-        self.data_select.currentTextChanged.connect(self.update_img_plots)
-        parameter_box.addWidget(parameter_label)
-        parameter_box.addWidget(self.data_select)
-        dtype_select_widget.setLayout(parameter_box)
-        toolbar.addWidget(dtype_select_widget)
+        self.canvas.draw_idle()
 
     def init_plots(self):
         self.LOG.debug("init_plots")
@@ -84,7 +142,9 @@ class QualityWidget(PyQdmWindow):
             vmin, vmax = np.min(d), np.max(d)
 
             if self.fix_clim_check_box.isChecked():
-                vmin, vmax = np.percentile(d, [100 - self.clims_selector.value(), self.clims_selector.value()])
+                vmin, vmax = np.percentile(
+                    d, [100 - self.clims_selector.value(), self.clims_selector.value()]
+                )
 
             im.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 
@@ -118,5 +178,5 @@ class QualityWidget(PyQdmWindow):
 
     def closeEvent(self, event):
         self.LOG.debug("closeEvent")
-        self.caller.qualityWindow = None
+        self.caller.quality_widget = None
         self.close()
