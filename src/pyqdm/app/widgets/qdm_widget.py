@@ -1,5 +1,6 @@
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -43,29 +44,15 @@ class QDMWidget(QMainWindow):
     def qdm(self):
         return self.parent().qdm
 
-    # canvas wrapper methods
-    def add_light(self):
-        self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
-
-    def add_laser(self):
-        self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
-
-    def update_data(self):
-        # empty, needs to be implemented in the child
-        pass
-
-    def add_scalebars(self):
-        self.canvas.add_scalebars(self.qdm.pixel_size)
-
-    def add_mean_odmr(self):
-        self.canvas.add_mean_odmr(self.qdm.odmr.f_ghz, self.qdm.odmr.mean_odmr)
-
-    def add_odmr(self, mean=False):
-        self.canvas.update_odmr(
-            self.qdm.odmr.f_ghz, self.get_current_odmr(), mean=self.qdm.odmr.mean_odmr if mean else None
-        )
-
-    def __init__(self, canvas, includes_fits=False, clim_select=True, pixel_select=True, *args, **kwargs):
+    def __init__(
+            self,
+            canvas,
+            includes_fits=False,
+            clim_select=True,
+            pixel_select=True,
+            *args,
+            **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
         self.caller = self.parent()
@@ -93,7 +80,6 @@ class QDMWidget(QMainWindow):
         self.mainVerticalLayout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.mainToolbar.addSeparator()
-
         if clim_select:
             self._add_cLim_select(self.mainToolbar)
             self.mainToolbar.addSeparator()
@@ -102,6 +88,41 @@ class QDMWidget(QMainWindow):
             self._add_pixel_select(self.mainToolbar)
 
         self.mainVerticalLayout.addWidget(self.canvas)
+        plt.tight_layout()
+
+    # canvas wrapper methods
+    def add_light(self):
+        self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
+
+    def add_laser(self):
+        self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
+
+    def update_data(self):
+        # empty, needs to be implemented in the child
+        pass
+
+    def toggle_outlier(self, visible):
+        self.canvas.toggle_outlier(visible)
+
+    def update_outlier(self):
+        self.canvas.update_outlier(self.qdm.outliers.reshape(*self.qdm.data_shape))
+
+    def add_scalebars(self):
+        self.canvas.add_scalebars(self.qdm.pixel_size)
+
+    def add_mean_odmr(self):
+        self.canvas.add_mean_odmr(self.qdm.odmr.f_ghz, self.qdm.odmr.mean_odmr)
+
+    def add_odmr(self, mean=False):
+        self.canvas.update_odmr(
+            self.qdm.odmr.f_ghz,
+            self.get_current_odmr(),
+            mean=self.qdm.odmr.mean_odmr if mean else None,
+        )
+
+    def update_extent(self):
+        self.canvas.update_extent(self.qdm.data_shape)
+        self.canvas.draw_idle()
 
     def set_main_window(self):
         """
@@ -220,35 +241,16 @@ class QDMWidget(QMainWindow):
         pixel_box_widget.setLayout(coord_box)
         toolbar.addWidget(pixel_box_widget)
 
-    def add_outlier_mask(self):
-        for ax, img in self._outlier_masks.items():
-            self.LOG.debug(f"Adding outlier mask to axis {ax}")
-            if img is None:
-                self._outlier_masks[ax] = ax.imshow(
-                    self.qdm.outliers.reshape(self.qdm.data_shape),
-                    cmap="gist_rainbow",
-                    alpha=self.qdm.outliers.reshape(self.qdm.data_shape).astype(float),
-                    vmin=0,
-                    vmax=1,
-                    interpolation="none",
-                    origin="lower",
-                    aspect="equal",
-                    zorder=2,
-                )
-            else:
-                img.set_data(self.qdm.outliers.reshape(self.qdm.data_shape))
-        self.canvas.draw()
-
-    def toggle_outlier_mask(self, onoff="on"):
-        for ax, img in self._outlier_masks.items():
-            if onoff == "on":
-                if img is None:
-                    self.add_outlier_mask()
-                    img = self._outlier_masks[ax]
-                img.set_visible(True)
-            if onoff == "off":
-                img.set_visible(False)
-        self.canvas.draw()
+    # def toggle_outlier_mask(self, onoff="on"):
+    #     for axdict in [self.data, self.laser, self.fluorescence]:
+    #         for ax in axdict:
+    #             img = axdict[ax]['outlier']
+    #             if img is None:
+    #                 self.add_outlier()
+    #                 img = self._outlier_masks[ax]
+    #             else:
+    #                 img.set_visible(img.)
+    #     self.canvas.draw_idle()
 
     @property
     def _current_xy(self):
@@ -293,8 +295,7 @@ class QDMWidget(QMainWindow):
         if event.button == MouseButton.LEFT and not self.toolbar.mode:
             self.qdm.bin_factor
             # event is in image coordinates
-            xy = [event.xdata, event.ydata]
-            x, y = np.round(xy).astype(int)
+            x, y = int(event.xdata), int(event.ydata)
 
             self.xselect.valueChanged.disconnect(self.on_xy_value_change)
             self.xselect.setValue(x)
@@ -395,41 +396,8 @@ class QDMWidget(QMainWindow):
             corrected = uncorrected_odmr - new_correct
         else:
             corrected = self.get_current_odmr()
-            # corrected = np.empty(uncorrected_odmr.shape)
-            # corrected[:, :] = np.nan
 
         return corrected
-
-    def get_pixel_data(self, slider_value=None):
-        """GEt the GF-corrected data for the current pixel
-
-        Parameters
-        ----------
-        slider_value : int, optional
-            the slider value of the gf, by default None
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-
-        # get current pixel data, may be corrected
-        current_data = self.qdm.odmr.data[:, :, self._current_idx].copy()
-
-        # get current correction
-        current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
-        # make uncorrected
-        uncorrected = current_data + current_correct
-
-        if slider_value is not None:
-            new_correct = self.qdm.odmr.get_gf_correction(gf=slider_value / 100)
-            corrected = uncorrected - new_correct
-        else:
-            corrected = np.empty(current_correct.shape)
-            corrected[:, :] = np.nan
-
-        return current_data, uncorrected, corrected
 
     def set_current_idx(self, x=None, y=None, idx=None):
         self.caller.set_current_idx(x=x, y=y, idx=idx)
@@ -445,15 +413,26 @@ class QDMWidget(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.canvas.update_odmr(freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr())
-        self.canvas.update_odmr_lims()
+        self.canvas.update_odmr(
+            freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr()
+        )
+        self.set_ylim()
+    def set_ylim(self):
+        self.canvas.update_odmr_lims(self.qdm.odmr.data)
 
     def update_clims(self):
+        if hasattr(self, "fix_clim_check_box"):
+            use_percentile = self.fix_clim_check_box.isChecked()
+            percentile = self.clims_selector.value()
+        else:
+            use_percentile = False
+            percentile = 100
+
         self.canvas.update_clims(
-            use_percentile=self.fix_clim_check_box.isChecked(),
-            percentile=self.clims_selector.value(),
+            use_percentile=use_percentile,
+            percentile=percentile,
         )
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def redraw_all_plots(self):
         self.update_data()

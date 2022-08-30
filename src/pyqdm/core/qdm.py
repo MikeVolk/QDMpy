@@ -23,6 +23,7 @@ FRANGES = ["high", "low"]
 import pandas as pd
 from scipy.io import savemat
 
+
 class QDM:
     LOG = logging.getLogger(f"pyQDM.QDM")
 
@@ -38,13 +39,13 @@ class QDM:
 
     # outliers
     def __init__(
-        self,
-        odmr_instance,
-        light,
-        laser,
-        working_directory,
-        pixel_size=4e-6,
-        diamond_type=None,
+            self,
+            odmr_instance,
+            light,
+            laser,
+            working_directory,
+            pixel_size=4e-6,
+            diamond_type=None,
     ):
 
         self.LOG.info("Initializing QDM object.")
@@ -53,8 +54,12 @@ class QDM:
 
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {odmr_instance.data.shape}")
-        self.LOG.debug(f"                      scan_dimensions: {odmr_instance.data_shape}")
-        self.LOG.debug(f"                      frequencies: {odmr_instance.f_ghz.shape}")
+        self.LOG.debug(
+            f"                      scan_dimensions: {odmr_instance.data_shape}"
+        )
+        self.LOG.debug(
+            f"                      frequencies: {odmr_instance.f_ghz.shape}"
+        )
         self.LOG.debug(f"                      n_freqs: {odmr_instance.n_freqs}")
 
         self.odmr = odmr_instance
@@ -71,7 +76,9 @@ class QDM:
 
         self._fit = None
         self.set_diamond_type(diamond_type)
-        self._fit = Fit(self.odmr.data, self.odmr.f_ghz, model=MODELS[self._diamond_type])
+        self._fit = Fit(
+            self.odmr.data, self.odmr.f_ghz, model=MODELS[self._diamond_type]
+        )
         self.pixel_size = pixel_size  # 4 um
 
         self._check_bin_factor()
@@ -124,34 +131,49 @@ class QDM:
         :param outlier_props:
         :return:
         """
+        outlier_props["n_jobs"] = -1
+        d1 = self.get_param("chi2", reshape=False)
+        d1 = np.sum(d1, axis=tuple(range(0, d1.ndim - 1)))
 
-        if dtype == "chi_squared":
-            data = self._chi_squares
-        elif dtype == "B111_remanent":
-            data = self.b111_remanent.reshape(1, -1)
-        elif dtype == "B111_induced":
-            data = self.b111_remanent.reshape(1, -1)
-        elif dtype in self.fit.fitting_parameter + self.fit.fitting_parameter_unique:
-            data = self.get_param(dtype, reshape=False)
+        if dtype in self.fit.fitting_parameter + self.fit.fitting_parameter_unique:
+            d2 = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 
+        d2 = np.sum(d2, axis=tuple(range(0, d2.ndim - 1)))
+        data = np.stack([d1, d2], axis=0)
+
+        outlier_props["contamination"] = outlier_props.pop("contamination", 0.05)
+
         if method == "LocalOutlierFactor":
-            clf = LocalOutlierFactor(**outlier_props).fit(data)
+            clf = LocalOutlierFactor(**outlier_props)
         elif method == "IsolationForest":
-            outlier_props["contamination"] = outlier_props.pop("contamination", 0.001)
-            clf = IsolationForest(n_jobs=-1, **outlier_props)
+            outlier_props = {
+                k: v
+                for k, v in outlier_props.items()
+                if k
+                   in [
+                       "n_estimators",
+                       "max_samples",
+                       "contamination",
+                       "max_features",
+                       "bootstrap",
+                       "n_jobs",
+                       "random_state",
+                   ]
+            }
+            clf = IsolationForest(**outlier_props)
         else:
             raise ValueError(f"Method {method} not recognized.")
 
         shape = data.shape
         self.LOG.debug(f"Detecting outliers in <<{dtype}>> data of shape {shape}")
-        outliers = (clf.fit_predict(data.reshape(-1, 1)) + 1) / 2
+        outliers = (clf.fit_predict(data.T) + 1) / 2
         # collapse the first dimensions so that the product applies to all except the pixel dimension
         outliers = outliers.reshape(-1, shape[-1])
         outliers = ~np.product(outliers, axis=0).astype(bool)
         self.LOG.info(
-            f"Outlier detection using LocalOutlierFactor of <<{dtype}>> detected {outliers.sum()} outliers pixels.\n"
+            f"Outlier detection using {method} of <<{dtype}>> detected {outliers.sum()} outliers pixels.\n"
             f"                                      Indixes can be accessed using 'outlier_idx' and 'outlier_xy'"
         )
         self.LOG.debug(f"returning {outliers.shape}")
@@ -173,6 +195,9 @@ class QDM:
             return
         self.odmr.bin_data(bin_factor=bin_factor)
         self._fit.data = self.odmr.data
+        if self._fit.fitted:
+            self.LOG.info("Binning changed, fits need to be recalculated!")
+            self._fit._reset_fit()
 
     def _check_bin_factor(self):
         bin_factors = self.light.shape / self.odmr.data_shape
@@ -239,7 +264,9 @@ class QDM:
                     )
                     n += 1
             plt.legend()
-        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {DIAMOND_TYPES[n_peaks]}")
+        self.LOG.info(
+            f"Guessed diamond type: {n_peaks} peaks -> {DIAMOND_TYPES[n_peaks]}"
+        )
 
         return n_peaks
 
@@ -261,7 +288,7 @@ class QDM:
         if isinstance(diamond_type, int):
             diamond_type = DIAMOND_TYPES[diamond_type]
 
-        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1}[diamond_type]
+        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1, 'MISC.': 1}[diamond_type]
 
         if self._fit is not None:
             self._fit.model = MODELS[self._diamond_type]
@@ -384,7 +411,9 @@ class QDM:
                 f"{self.odmr._bin_factor}x{self.odmr._bin_factor}Binned",
             )
             if not os.path.exists(path_to_file):
-                self.LOG.warning(f"Path does not exist, creating directory {path_to_file}")
+                self.LOG.warning(
+                    f"Path does not exist, creating directory {path_to_file}"
+                )
                 os.makedirs(path_to_file)
 
         neg_diff, pos_diff = self.delta_resonance
@@ -436,7 +465,9 @@ class QDM:
         Return the B111 of the fit.
         """
         neg_difference, pos_difference = self.delta_resonance
-        return (neg_difference + pos_difference) / 2, (neg_difference - pos_difference) / 2
+        return (neg_difference + pos_difference) / 2, (
+                neg_difference - pos_difference
+        ) / 2
 
     @property
     def b111_remanent(self):

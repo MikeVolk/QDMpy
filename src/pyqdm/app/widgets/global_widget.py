@@ -33,6 +33,7 @@ class GlobalWidget(QDMWidget):
         self.add_laser()
         self.add_scalebars()
         self.update_marker()
+
         # data and uncorrected are swapped so that the markers are always for
         # the uncorrected data. Other widgets will not have this.
         self.canvas.update_odmr(
@@ -41,14 +42,34 @@ class GlobalWidget(QDMWidget):
             uncorrected=self.get_current_odmr(),
             corrected=self.get_corrected_odmr(self.global_slider.value()),
         )
-        self.canvas.update_odmr_lims()
-        self.canvas.set_img()
-        self.canvas.draw()
+        # self.canvas.update_odmr_lims()
+        self.set_ylim()
+        self.update_clims()
+        self.canvas.draw_idle()
+        plt.tight_layout()
+
+    def add_global_slider(self):
+        self.global_label = QLabel(f"Global Fluorescence: {self.qdm.global_factor:.2f}")
+        self.global_slider = QSlider()
+        self.global_slider.setValue(self.caller.gf_select.value())
+        self.global_slider.setRange(0, 100)
+        self.global_slider.setOrientation(Qt.Horizontal)
+        self.global_slider.valueChanged.connect(self.on_global_slider_change)
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(self.apply_global_factor)
+        # finish main layout
+        horizontal_layout = QHBoxLayout()
+        horizontal_layout.addWidget(self.global_label)
+        horizontal_layout.addWidget(self.global_slider)
+        horizontal_layout.addWidget(self.applyButton)
+        self.mainVerticalLayout.addLayout(horizontal_layout)
 
     def on_global_slider_change(self):
-        self.global_label.setText(f"Global Fluorescence: {self.global_slider.value() / 100:.2f}")
+        self.global_label.setText(
+            f"Global Fluorescence: {self.global_slider.value() / 100:.2f}"
+        )
         self.update_odmr()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def update_odmr(self):
         """
@@ -60,8 +81,8 @@ class GlobalWidget(QDMWidget):
             uncorrected=self.get_current_odmr(),
             corrected=self.get_corrected_odmr(self.global_slider.value()),
         )
-        self.canvas.update_odmr_lims()
-
+        # self.canvas.update_odmr_lims()
+        self.set_ylim()
     def apply_global_factor(self):
         self.LOG.debug(f"applying global factor {self.global_slider.value() / 100:.2f}")
         self.qdm.odmr.correct_glob_fluorescence(self.global_slider.value() / 100)

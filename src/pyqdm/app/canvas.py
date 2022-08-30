@@ -110,8 +110,13 @@ class QDMCanvas(FigureCanvas):
                 data_dimensions=data_dimensions,
             )
 
-    def add_data(self, data, data_dimensions):
+    def add_data(self, data, data_dimensions, p=None, f=None, **plt_props):
         for ax in self.data:
+            if p is not None and p not in self.data[ax]["pol"]:
+                continue
+            if f is not None and f not in self.data[ax]["frange"]:
+                continue
+
             self.data[ax]["data"] = qdmplot.plot_data(
                 ax=ax,
                 data=data,
@@ -119,6 +124,7 @@ class QDMCanvas(FigureCanvas):
                 data_dimensions=data_dimensions,
                 aspect="equal",
                 origin="lower",
+                **plt_props,
             )
 
     def add_outlier_masks(self, outlier):
@@ -141,7 +147,14 @@ class QDMCanvas(FigureCanvas):
     def add_scalebars(self, pixelsize):
         for axdict in [self.light, self.laser, self.data]:
             # Create scale bar
-            scalebar = ScaleBar(pixelsize, "m", length_fraction=0.25, location="lower left")
+            scalebar = ScaleBar(
+                pixelsize,
+                "m",
+                length_fraction=0.25,
+                location="lower left",
+                box_alpha=0.5,
+                frameon=True,
+            )
             for ax in axdict:
                 ax.add_artist(scalebar)
 
@@ -158,37 +171,62 @@ class QDMCanvas(FigureCanvas):
     def update_marker(self, x, y):
         for axdict in [self.light, self.laser, self.data, self.fluorescence]:
             for ax in axdict:
-                self.LOG.debug(f"Updating marker to axis {ax}")
+                self.LOG.debug(f"Updating marker to ({x},{y}) axis {ax}")
                 axdict[ax]["marker"] = qdmplot.update_marker(
-                    ax, x, y, line=axdict[ax]["marker"], marker="X", c="m", mfc="w", zorder=100
+                    ax,
+                    x + 0.5,
+                    y + 0.5,
+                    line=axdict[ax]["marker"],
+                    marker="X",
+                    c="m",
+                    mfc="w",
+                    zorder=100,
                 )
 
-    def update_outlier_masks(self, outlier):
-        for ax, img in self.outlier.items():
-            self.LOG.debug(f"Updating outlier mask to axis {ax}")
-            img.set_data(outlier)
+    def update_outlier(self, outlier):
+        for axdict in [self.laser, self.data, self.fluorescence]:
+            for ax in axdict:
+                if axdict[ax]["outlier"] == False:
+                    continue
+                self.LOG.debug(f"Updating outlier mask to axis {ax}")
+                axdict[ax]["outlier"] = qdmplot.plot_outlier(
+                    ax, outlier, img=axdict[ax]["outlier"]
+                )
+        self.draw()
+
+    def toggle_outlier(self, visible):
+        for axdict in [self.laser, self.data, self.fluorescence]:
+            for ax in axdict:
+                axdict[ax]["outlier"].set_visible(visible)
+        self.draw_idle()
 
     def add_mean_odmr(self, freq, mean):
         for ax in self.odmr:
-            for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
+            for p, f in itertools.product(
+                    self.odmr[ax]["pol"], self.odmr[ax]["frange"]
+            ):
                 self.LOG.debug(f"Adding mean odmr to axis {ax}")
 
-    def update_odmr(self, freq, data=None, fit=None, corrected=None, uncorrected=None, mean=None):
+    def update_odmr(
+            self, freq, data=None, fit=None, corrected=None, uncorrected=None, mean=None
+    ):
         for ax in self.odmr:
             self.LOG.debug(f"Updating ODMR lines in axis {ax}")
-            for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
+            for p, f in itertools.product(
+                    self.odmr[ax]["pol"], self.odmr[ax]["frange"]
+            ):
                 if data is not None:
-                    self.update_data(ax, data, freq, p, f)
+                    self.update_odmr_line(ax, data, freq, p, f)
                 if fit is not None:
-                    self.update_fit(ax, freq, fit, p, f)
+                    self.update_fit_line(ax, freq, fit, p, f)
                 if corrected is not None:
-                    self.update_corrected(ax, freq, corrected, p, f)
+                    self.update_corrected_line(ax, freq, corrected, p, f)
                 if uncorrected is not None:
-                    self.update_uncorrected(ax, freq, uncorrected, p, f)
+                    self.update_uncorrected_line(ax, freq, uncorrected, p, f)
                 if mean is not None:
-                    self.update_mean(ax, freq, mean, p, f)
+                    self.update_mean_line(ax, freq, mean, p, f)
 
-    def update_mean(self, ax, freq, mean, p, f):
+    def update_mean_line(self, ax, freq, mean, p, f):
         self.odmr[ax]["mean"][p][f] = qdmplot.update_line(
             ax=ax,
             x=freq[f],
@@ -200,7 +238,7 @@ class QDMCanvas(FigureCanvas):
             lw=0.8,
         )
 
-    def update_uncorrected(self, ax, freq, uncorrected, p, f):
+    def update_uncorrected_line(self, ax, freq, uncorrected, p, f):
         self.odmr[ax]["uncorrected"][p][f] = qdmplot.update_line(
             ax=ax,
             x=freq[f],
@@ -212,7 +250,7 @@ class QDMCanvas(FigureCanvas):
             lw=0.7,
         )
 
-    def update_corrected(self, ax, freq, corrected, p, f):
+    def update_corrected_line(self, ax, freq, corrected, p, f):
         self.odmr[ax]["corrected"][p][f] = qdmplot.update_line(
             ax,
             freq[f],
@@ -224,7 +262,7 @@ class QDMCanvas(FigureCanvas):
             lw=1,
         )
 
-    def update_fit(self, ax, freq, fit, p, f):
+    def update_fit_line(self, ax, freq, fit, p, f):
         self.odmr[ax]["fit"][p][f] = qdmplot.update_line(
             ax,
             np.linspace(freq[f].min(), freq[f].max(), 200),
@@ -235,7 +273,7 @@ class QDMCanvas(FigureCanvas):
             lw=1,
         )
 
-    def update_data(self, ax, data, freq, p, f):
+    def update_odmr_line(self, ax, data, freq, p, f):
         self.odmr[ax]["data"][p][f] = qdmplot.update_line(
             ax=ax,
             x=freq[f],
@@ -247,45 +285,56 @@ class QDMCanvas(FigureCanvas):
             mfc="w",
         )
 
+    def update_extent(self, new_shape):
+        for axdict in [self.laser, self.light, self.data, self.fluorescence]:
+            for ax in axdict:
+                im = axdict[ax]["data"]
+                im.set(extent=[0, new_shape[1], 0, new_shape[0]])
+
     def add_fluorescence(self, fluorescence):
         for ax in self.fluorescence:
-            for p, f in itertools.product(self.fluorescence[ax]["pol"], self.fluorescence[ax]["frange"]):
-                if p in self.fluorescence[ax]["pol"] and f in self.fluorescence[ax]["frange"]:
-                    self.LOG.debug(f"Adding fluorescence of {POL[p]}, {FRANGE[f]} to axis {ax}")
-                    self.fluorescence[ax]["data"] = qdmplot.plot_fluorescence(
-                        ax, fluorescence[p][f], img=self.fluorescence[ax]["data"]
-                    )
+            for p, f in itertools.product(
+                    self.fluorescence[ax]["pol"], self.fluorescence[ax]["frange"]
+            ):
+                if (
+                        p not in self.fluorescence[ax]["pol"]
+                        or f not in self.fluorescence[ax]["frange"]
+                ):
+                    continue
+                self.LOG.debug(
+                    f"Adding fluorescence of {POL[p]}, {FRANGE[f]} to axis {ax}"
+                )
+                self.fluorescence[ax]["data"] = qdmplot.plot_fluorescence(
+                    ax, fluorescence[p][f], img=self.fluorescence[ax]["data"]
+                )
 
-    # def update_odmr(self, data=None, fit=None, corrected=None, uncorrected=None):
-    #     for ax in self.odmr:
-    #         for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
-    #             if data is not None and self.odmr[ax]["data"][p][f] is not None:
-    #                 self.LOG.debug(f"Updating odmr in axis {ax}")
-    #                 self.odmr[ax]["data"][p][f].set_ydata(data[p, f])
-    #             if fit is not None and self.odmr[ax]["fit"][p][f] is not None:
-    #                 self.odmr[ax]["fit"][p][f].set_ydata(fit[p, f])
-    #             if corrected is not None and self.odmr[ax]["corrected"][p][f] is not None:
-    #                 self.odmr[ax]["corrected"][p][f].set_ydata(corrected[p, f])
-    #             if uncorrected is not None and self.odmr[ax]["uncorrected"][p][f] is not None:
-    #                 self.odmr[ax]["uncorrected"][p][f].set_ydata(uncorrected[p, f])
+    def update_data(self, ax, data, p, f, data_shape):
+        self.odmr[ax]["data"] = qdmplot.plot_data(
+            ax=ax,
+            data=data,
+            zorder=0,
+            mfc="w",
+            extent=[0, data_shape[1], 0, data_shape[0]],
+        )
 
-    def update_odmr_lims(self):
-        self.LOG.debug("updating xy limits for the pixel plots")
+    def update_odmr_lims(self, data):
+        self.LOG.debug("setting xy limits for the pixel plots")
         for ax in self.odmr:
-            lines = np.array(self.odmr[ax]["data"] + self.odmr[ax]["mean"]).flatten()
-            lines = [l for l in lines if l is not None]
-            mn = np.nanmin([np.min(l.get_ydata()) for l in lines])
-            mx = np.nanmax([np.max(l.get_ydata()) for l in lines])
+            mn, mx = np.nanmin(data), np.nanmax(data)
             ax.set(ylim=(mn * 0.999, mx * 1.001))
 
     def update_clims(self, use_percentile, percentile):
-        self.LOG.debug(f"updating clims for all images with {percentile} percentile ({use_percentile}).")
+        self.LOG.debug(
+            f"updating clims for all images with {percentile} percentile ({use_percentile})."
+        )
 
         for axdict in [self.data, self.laser, self.fluorescence]:
             for ax in axdict:
                 if axdict[ax]["data"] is None:
                     continue
-                vmin, vmax = qdmplot.get_vmin_vmax(axdict[ax]["data"], percentile, use_percentile)
+                vmin, vmax = qdmplot.get_vmin_vmax(
+                    axdict[ax]["data"], percentile, use_percentile
+                )
                 norm = qdmplot.get_color_norm(vmin=vmin, vmax=vmax)
                 axdict[ax]["data"].set(norm=norm)
                 if axdict[ax]["cax"]:
@@ -302,7 +351,9 @@ class GlobalFluorescenceCanvas(QDMCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         super().__init__(parent, width, height, dpi)
 
-        self.fig.subplots_adjust(top=0.9, bottom=0.09, left=0.075, right=0.925, hspace=0.28, wspace=0.899)
+        self.fig.subplots_adjust(
+            top=0.9, bottom=0.09, left=0.075, right=0.925, hspace=0.28, wspace=0.899
+        )
 
         spec = self.fig.add_gridspec(ncols=6, nrows=2)
 
@@ -317,10 +368,9 @@ class GlobalFluorescenceCanvas(QDMCanvas):
 
         # setup the dictionaries for the data
         self.light = {self.light_ax: self.img_dict.copy()}
+        self.add_cax(self.light_ax, self.light, save=False)
         self.laser = {self.laser_ax: self.img_dict.copy()}
-        cax, original_locator = self._add_cax(self.laser_ax)
-        self.laser[self.laser_ax]["cax"] = cax
-        self.laser[self.laser_ax]["cax_locator"] = original_locator
+        self.add_cax(self.laser_ax, self.laser)
 
         self.odmr = {
             self.left_mean_odmr_ax: self.odmr_dict.copy(),
@@ -331,13 +381,18 @@ class GlobalFluorescenceCanvas(QDMCanvas):
         self.odmr[self.right_mean_odmr_ax]["pol"] = [0, 1]
         self.odmr[self.right_mean_odmr_ax]["frange"] = [1]
 
+        self.set_img()
+        self.set_odmr()
+
 
 class FitCanvas(QDMCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         super().__init__(parent, width, height, dpi)
 
         spec = self.fig.add_gridspec(ncols=6, nrows=3)
-        self.fig.subplots_adjust(top=0.952, bottom=0.076, left=0.06, right=0.959, hspace=0.35, wspace=0.594)
+        self.fig.subplots_adjust(
+            top=0.952, bottom=0.076, left=0.06, right=0.959, hspace=0.35, wspace=0.594
+        )
         self.data_ax = self.fig.add_subplot(spec[0:2, :4])
         self.data = {self.data_ax: self.img_dict.copy()}
         self.add_cax(self.data_ax, self.data)
@@ -350,13 +405,20 @@ class FitCanvas(QDMCanvas):
         self.laser = {self.laser_ax: self.img_dict.copy()}
         self.add_cax(self.laser_ax, self.laser)
 
-        self.data_ax.get_shared_x_axes().join(self.data_ax, self.light_ax, self.laser_ax)
-        self.data_ax.get_shared_y_axes().join(self.data_ax, self.light_ax, self.laser_ax)
+        self.data_ax.get_shared_x_axes().join(
+            self.data_ax, self.light_ax, self.laser_ax
+        )
+        self.data_ax.get_shared_y_axes().join(
+            self.data_ax, self.light_ax, self.laser_ax
+        )
 
         self.left_odmr_ax = self.fig.add_subplot(spec[2, :3])
         self.right_odmr_ax = self.fig.add_subplot(spec[2, 3:])
 
-        self.odmr = {self.left_odmr_ax: self.odmr_dict.copy(), self.right_odmr_ax: self.odmr_dict.copy()}
+        self.odmr = {
+            self.left_odmr_ax: self.odmr_dict.copy(),
+            self.right_odmr_ax: self.odmr_dict.copy(),
+        }
 
         # setup the dictionaries for the data
         self.odmr[self.left_odmr_ax]["pol"] = [0, 1]
@@ -371,7 +433,9 @@ class FitCanvas(QDMCanvas):
 class SimpleCanvas(QDMCanvas):
     def __init__(self, dtype, width=5, height=4, dpi=100):
         super().__init__(width=width, height=height, dpi=dpi)
-        self.fig.subplots_adjust(top=0.97, bottom=0.082, left=0.106, right=0.979, hspace=0.2, wspace=0.2)
+        self.fig.subplots_adjust(
+            top=0.97, bottom=0.082, left=0.106, right=0.979, hspace=0.2, wspace=0.2
+        )
 
         if "light" in dtype.lower():
             self.light_ax = self.fig.add_subplot(111)
@@ -386,57 +450,18 @@ class SimpleCanvas(QDMCanvas):
             raise ValueError(f"dtype {dtype} not recognized")
 
 
-class FittingPropertyCanvasOLD(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=5, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(top=0.966, bottom=0.06, left=0.056, right=0.985, hspace=0.325, wspace=1.0)
-
-        self.fig = fig
-
-        spec = fig.add_gridspec(ncols=6, nrows=3)
-
-        self.main_ax = fig.add_subplot(spec[0:2, :4])
-        divider = make_axes_locatable(self.main_ax)
-        self.cax = divider.append_axes("right", size="5%", pad=0.05)
-        self.original_cax_locator = self.cax._axes_locator
-
-        self.led_ax = fig.add_subplot(spec[0, 4:])
-        self.led_ax.set_title("reflected light")
-        self.led_ax.set_xlabel("px")
-        self.led_ax.set_ylabel("px")
-
-        self.laser_ax = fig.add_subplot(spec[1, 4:])
-        self.laser_ax.set_title("laser")
-        self.laser_ax.set_xlabel("px")
-        self.laser_ax.set_ylabel("px")
-
-        self.main_ax.get_shared_x_axes().join(self.main_ax, self.led_ax, self.laser_ax)
-        self.main_ax.get_shared_y_axes().join(self.main_ax, self.led_ax, self.laser_ax)
-
-        self.left_ODMR_ax = fig.add_subplot(spec[2, :3])
-        self.left_ODMR_ax.set_title("low freq. ODMR")
-        self.left_ODMR_ax.set_xlabel("frequency [GHz]")
-        self.left_ODMR_ax.set_ylabel("contrast [a.u.]")
-
-        self.right_ODMR_ax = fig.add_subplot(spec[2, 3:])
-        self.right_ODMR_ax.set_title("high freq. ODMR")
-        self.right_ODMR_ax.set_xlabel("frequency [GHz]")
-        self.right_ODMR_ax.set_ylabel("contrast [a.u.]")
-
-        self._is_spectra = [self.left_ODMR_ax, self.right_ODMR_ax]
-        self._is_data = [self.main_ax]
-        self._is_img = [self.main_ax, self.led_ax, self.laser_ax]
-        super().__init__(fig)
-
-
 class FluoImgCanvas(QDMCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         super().__init__(parent, width, height, dpi)
 
         widths = [1, 1]
         heights = [1, 1, 1, 0.1]
-        gs = self.fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
-        self.fig.subplots_adjust(top=0.981, bottom=0.019, left=0.097, right=0.93, hspace=0.47, wspace=0.406)
+        gs = self.fig.add_gridspec(
+            ncols=2, nrows=4, width_ratios=widths, height_ratios=heights
+        )
+        self.fig.subplots_adjust(
+            top=0.981, bottom=0.019, left=0.097, right=0.93, hspace=0.47, wspace=0.406
+        )
         self.low_f_mean_odmr_ax = self.fig.add_subplot(gs[0, 0])
         self.high_f_mean_odmr_ax = self.fig.add_subplot(gs[0, 1])
 
@@ -480,15 +505,59 @@ class FluoImgCanvas(QDMCanvas):
         self.set_odmr()
 
 
-class QualityCanvas(FigureCanvas):
+class QualityCanvas(QDMCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        super().__init__(parent, width, height, dpi)
+
+        self.fig.subplots_adjust(
+            top=0.94, bottom=0.029, left=0.061, right=0.921, hspace=0.0, wspace=0.346
+        )
+
+        gs = self.fig.add_gridspec(ncols=2, nrows=2)
+        self.low_f_neg = self.fig.add_subplot(gs[0, 0])
+        self.low_f_pos = self.fig.add_subplot(gs[1, 0])
+        self.high_f_neg = self.fig.add_subplot(gs[0, 1])
+        self.high_f_pos = self.fig.add_subplot(gs[1, 1])
+
+        self.low_f_neg.get_shared_x_axes().join(
+            self.low_f_neg, self.low_f_pos, self.high_f_neg, self.high_f_pos
+        )
+        self.low_f_neg.get_shared_y_axes().join(
+            self.low_f_neg, self.low_f_pos, self.high_f_neg, self.high_f_pos
+        )
+
+        self.data[self.low_f_neg] = self.img_dict.copy()
+        self.data[self.low_f_pos] = self.img_dict.copy()
+        self.data[self.high_f_neg] = self.img_dict.copy()
+        self.data[self.high_f_pos] = self.img_dict.copy()
+
+        # setup the dictionaries for the data
+        self.data[self.low_f_neg]["pol"] = [0]
+        self.data[self.low_f_neg]["frange"] = [0]
+        self.data[self.low_f_pos]["pol"] = [1]
+        self.data[self.low_f_pos]["frange"] = [0]
+        self.data[self.high_f_neg]["pol"] = [0]
+        self.data[self.high_f_neg]["frange"] = [1]
+        self.data[self.high_f_pos]["pol"] = [1]
+        self.data[self.high_f_pos]["frange"] = [1]
+
+        for ax in [self.low_f_neg, self.low_f_pos, self.high_f_neg, self.high_f_pos]:
+            self.add_cax(ax, self.data)
+
+
+class QualityCanvasOLD(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi, tight_layout=False)
-        fig.subplots_adjust(top=0.94, bottom=0.054, left=0.038, right=0.957, hspace=0.15, wspace=0.167)
+        fig.subplots_adjust(
+            top=0.94, bottom=0.054, left=0.038, right=0.957, hspace=0.15, wspace=0.167
+        )
 
         self.fig = fig
         widths = [1, 1]
         heights = [1, 1]
-        spec = fig.add_gridspec(ncols=2, nrows=2, width_ratios=widths, height_ratios=heights)
+        spec = fig.add_gridspec(
+            ncols=2, nrows=2, width_ratios=widths, height_ratios=heights
+        )
 
         self.left_top_ax = fig.add_subplot(spec[0, 0])
         self.right_top_ax = fig.add_subplot(spec[0, 1])
@@ -496,13 +565,24 @@ class QualityCanvas(FigureCanvas):
         self.right_bottom_ax = fig.add_subplot(spec[1, 1])
 
         self.left_top_ax.get_shared_x_axes().join(
-            self.left_top_ax, self.left_bottom_ax, self.right_top_ax, self.right_bottom_ax
+            self.left_top_ax,
+            self.left_bottom_ax,
+            self.right_top_ax,
+            self.right_bottom_ax,
         )
         self.left_top_ax.get_shared_y_axes().join(
-            self.left_top_ax, self.left_bottom_ax, self.right_top_ax, self.right_bottom_ax
+            self.left_top_ax,
+            self.left_bottom_ax,
+            self.right_top_ax,
+            self.right_bottom_ax,
         )
 
-        self.ax = np.array([[self.left_top_ax, self.right_top_ax], [self.left_bottom_ax, self.right_bottom_ax]])
+        self.ax = np.array(
+            [
+                [self.left_top_ax, self.right_top_ax],
+                [self.left_bottom_ax, self.right_bottom_ax],
+            ]
+        )
         self._is_img = self.ax.flatten()
         self._is_spectra = []
 
