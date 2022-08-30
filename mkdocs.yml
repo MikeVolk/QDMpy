@@ -1,5 +1,5 @@
-site_name: pyQDM
-repo_url: https://github.com/mikevolk/pyqdm
+site_name: QDMpy
+repo_url: https://github.com/mikevolk/QDMpy
 
 theme:
   name: material
@@ -32,4 +32,4 @@ plugins:
             show_signature_annotations: true
             show_source: true
       watch:
-        - src/pyqdm
+        - src/QDMpy

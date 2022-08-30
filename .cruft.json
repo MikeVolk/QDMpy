@@ -7,9 +7,9 @@
       "author_name": "Michael Volk",
       "author_email": "michaelvolk1979@gmail.com",
       "github_username": "mikevolk",
-      "project_name": "pyQDM",
-      "project_slug": "pyqdm",
-      "package_name": "pyqdm",
+      "project_name": "QDMpy",
+      "project_slug": "QDMpy",
+      "package_name": "QDMpy",
       "project_short_description": "A python package for calculating magnetic maps from ODMR spectra measured on a quantum diamond microscope",
       "_template": "https://github.com/woltapp/wolt-python-package-cookiecutter"
     }

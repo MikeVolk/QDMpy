@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 
 import QDMpy
 from QDMpy.app.widgets.fluo_widget import FluoWidget
+from QDMpy.app.widgets.fit_widget import FitWidget
 from QDMpy.app.widgets.global_widget import GlobalWidget
 from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
@@ -594,7 +595,7 @@ class QDMpyApp(QMainWindow):
 
     def _replace_label_with_fit_window(self):
         self.main_content_layout.removeWidget(self.main_label)
-        self.main_content_figure = fit_window.FitWidget(self, self.qdm, parent=self)
+        self.main_content_figure = FitWidget(self.qdm, parent=self)
         self._data_windows.append(self.main_content_figure)
         self.main_content_layout.addWidget(self.main_content_figure)
         self.setCentralWidget(self.main_content_figure)
@@ -859,10 +860,10 @@ class QDMpyApp(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+        self.import_file(r"/media/mike/OS/Users/micha/Desktop/CAGEO_data")
         # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.on_quick_start_button_press()
-        # self.on_fit_button_press()
+        self.on_fit_button_press()
 
 
 def main(**kwargs):
