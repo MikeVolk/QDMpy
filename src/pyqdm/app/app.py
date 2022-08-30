@@ -5,79 +5,10 @@ import time
 from pathlib import Path
 
 import matplotlib
-import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-matplotlib.use("Agg")
-
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
-from PySide6.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QDoubleSpinBox,
-    QFileDialog,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QProgressDialog,
-    QPushButton,
-    QSizePolicy,
-    QStatusBar,
-    QTableWidget,
-    QTableWidgetItem,
-    QToolBar,
-    QVBoxLayout,
-    QWidget,
-)
-
-import pyqdm
-from pyqdm.app.widgets.fluo_widget import FluoWidget
-from pyqdm.app.widgets.global_widget import GlobalWidget
-from pyqdm.app.widgets.misc import PandasWidget, gf_applied_window
-from pyqdm.app.widgets.simple_widget import SimpleWidget
-from pyqdm.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from pyqdm.core.qdm import QDM
-from pyqdm.exceptions import CantImportError
-
-"""
-This file contains the pyqdm mainwindow for the gui.
-pyqdm is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-pyqdm is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License
-along with pyqdm. If not, see <https://www.gnu.org/licenses/>.
-Copyright (c) the pyqdm Developers. See the COPYRIGHT.txt file at the
-top-level directory of this distribution and at <https://github.com/mikevolk/pyqdm>
-"""
-
-colors = {
-    "Bright Gray": "#EAEFF9",
-    "Pale Cerulean": "#A1C4D8",
-    "Blue-Gray": "#5C9DC0",
-    "X11 Gray": "#BEBEBE",
-    "Taupe Gray": "#878787",
-    "near-white": "#F8F8F8",
-    "near-black": "#1E1E1E",
-}
-plt.style.use("fast")
-matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5})
-
-import matplotlib
 import matplotlib.pyplot as plt
-import pandas as pd
-
-matplotlib.use("Agg")
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
@@ -116,6 +47,23 @@ from pyqdm.core.fit import CONSTRAINT_TYPES
 from pyqdm.core.qdm import QDM
 from pyqdm.exceptions import CantImportError
 
+"""
+This file contains the pyqdm mainwindow for the gui.
+pyqdm is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+pyqdm is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with pyqdm. If not, see <https://www.gnu.org/licenses/>.
+Copyright (c) the pyqdm Developers. See the COPYRIGHT.txt file at the
+top-level directory of this distribution and at <https://github.com/mikevolk/pyqdm>
+"""
+matplotlib.use("QtAgg")
+
 colors = {
     "Bright Gray": "#EAEFF9",
     "Pale Cerulean": "#A1C4D8",
@@ -126,7 +74,9 @@ colors = {
     "near-black": "#1E1E1E",
 }
 plt.style.use("fast")
-matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5})
+matplotlib.rcParams.update(
+    {"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5}
+)
 
 
 class PyQDMMainWindow(QMainWindow):
