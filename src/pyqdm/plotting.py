@@ -78,6 +78,14 @@ def update_marker(ax, x, y, line=None, **plt_props):
     return line
 
 
+def plot_quality_data(ax, data, img=None, **plt_props):
+    norm = get_color_norm(data.min(), data.max())
+    plt_props["norm"] = norm
+    plt_props["cmap"] = "inferno"
+    img = update_img(ax, img, data, **plt_props)
+    return img
+
+
 def plot_data(ax, data, img=None, **plt_props):
 
     norm = get_color_norm(data.min(), data.max())
@@ -121,8 +129,10 @@ def plot_overlay(ax, data, img=None, normtype="simple", **plt_props):
 
 
 def plot_outlier(ax, data, img=None, **plt_props):
-    plt_props["cmap"] = ""
-    plt_props["alpha"] = data.astype(int)
+    data = data.astype(float)
+    plt_props["cmap"] = "gist_rainbow"
+    plt_props["alpha"] = data
+    plt_props["zorder"] = 10
     img = update_img(ax, img, data, **plt_props)
     return img
 
@@ -133,7 +143,9 @@ def update_clim(img, vmin, vmax):
 
 
 def update_cbar(img, cax, vmin, vmax, original_cax_locator):
-    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
+    extent = detect_extent(
+        vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max()
+    )
 
     label = cax.get_ylabel()
     cax.clear()
@@ -155,6 +167,8 @@ def detect_extent(vmin, vmax, mn, mx):
 def update_img(ax, img, data, **plt_props):
     data_dimensions = plt_props.pop("data_dimensions", data.shape)
     plt_props["extent"] = [0, data_dimensions[1], 0, data_dimensions[0]]
+    plt_props["origin"] = "lower"
+    plt_props["aspect"] = "equal"
     if img is None:
         img = ax.imshow(data, **plt_props)
     else:
@@ -180,7 +194,9 @@ def check_fit_pixel(qdm_obj, idx):
     print(f"{header}")
     print("-" * 100)
 
-    for p, f in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
+    for p, f in itertools.product(
+        range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)
+    ):
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.initial_parameter[p, f, [idx]], x=f_new)
@@ -206,7 +222,9 @@ def check_fit_pixel(qdm_obj, idx):
             borderaxespad=0.0,
         )
 
-        line = " ".join([f"{v:>8.5f}" for v in qdm_obj.fit.fitting_parameter[p, f, idx]])
+        line = " ".join(
+            [f"{v:>8.5f}" for v in qdm_obj.fit.fitting_parameter[p, f, idx]]
+        )
         line += f" {qdm_obj.fit._chi_squares[p, f, idx]:>8.2e}"
         print(f'{["+", "-"][p]},{["<", ">"][p]}:     {line}')
 
