@@ -97,7 +97,21 @@ class QDM:
         y, x = self.idx2rc(self.outliers_idx)
         return np.stack([x, y], axis=1)
 
-    def detect_outliers(self, dtype="chi_squared", method="LocalOutlierFactor", **outlier_props):
+    @property
+    def outlier_pdf(self):
+        """
+        Return the outlier pandas Dataframe.
+        :return: pandas.DataFrame
+        """
+        outlier_pdf = pd.DataFrame(columns=["idx", "x", "y"])
+        outlier_pdf["x"] = self.outliers_xy[:, 0]
+        outlier_pdf["y"] = self.outliers_xy[:, 1]
+        outlier_pdf["idx"] = self.outliers_idx
+        return outlier_pdf
+
+    def detect_outliers(
+            self, dtype="width", method="LocalOutlierFactor", **outlier_props
+    ):
         """
         Detect outliers in the ODMR data.
         The outliers are detected using 'method'.
