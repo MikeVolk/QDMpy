@@ -15,15 +15,17 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.models import Pix
-from pyqdm.app.widgets.tools import get_label_box
-from pyqdm.core import models
+from QDMpy.app.models import Pix
+from QDMpy.app.widgets.tools import get_label_box
+from QDMpy.core import models
 
 
 class QDMWidget(QMainWindow):
     """
     Window for checking the global fluorescence correction.
     """
+
+    LOG = logging.getLogger(__name__)
 
     POL = ["+", "-"]
     RANGE = ["<", ">"]
@@ -54,7 +56,6 @@ class QDMWidget(QMainWindow):
             **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.LOG = logging.getLogger(f"pyqdm.{self.__class__.__name__}")
         self.caller = self.parent()
 
         self.setContentsMargins(0, 0, 0, 0)

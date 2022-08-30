@@ -7,12 +7,12 @@ from scipy.io import savemat
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
-import pyqdm
-import pyqdm.core.fit
-from pyqdm.core.fit import MODELS, Fit
-from pyqdm.core.odmr import ODMR
-from pyqdm.exceptions import CantImportError, WrongFileNumber
-from pyqdm.utils import get_image, idx2rc, rc2idx
+import QDMpy
+import QDMpy.core.fit
+from QDMpy.core.fit import MODELS, Fit
+from QDMpy.core.odmr import ODMR
+from QDMpy.exceptions import CantImportError, WrongFileNumber
+from QDMpy.utils import get_image, idx2rc, rc2idx
 
 GAMMA = 28.024 / 1e6  # GHz/muT;
 DIAMOND_TYPES = ["NaN", "MISC.", "N15", "N14"]
@@ -25,7 +25,7 @@ from scipy.io import savemat
 
 
 class QDM:
-    LOG = logging.getLogger(f"pyQDM.QDM")
+    LOG = logging.getLogger(__name__)
 
     @property
     def outliers(self):
@@ -331,6 +331,9 @@ class QDM:
         """
         Fit the data using the current fit type.
         """
+        if not QDMpy.pygpufit_present:
+            self.LOG.error("pygpufit not installed. Skipping fitting.")
+            raise ImportError("pygpufit not installed.")
         self._fit.fit_odmr()
 
     def get_param(self, param, reshape=True):
@@ -440,7 +443,7 @@ class QDM:
                 "laser": laser_img,
                 "pixelAlerts": pixel_alerts,
                 "bin_factor": self.bin_factor,
-                "pyqdm_version": pyqdm.__version__,
+                "QDMpy_version": QDMpy.__version__,
             },
         )
 

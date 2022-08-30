@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 
-from pyqdm.core import models
-from pyqdm.utils import double_norm
+from QDMpy.core import models
+from QDMpy.utils import double_norm
 
 FREQ_LABEL = "f [GHz]"
 CONTRAST_LABEL = "c [%]"

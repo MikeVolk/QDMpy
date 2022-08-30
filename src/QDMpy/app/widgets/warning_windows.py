@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
-from pyqdm import projectdir
+from QDMpy import projectdir
 
 
 class PyGPUfitNotInstalledDialog(QDialog):

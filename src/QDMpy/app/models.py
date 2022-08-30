@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 from PySide6.QtCore import QAbstractTableModel, Qt
 
-from pyqdm.utils import rc2idx, idx2rc
+from QDMpy.utils import rc2idx, idx2rc
 
 
 class Pix:
@@ -50,9 +50,7 @@ class Pix:
             elif idx is not None:
                 if ref == "data":
                     r, c = idx2rc(idx, shape=self.data_shape)
-                    self._idx = rc2idx(
-                        [r * self.bin_factor, c * self.bin_factor], shape=self.img_shape
-                    )
+                    self._idx = rc2idx([r * self.bin_factor, c * self.bin_factor], shape=self.img_shape)
                 elif ref == "img":
                     self._idx = idx
             else:
@@ -75,14 +73,8 @@ class Pix:
             """
             rc_idx = list(
                 itertools.product(
-                    np.arange(
-                        self.data_y * self.bin_factor,
-                        (self.data_y + 1) * self.bin_factor,
-                    ),
-                    np.arange(
-                        self.data_x * self.bin_factor,
-                        (self.data_x + 1) * self.bin_factor,
-                    ),
+                    np.arange(self.data_y * self.bin_factor, (self.data_y + 1) * self.bin_factor),
+                    np.arange(self.data_x * self.bin_factor, (self.data_x + 1) * self.bin_factor),
                 )
             )
             return rc2idx(np.array(rc_idx).T, self.img_shape)

@@ -5,14 +5,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import pyqdm
+import QDMpy
 
-if pyqdm.pygpufit_present:
+if QDMpy.pygpufit_present:
     import pygpufit.gpufit as gf
 from scipy.io import savemat
 
-from pyqdm import settings
-from pyqdm.core import models
+from QDMpy import settings
+from QDMpy.core import models
 
 FIT_PARAMETER = {
     "GAUSS_1D": ["contrast", "center", "width", "offset"],
@@ -32,9 +32,10 @@ MODELS = {
 
 
 class Fit:
+    LOG = logging.getLogger(__name__)
     def __init__(self, data, frequencies, model, constraints=None):
 
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
+        # self.LOG = logging.getLogger(f"{__name__}")
         self._data = data
         self.f_ghz = frequencies
         self.LOG.debug(

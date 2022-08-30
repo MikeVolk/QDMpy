@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import pyqdm.plotting as qdmplot
+import QDMpy.plotting as qdmplot
 
 POL = ["+", "-"]
 FRANGE = ["<", ">"]
@@ -16,6 +16,8 @@ FRANGE = ["<", ">"]
 
 class QDMCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+
+    LOG = logging.getLogger(__name__)
 
     @property
     def data_axes(self):
@@ -43,7 +45,6 @@ class QDMCanvas(FigureCanvas):
         return len(self.img_axes) != 0
 
     def __init__(self, parent=None, width=5, height=5, dpi=100):
-        self.LOG = logging.getLogger(f"pyQDM.{self.__class__.__name__}")
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super().__init__(self.fig)
         self.img_dict = {
