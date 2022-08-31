@@ -395,60 +395,7 @@ class Fit:
         result = result.reshape((npol, npix, -1))
         return np.squeeze(result)
 
-    #
-    #     # # calculate the fit for each f_range -> 1st dimension is f_range not n_pol
-    #     # # needs to be swapped later
-    #     #
-    #     # for i in np.arange(0, self.ODMRobj.n_frange):
-    #     #     self.LOG.info(f"Fitting {self.POLARITIES[i]} polarization")
-    #     #     data = self.ODMRobj.data[:, i].reshape(-1, self.ODMRobj.n_freqs).astype(np.float32)
-    #     #     initial_guess = self.initial_guess[:, i].reshape(-1, len(self._fitting_params)).astype(np.float32)
-    #     #
-    #     #     # fit the data
 
-    #     #     parameters.append(p)
-    #     #     states.append(s)
-    #     #     chi_squares.append(c)
-    #     #     number_iterations.append(n)
-    #     #     execution_time.append(t)
-    #     #
-    #     # if np.ndim(parameters) == 3:
-    #     #     parameters = np.array(parameters)[:, np.newaxis, :, :]
-    #     #     states = np.array(states)[:, np.newaxis, :]
-    #     #     chi_squares = np.array(chi_squares)[:, np.newaxis, :]
-    #     #     number_iterations = np.array(number_iterations)[:, np.newaxis, :]
-    #     #
-    #     # # swapping the f_range and n_pol axes
-    #     # parameters = self._reshape_parameter(parameters, self.ODMRobj.n_pol, self.ODMRobj.n_frange)
-    #     #
-    #     # # check if the reshaping is correct
-    #     # assert np.all(parameters[0, 1] == p[: int(p.shape[0] / self.ODMRobj.n_pol)])
-    #     #
-    #     # # reshape the states and chi_squares
-    #     # shape = (self.ODMRobj.n_pol, self.ODMRobj.n_frange, self.ODMRobj.n_pixel)
-    #     # states = np.reshape(states, shape)
-    #     # chi_squares = np.reshape(chi_squares, shape)
-    #     # number_iterations = np.reshape(number_iterations, shape)
-    #     #
-    #     # # flip pol / frange
-    #     # states = np.swapaxes(states, 0, 1)
-    #     # chi_squares = np.swapaxes(chi_squares, 0, 1)
-    #     # number_iterations = np.swapaxes(number_iterations, 0, 1)
-    #     #
-    #     # self._fitted_parameter = np.rollaxis(parameters, -1)
-    #     # self._states = states
-    #     # self._chi_squares = chi_squares
-    #     # self._number_iterations = number_iterations
-    #     # self.execution_time = execution_time
-    #     #
-    #     # t = "; ".join([f"{v:.2f}" for v in execution_time])
-    #     # self.LOG.debug(f"Fitting took {np.sum(execution_time):.3f} ({t}) seconds.")
-    #     # if np.any(np.flatnonzero(states)):
-    #     #     n = len(np.flatnonzero(states))
-    #     #     self.LOG.warning(f"Fit did not converge in {n} pixels.")
-    #     #
-    #     # self._fitted = True
-    #     # self._fitting_constraints = self.constraints
 
 
 def guess_contrast(data):

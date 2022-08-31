@@ -22,6 +22,7 @@ FRANGES = ["high", "low"]
 
 import pandas as pd
 from scipy.io import savemat
+from pathlib import Path
 
 
 class QDM:
@@ -50,16 +51,12 @@ class QDM:
 
         self.LOG.info("Initializing QDM object.")
         self.LOG.info(f'Working directory: "{working_directory}"')
-        self.working_directory = working_directory
+        self.working_directory = Path(working_directory)
 
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {odmr_instance.data.shape}")
-        self.LOG.debug(
-            f"                      scan_dimensions: {odmr_instance.data_shape}"
-        )
-        self.LOG.debug(
-            f"                      frequencies: {odmr_instance.f_ghz.shape}"
-        )
+        self.LOG.debug(f"                      scan_dimensions: {odmr_instance.data_shape}")
+        self.LOG.debug(f"                      frequencies: {odmr_instance.f_ghz.shape}")
         self.LOG.debug(f"                      n_freqs: {odmr_instance.n_freqs}")
 
         self.odmr = odmr_instance
@@ -76,9 +73,7 @@ class QDM:
 
         self._fit = None
         self.set_diamond_type(diamond_type)
-        self._fit = Fit(
-            self.odmr.data, self.odmr.f_ghz, model=MODELS[self._diamond_type]
-        )
+        self._fit = Fit(self.odmr.data, self.odmr.f_ghz, model=MODELS[self._diamond_type])
         self.pixel_size = pixel_size  # 4 um
 
         self._check_bin_factor()
@@ -116,9 +111,7 @@ class QDM:
         outlier_pdf["idx"] = self.outliers_idx
         return outlier_pdf
 
-    def detect_outliers(
-            self, dtype="width", method="LocalOutlierFactor", **outlier_props
-    ):
+    def detect_outliers(self, dtype="width", method="LocalOutlierFactor", **outlier_props):
         """
         Detect outliers in the ODMR data.
         The outliers are detected using 'method'.
@@ -264,9 +257,7 @@ class QDM:
                     )
                     n += 1
             plt.legend()
-        self.LOG.info(
-            f"Guessed diamond type: {n_peaks} peaks -> {DIAMOND_TYPES[n_peaks]}"
-        )
+        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {DIAMOND_TYPES[n_peaks]}")
 
         return n_peaks
 
@@ -288,7 +279,7 @@ class QDM:
         if isinstance(diamond_type, int):
             diamond_type = DIAMOND_TYPES[diamond_type]
 
-        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1, 'MISC.': 1}[diamond_type]
+        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1, "MISC.": 1}[diamond_type]
 
         if self._fit is not None:
             self._fit.model = MODELS[self._diamond_type]
@@ -401,51 +392,28 @@ class QDM:
         )
 
     # EXPORT METHODS ###
-    def export_QDMio(self, path_to_file=None):
+    def export_qdmio(self, path_to_file=None):
         """
         Export the data to a QDM.io file. This is a Matlab file named B111dataToPlot.mat. With the following variables:
 
         ['negDiff', 'posDiff', 'B111ferro', 'B111para', 'chi2Pos1', 'chi2Pos2', 'chi2Neg1', 'chi2Neg2', 'ledImg',
          'laser', 'pixelAlerts']
         """
-        if path_to_file is None:
-            path_to_file = os.path.join(
-                self.working_directory,
-                f"{self.odmr._bin_factor}x{self.odmr._bin_factor}Binned",
-            )
-            if not os.path.exists(path_to_file):
-                self.LOG.warning(
-                    f"Path does not exist, creating directory {path_to_file}"
-                )
-                os.makedirs(path_to_file)
 
-        neg_diff, pos_diff = self.delta_resonance
-        b111_remanent, b111_induced = self.b111
-        chi_squares = self.odmr.reshape_data(self._chi_squares)
-        chi2_pos1, chi2_pos2 = chi_squares[0]
-        chi2_neg1, chi2_neg2 = chi_squares[1]
-        led_img = self.light
-        laser_img = self.laser
-        pixel_alerts = np.zeros(b111_remanent.shape)
+        path_to_file = Path(path_to_file) if path_to_file is not None else self.working_directory
+        full_folder = path_to_file / f"{self.odmr.bin_factor}x{self.odmr.bin_factor}Binned"
+        full_folder.mkdir(parents=True, exist_ok=True)
+        data = self._save_data(dialect="QDMio")
 
         return savemat(
-            os.path.join(path_to_file, "B111dataToPlot.mat"),
-            {
-                "negDiff": neg_diff,
-                "posDiff": pos_diff,
-                "B111ferro": b111_remanent,
-                "B111para": b111_induced,
-                "chi2Pos1": chi2_pos1,
-                "chi2Pos2": chi2_pos2,
-                "chi2Neg1": chi2_neg1,
-                "chi2Neg2": chi2_neg2,
-                "ledImg": led_img,
-                "laser": laser_img,
-                "pixelAlerts": pixel_alerts,
-                "bin_factor": self.bin_factor,
-                "QDMpy_version": QDMpy.__version__,
-            },
+            full_folder / "B111dataToPlot.mat",
+            data,
         )
+
+    def export_qdmpy(self, path_to_file):
+        print(path_to_file)
+        path_to_file = Path(path_to_file)
+        savemat(path_to_file, self._save_data(dialect="QDMpy"))
 
     # CALCULATIONS ###
     @property
@@ -468,9 +436,7 @@ class QDM:
         Return the B111 of the fit.
         """
         neg_difference, pos_difference = self.delta_resonance
-        return (neg_difference + pos_difference) / 2, (
-                neg_difference - pos_difference
-        ) / 2
+        return (neg_difference + pos_difference) / 2, (neg_difference - pos_difference) / 2
 
     @property
     def b111_remanent(self):
@@ -526,3 +492,58 @@ class QDM:
         else:
             raise ValueError(f"Reference {ref} not supported.")
         return rc
+
+    def _save_data(self, dialect="QDMpy") -> dict:
+        """
+        Return the data structure that can be saved to a file.
+
+        :param dialect: str 'QDMpy' or 'QDMio'
+        :return: dict
+
+        """
+
+        if dialect == "QDMpy":
+            return {
+                "remanent": self.b111[0],
+                "induced": self.b111[1],
+                "chi_squares": self.get_param("chi2"),
+                "resonance": self.get_param("resonance"),
+                "width": self.get_param("width"),
+                "contrast": self.get_param("contrast"),
+                "offset": self.get_param("offset"),
+                "fit.constraints": self.fit.constraints,
+                "diamond_type": self.diamond_type,
+                "laser": self.laser,
+                "light": self.light,
+                "bin_factor": self.bin_factor,
+            }
+
+        elif dialect == "QDMio":
+            neg_diff, pos_diff = self.delta_resonance
+            b111_remanent, b111_induced = self.b111
+            chi_squares = self.get_param("chi2")
+            chi2_pos1, chi2_pos2 = chi_squares[0]
+            chi2_neg1, chi2_neg2 = chi_squares[1]
+            led_img = self.light
+            laser_img = self.laser
+            pixel_alerts = np.zeros(b111_remanent.shape)
+
+            out = dict(
+                negDiff=neg_diff,
+                posDiff=pos_diff,
+                B111ferro=b111_remanent,
+                B111para=b111_induced,
+                chi2Pos1=chi2_pos1,
+                chi2Pos2=chi2_pos2,
+                chi2Neg1=chi2_neg1,
+                chi2Neg2=chi2_neg2,
+                ledImg=led_img,
+                laser=laser_img,
+                pixelAlerts=pixel_alerts,
+                bin_factor=self.bin_factor,
+                QDMpy_version=QDMpy.__version__,
+            )
+            return out
+
+        else:
+            raise ValueError(f"Dialect {dialect} not supported.")

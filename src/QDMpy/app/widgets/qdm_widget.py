@@ -13,12 +13,14 @@ from PySide6.QtWidgets import (
     QToolBar,
     QVBoxLayout,
     QWidget,
+    QComboBox,
 )
 
 from QDMpy.app.models import Pix
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.core import models
 
+B111 = "B$_{111}$"
 
 class QDMWidget(QMainWindow):
     """
@@ -55,12 +57,12 @@ class QDMWidget(QMainWindow):
         return self.parent().qdm
 
     def __init__(
-        self,
-        canvas,
-        clim_select=True,
-        pixel_select=True,
-        *args,
-        **kwargs,
+            self,
+            canvas,
+            clim_select=True,
+            pixel_select=True,
+            *args,
+            **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.caller = self.parent()
@@ -81,19 +83,19 @@ class QDMWidget(QMainWindow):
         self.canvas.mpl_connect("button_release_event", self.on_release)
 
         # layout
-        self.mainToolbar = QToolBar("Toolbar")
-        self.mainToolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
+        self.main_toolbar = QToolBar("Toolbar")
+        self.main_toolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
+        self.addToolBar(self.main_toolbar)
         self._add_plt_toolbar()
-        self.addToolBar(self.mainToolbar)
         self.mainVerticalLayout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
-        self.mainToolbar.addSeparator()
+        self.main_toolbar.addSeparator()
         if clim_select:
-            self._add_cLim_select(self.mainToolbar)
-            self.mainToolbar.addSeparator()
+            self._add_cLim_select(self.main_toolbar)
+            self.main_toolbar.addSeparator()
 
         if pixel_select:
-            self._add_pixel_select(self.mainToolbar)
+            self._add_pixel_select(self.main_toolbar)
 
         self.mainVerticalLayout.addWidget(self.canvas)
         plt.tight_layout()
@@ -106,14 +108,38 @@ class QDMWidget(QMainWindow):
         self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
 
     def update_data(self):
-        # empty, needs to be implemented in the child
-        pass
+        """
+        Update the data in the data canvases.
+        """
+        if not hasattr(self, 'b111_select'):
+            self.LOG.error("No b111_select QCombobox found")
+            return
+
+        # get a copy of the data
+        d = self.qdm.b111[self.b111_select.currentIndex()].copy()
+
+        # apply the men / quad background subtraction
+        if hasattr(self, 'subtract_median') and self.subtract_median.isChecked():
+            self.LOG.debug("Subtracting median")
+            d -= np.median(d)
+
+        if hasattr(self, 'subtract_quad') and self.subtract_quad.isChecked():
+            self.LOG.debug("Subtracting Quad")
+            d -= self.quad_background[self.b111_select.currentIndex()]
+
+        self.canvas.add_data(d, self.qdm.data_shape)
+
+        # set the colorbar label
+        for ax in self.canvas.data:
+            cax = self.canvas.data[ax]["cax"]
+            cax.set_ylabel(f"{B111}({self.b111_select.currentText()[:3]}.)")
+        self.update_clims()
 
     def toggle_outlier(self, visible):
         self.canvas.toggle_outlier(visible)
 
     def update_outlier(self):
-        self.canvas.update_outlier_select(self.qdm.outliers.reshape(*self.qdm.data_shape))
+        self.canvas.update_outlier(self.qdm.outliers.reshape(*self.qdm.data_shape))
 
     def add_scalebars(self):
         self.canvas.add_scalebars(self.qdm.pixel_size)
@@ -208,9 +234,21 @@ class QDMWidget(QMainWindow):
     def _add_plt_toolbar(self):
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.toolbar.setIconSize(QSize(20, 20))
-        self.toolbar.setMinimumWidth(400)
+        self.toolbar.setMinimumWidth(380)
         self.toolbar.addSeparator()
         self.addToolBar(self.toolbar)
+
+    def _add_b111_select_box(self, toolbar):
+        b111_widget = QWidget()
+        b111select_box = QHBoxLayout()
+        b111label = QLabel("B111: ")
+        self.b111_select = QComboBox()
+        self.b111_select.addItems(["remanent", "induced"])
+        self.b111_select.currentIndexChanged.connect(self.update_data)
+        b111select_box.addWidget(b111label)
+        b111select_box.addWidget(self.b111_select)
+        b111_widget.setLayout(b111select_box)
+        toolbar.addWidget(b111_widget)
 
     def _add_pixel_select(self, toolbar):
         pixel_box_widget = QWidget()

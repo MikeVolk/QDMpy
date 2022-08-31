@@ -348,6 +348,26 @@ class QDMCanvas(FigureCanvas):
                     )
 
 
+class StatCanvas(QDMCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        super().__init__(self.fig)
+
+        spec = self.fig.add_gridspec(ncols=3, nrows=3)
+        self.fig.subplots_adjust(
+            top=0.952, bottom=0.076, left=0.06, right=0.959, hspace=0.35, wspace=0.594
+        )
+        self.outlier_ax = self.fig.add_subplot(spec[0:2, :])
+        self.data = {self.outlier_ax: self.img_dict.copy()}
+        self.add_cax(self.outlier_ax, self.data)
+
+        self.chi_ax = self.fig.add_subplot(spec[2, 0])
+        self.chi_ax.set_title("$\chi^2$")
+        self.width_ax = self.fig.add_subplot(spec[2, 1])
+        self.width_ax.set_title("Width [MHz]")
+        self.contrast_ax = self.fig.add_subplot(spec[2, 2])
+        self.contrast_ax.set_title("Mean Contrast [%]")
+
 class GlobalFluorescenceCanvas(QDMCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         super().__init__(parent, width, height, dpi)
@@ -445,10 +465,6 @@ class SimpleCanvas(QDMCanvas):
             self.laser_ax = self.fig.add_subplot(111)
             self.laser = {self.laser_ax: self.img_dict.copy()}
             self.add_cax(self.laser_ax, self.laser, save=True)
-        elif "outlier" in dtype.lower():
-            self.outlier_ax = self.fig.add_subplot(111)
-            self.data = {self.outlier_ax: self.img_dict.copy()}
-            self.add_cax(self.outlier_ax, self.data)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 

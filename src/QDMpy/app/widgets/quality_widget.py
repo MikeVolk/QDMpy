@@ -38,7 +38,7 @@ class QualityWidget(QDMWidget):
     def __init__(self, *args, **kwargs):
         canvas = QualityCanvas(self, width=12, height=12, dpi=100)
         super().__init__(canvas, *args, **kwargs)
-        self._add_dtype_selector(self.mainToolbar)
+        self._add_dtype_selector(self.main_toolbar)
         self._init_lines()
         self.init_plots()
         self.resize(1000, 700)

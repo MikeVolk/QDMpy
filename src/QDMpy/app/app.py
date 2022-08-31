@@ -131,6 +131,7 @@ matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle
 
 class QDMpyApp(QMainWindow):
     _visible_if_qdm_present = []
+    _visible_if_fitted = []
 
     def __init__(self, **kwargs):
 
@@ -373,11 +374,7 @@ class QDMpyApp(QMainWindow):
         file_submenu_import.addAction(import_qdmio_button)
         import_qdmio_button.setShortcut(QKeySequence("Ctrl+I"))
 
-        file_submenu_export = file_menu.addMenu("export")
-        # export QDM button
-        export_qdmio_button = QAction("QDMio", self)
-        export_qdmio_button.setStatusTip("import QDMio like files")
-        file_submenu_export.addAction(export_qdmio_button)
+        self._export_menu(file_menu)
 
         file_menu.addSeparator()
         file_menu.addAction(about_QDMpy_button)
@@ -405,7 +402,7 @@ class QDMpyApp(QMainWindow):
 
         self.mark_outlier_button = QAction("mark outliers", self, checkable=True)
         self.mark_outlier_button.setStatusTip("mark outliers on plots")
-        self.mark_outlier_button.triggered.connect(self.on_mark_outlier_button_press)
+        self.mark_outlier_button.triggered.connect(self.mark_outlier)
         outlier_menu.addAction(self.mark_outlier_button)
 
         outlier_list_button = QAction("outliers list", self)
@@ -413,6 +410,23 @@ class QDMpyApp(QMainWindow):
         outlier_list_button.triggered.connect(self.on_show_outlier_list_button_press)
         outlier_menu.addAction(outlier_list_button)
         # file_submenu.addAction(import_qdmio_button)
+
+    def _export_menu(self, file_menu):
+        file_submenu_export = file_menu.addMenu("export")
+        # export QDM button
+        export_qdmpy_button = QAction("QDMpy", self)
+        export_qdmpy_button.setStatusTip("export to QDMio file")
+        export_qdmpy_button.triggered.connect(self.export_qdmpy)
+        export_qdmpy_button.setEnabled(False)  # disable until a QDMpy file is fitted
+        file_submenu_export.addAction(export_qdmpy_button)
+        self._visible_if_fitted.append(export_qdmpy_button)
+
+        export_qdmio_button = QAction("QDMio", self)
+        export_qdmio_button.setStatusTip("export to QDMio file")
+        export_qdmio_button.triggered.connect(self.export_qdmio)
+        export_qdmio_button.setEnabled(False)  # disable until a QDMpy file is fitted
+        file_submenu_export.addAction(export_qdmio_button)
+        self._visible_if_fitted.append(export_qdmio_button)
 
     # fit parameters
 
@@ -580,6 +594,7 @@ class QDMpyApp(QMainWindow):
 
     def update_main_content(self):
         self.LOG.debug("Updating main content")
+        self._change_tool_visibility()
         if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
@@ -604,6 +619,7 @@ class QDMpyApp(QMainWindow):
     @property
     def widgets(self):
         return self.findChildren(QMainWindow)
+
     @property
     def _need_marker_update(self):
         return [w for w in self.widgets if w.needs_marker_update]
@@ -687,14 +703,14 @@ class QDMpyApp(QMainWindow):
         self.outlier_pd["idx"] = self.qdm.outliers_idx
         self.statusBar().showMessage(f"{self.qdm.outliers_idx.size:8b} Outliers detected")
 
-    def on_mark_outlier_button_press(self):
+    def mark_outlier(self):
         for w in self._data_windows:
             if self.mark_outlier_button.isChecked():
                 self.LOG.debug("Marking outliers")
-                w.add_outlier()
+                w.update_outlier()
             else:
                 self.LOG.debug("Removing outlier markers")
-                w.toggle_outlier_mask("off")
+                w.toggle_outlier(False)
 
     def on_show_outlier_list_button_press(self):
         self.LOG.debug("Showing outliers list")
@@ -781,6 +797,9 @@ class QDMpyApp(QMainWindow):
     def _change_tool_visibility(self):
         for action in self._visible_if_qdm_present:
             action.setEnabled(self.qdm is not None)
+        for action in self._visible_if_fitted:
+            if self.qdm is not None:
+                action.setEnabled(self.qdm.fitted)
 
     def _fill_info_table(self, infos=None):
         entries = [
@@ -858,6 +877,26 @@ class QDMpyApp(QMainWindow):
         self.set_pixel_size_from_qdm_obj()
         self.binfactor_select.setValue(self.qdm.bin_factor)
         self.main_label.setText("No fits calculated yet.")
+
+    # EXPORT FUNCTIONS
+
+    def export_qdmio(self):
+        work_directory = QFileDialog.getExistingDirectory(self, "Open path", str(self.work_directory),
+                                                          QFileDialog.ShowDirsOnly)
+
+        self.LOG.debug(f"Exporting QDMio like files to {work_directory}")
+        self.qdm.export_qdmio(work_directory)
+
+    def export_qdmpy(self):
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            'Save File As',
+            str(self.work_directory),
+            "QDMpy B111 Files (*.b111)"
+        )
+        filename = Path(filename)
+        self.LOG.debug(f"Exporting QDMpy like files to {filename}")
+        self.qdm.export_qdmpy(filename.with_suffix(".b111"))
 
     def debug_call(self):
         self.import_file(r"/media/mike/OS/Users/micha/Dropbox/FOV18x")

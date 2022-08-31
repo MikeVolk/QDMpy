@@ -13,10 +13,9 @@ from PySide6.QtWidgets import (
 from QDMpy.app.canvas import FitCanvas
 from QDMpy.app.widgets.qdm_widget import QDMWidget
 from QDMpy.app.widgets.quality_widget import QualityWidget
-from QDMpy.app.widgets.simple_widget import StatisticsWidget
+from QDMpy.app.widgets.stats_widget import StatisticsWidget
 from QDMpy.utils import polyfit2d
 
-B111 = "B$_{111}$"
 
 
 class FitWidget(QDMWidget):
@@ -25,10 +24,10 @@ class FitWidget(QDMWidget):
 
         super().__init__(canvas=canvas, *args, **kwargs)
 
-        self._add_b111_select_box(self.mainToolbar)
-        self._add_subtract_box(self.mainToolbar)
-        self._add_quality_button(self.mainToolbar)
-        self._add_statistsics_button(self.mainToolbar)
+        self._add_b111_select_box(self.main_toolbar)
+        self._add_subtract_box(self.main_toolbar)
+        self._add_quality_button(self.main_toolbar)
+        self._add_statistsics_button(self.main_toolbar)
 
         self.update_data()
         self.add_light()
@@ -108,25 +107,6 @@ class FitWidget(QDMWidget):
         self.update_data()
         self.canvas.draw_idle()
 
-    def update_data(self):
-
-        d = self.qdm.b111[self.b111_select.currentIndex()].copy()
-
-        if self.subtract_median.isChecked():
-            self.LOG.debug("Subtracting median")
-            d -= np.median(d)
-
-        if self.subtract_quad.isChecked():
-            self.LOG.debug("Subtracting Quad")
-            d -= self.quad_background[self.b111_select.currentIndex()]
-
-        self.canvas.add_data(d, self.qdm.data_shape)
-
-        # set the colorbar label
-        self.canvas.data_ax.set_title(f"{B111}({self.b111_select.currentText()[:3]}.)")
-
-        self.update_clims()
-
     def _add_quality_button(self, toolbar):
         self.quality_widget = None
         self.qualityButton = QPushButton("Quality")
@@ -138,18 +118,6 @@ class FitWidget(QDMWidget):
         self.stat_button = QPushButton("Statistics")
         self.stat_button.clicked.connect(self.on_stat_clicked)
         toolbar.addWidget(self.stat_button)
-
-    def _add_b111_select_box(self, toolbar):
-        b111_widget = QWidget()
-        b111select_box = QHBoxLayout()
-        b111label = QLabel("B111: ")
-        self.b111_select = QComboBox()
-        self.b111_select.addItems(["remanent", "induced"])
-        self.b111_select.currentIndexChanged.connect(self.update_data)
-        b111select_box.addWidget(b111label)
-        b111select_box.addWidget(self.b111_select)
-        b111_widget.setLayout(b111select_box)
-        toolbar.addWidget(b111_widget)
 
     def _add_subtract_box(self, toolbar):
         subtract_widget = QWidget()
