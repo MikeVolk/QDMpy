@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from QDMpy.app.models import Pix
-from QDMpy.app.widgets.tools import get_label_box
+from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.core import models
 
 
@@ -29,6 +29,14 @@ class QDMWidget(QMainWindow):
 
     POL = ["+", "-"]
     RANGE = ["<", ">"]
+
+    @property
+    def needs_marker_update(self):
+        return len(self._is_img) > 0
+
+    @property
+    def needs_odmr_update(self):
+        return len(self._is_spectra) > 0
 
     @property
     def _is_img(self):
@@ -47,13 +55,12 @@ class QDMWidget(QMainWindow):
         return self.parent().qdm
 
     def __init__(
-            self,
-            canvas,
-            includes_fits=False,
-            clim_select=True,
-            pixel_select=True,
-            *args,
-            **kwargs,
+        self,
+        canvas,
+        clim_select=True,
+        pixel_select=True,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.caller = self.parent()
@@ -106,7 +113,7 @@ class QDMWidget(QMainWindow):
         self.canvas.toggle_outlier(visible)
 
     def update_outlier(self):
-        self.canvas.update_outlier(self.qdm.outliers.reshape(*self.qdm.data_shape))
+        self.canvas.update_outlier_select(self.qdm.outliers.reshape(*self.qdm.data_shape))
 
     def add_scalebars(self):
         self.canvas.add_scalebars(self.qdm.pixel_size)
@@ -128,7 +135,7 @@ class QDMWidget(QMainWindow):
     def set_main_window(self):
         """
         Sets the final widget to the layout.
-        THis is separate so you can add additional things to the toplayout ....
+        This is separate so you can add additional things to the toplayout ....
         """
         central_widget = QWidget()
         central_widget.setLayout(self.mainVerticalLayout)
@@ -178,7 +185,7 @@ class QDMWidget(QMainWindow):
     def _add_cLim_select(self, toolbar):
         clim_widget = QWidget()
         clim_selection_layout = QHBoxLayout()
-        clim_label, self.clims_selector = get_label_box(
+        clim_label, self.clims_selector = LabeledDoubleSpinBox(
             label="clim",
             value=99.5,
             decimals=1,
@@ -201,14 +208,14 @@ class QDMWidget(QMainWindow):
     def _add_plt_toolbar(self):
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.toolbar.setIconSize(QSize(20, 20))
-        self.toolbar.setMinimumWidth(370)
+        self.toolbar.setMinimumWidth(400)
         self.toolbar.addSeparator()
         self.addToolBar(self.toolbar)
 
     def _add_pixel_select(self, toolbar):
         pixel_box_widget = QWidget()
         coord_box = QHBoxLayout()
-        self.xlabel, self.xselect = get_label_box(
+        self.xlabel, self.xselect = LabeledDoubleSpinBox(
             "x",
             int(self._current_xy[0]),
             0,
@@ -217,7 +224,7 @@ class QDMWidget(QMainWindow):
             self.qdm.odmr.data_shape[1],
             self.on_xy_value_change,
         )
-        self.ylabel, self.yselect = get_label_box(
+        self.ylabel, self.yselect = LabeledDoubleSpinBox(
             "y",
             int(self._current_xy[1]),
             0,
@@ -308,9 +315,7 @@ class QDMWidget(QMainWindow):
 
             self.set_current_idx(x, y)
             self.indexLabel.setText(f"[{self._current_idx}]")
-            self.LOG.debug(
-                f"clicked in {event.inaxes} with new index: {self._current_idx}"
-            )
+            self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
 
             self.on_xy_value_change()
 
@@ -323,12 +328,8 @@ class QDMWidget(QMainWindow):
         self.LOG.debug(f"XY value changed to {self._current_xy} ({self._current_idx})")
         self.indexLabel.setText(f"[{self._current_idx}]")
 
-        if self.canvas.has_img:
-            self.caller.update_marker()
-        if self.canvas.has_odmr:
-            self.caller.update_odmr()
-        self.caller.update_odmr()
         self.caller.update_marker()
+        self.caller.update_odmr()
 
     def get_current_odmr(self):
         """
@@ -348,9 +349,7 @@ class QDMWidget(QMainWindow):
         freqs = np.empty((parameter.shape[1], 200))
         models = np.empty((parameter.shape[0], parameter.shape[1], 200))
         for f in np.arange(parameter.shape[1]):
-            freqs[f] = np.linspace(
-                self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200
-            )
+            freqs[f] = np.linspace(self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200)
             for p in np.arange(parameter.shape[0]):
                 models[p, f, :] = model_func(freqs[f], parameter[p, f])
         return models
@@ -369,9 +368,7 @@ class QDMWidget(QMainWindow):
 
         # get current correction
         if self.qdm.odmr.global_factor > 0:
-            current_correct = self.qdm.odmr.get_gf_correction(
-                gf=self.qdm.odmr.global_factor
-            )
+            current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
             # make uncorrected
             current_data += current_correct
         return current_data
@@ -414,10 +411,9 @@ class QDMWidget(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.canvas.update_odmr(
-            freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr()
-        )
+        self.canvas.update_odmr(freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr())
         self.set_ylim()
+
     def set_ylim(self):
         self.canvas.update_odmr_lims(self.qdm.odmr.data)
 
@@ -442,9 +438,7 @@ class QDMWidget(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.esrsingle, models.esr15n, models.esr14n][
-            self.qdm._diamond_type
-        ]
+        return [None, models.esrsingle, models.esr15n, models.esr14n][self.qdm._diamond_type]
 
     @property
     def pixel_size(self):

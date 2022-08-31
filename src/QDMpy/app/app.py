@@ -451,13 +451,13 @@ class QDMpyApp(QMainWindow):
             QComboBox(),
         ]
         self.fitconstraints[text][-1].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
-        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES[constraint])
+        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES.index(constraint))
 
         self.fitconstraints[text][1].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][2].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
         self.fitconstraints[text][-1].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
         self._set_constraint_visibility(
-            CONSTRAINT_TYPES[constraint],
+            CONSTRAINT_TYPES.index(constraint),
             self.fitconstraints[text][1],
             self.fitconstraints[text][2],
         )
@@ -595,34 +595,34 @@ class QDMpyApp(QMainWindow):
 
     def _replace_label_with_fit_window(self):
         self.main_content_layout.removeWidget(self.main_label)
-        self.main_content_figure = FitWidget(self.qdm, parent=self)
+        self.main_content_figure = FitWidget(parent=self)
         self._data_windows.append(self.main_content_figure)
         self.main_content_layout.addWidget(self.main_content_figure)
         self.setCentralWidget(self.main_content_figure)
         self.main_content_figure.show()
 
     @property
+    def widgets(self):
+        return self.findChildren(QMainWindow)
+    @property
     def _need_marker_update(self):
-        return [
-            self.laser_window,
-            self.light_window,
-            self.main_content_figure,
-            self.quality_window,
-        ]
+        return [w for w in self.widgets if w.needs_marker_update]
 
     @property
-    def _need_pixel_update(self):
-        return [self.main_content_figure]
+    def _need_odmr_update(self):
+        return [w for w in self.widgets if w.needs_odmr_update]
 
     def update_marker(self):
         self.LOG.debug(f"update_marker in {self._need_marker_update}")
-        for window in self.findChildren(QMainWindow):
+        for window in self._need_marker_update:
             window.update_marker()
+            window.canvas.draw_idle()
 
     def update_odmr(self):
-        self.LOG.debug(f"Updating pixel in {self._need_pixel_update}")
-        for window in self.findChildren(QMainWindow):
+        self.LOG.debug(f"Updating pixel in {self._need_odmr_update}")
+        for window in self._need_odmr_update:
             window.update_odmr()
+            window.canvas.draw_idle()
 
     # DATA RELATED
     def set_current_idx(self, x=None, y=None, idx=None):
@@ -691,7 +691,7 @@ class QDMpyApp(QMainWindow):
         for w in self._data_windows:
             if self.mark_outlier_button.isChecked():
                 self.LOG.debug("Marking outliers")
-                w.add_outlier_mask()
+                w.add_outlier()
             else:
                 self.LOG.debug("Removing outlier markers")
                 w.toggle_outlier_mask("off")
@@ -739,7 +739,7 @@ class QDMpyApp(QMainWindow):
         self.qdm.fit_ODMR()
         self.update_main_content()
         self.update_marker()
-        self.update_pixel()
+        self.update_odmr()
         self._fill_info_table()
         self.fill_fitconstraints_widget()
 
@@ -860,7 +860,7 @@ class QDMpyApp(QMainWindow):
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r"/media/mike/OS/Users/micha/Desktop/CAGEO_data")
+        self.import_file(r"/media/mike/OS/Users/micha/Dropbox/FOV18x")
         # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
         # self.on_quick_start_button_press()
         self.on_fit_button_press()

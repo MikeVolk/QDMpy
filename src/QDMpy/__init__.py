@@ -15,7 +15,6 @@ src_directory = os.path.join(projectdir, "..")
 sys.path.append(projectdir)
 
 from utils import load_config
-import coloredlogs
 
 logging_conf = Path(projectdir, "logging.conf")
 
@@ -26,10 +25,16 @@ logging.getLogger("h5py").setLevel(logging.WARNING)
 
 LOG = logging.getLogger(f"QDMpy")
 
+import coloredlogs
+
 coloredlogs.install(
     level="DEBUG",
-    fmt='%(asctime)s %(levelname)8s %(name)s.%(funcName)s >> %(message)s',
-    datefmt="%H:%M:%S")
+    fmt="%(asctime)s %(levelname)8s %(name)s.%(funcName)s >> %(message)s",
+    datefmt="%H:%M:%S",
+    stream=sys.stdout,
+    logger=LOG,
+    isatty=True,
+)
 
 LOG.info("WELCOME TO pyQDM")
 
@@ -57,6 +62,11 @@ else:
 
     LOG.info(f"CUDA available: {gf.cuda_available()}")
     LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
+
+
+from QDMpy.core.qdm import QDM
+from QDMpy.core.odmr import ODMR
+from QDMpy.core.fit import Fit
 
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")

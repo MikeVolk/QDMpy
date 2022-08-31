@@ -74,7 +74,7 @@ def update_marker(ax, x, y, line=None, **plt_props):
         (line,) = ax.plot(x, y, **plt_props)
     else:
         line.set_data(x, y)
-        ax.draw_artist(line)
+        # ax.draw_artist(line)
     return line
 
 
@@ -132,7 +132,7 @@ def plot_outlier(ax, data, img=None, **plt_props):
     data = data.astype(float)
     plt_props["cmap"] = "gist_rainbow"
     plt_props["alpha"] = data
-    plt_props["zorder"] = 10
+    plt_props["zorder"] = 3
     img = update_img(ax, img, data, **plt_props)
     return img
 
@@ -172,6 +172,8 @@ def update_img(ax, img, data, **plt_props):
     if img is None:
         img = ax.imshow(data, **plt_props)
     else:
+        if 'alpha' in plt_props:
+            img.set_alpha(plt_props['alpha'])
         img.set_data(data)
     return img
 

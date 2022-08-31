@@ -82,7 +82,7 @@ class QDMCanvas(FigureCanvas):
         for axdict in [self.data, self.laser, self.light, self.fluorescence]:
             for a in axdict:
                 a.set(xlabel="px", ylabel="px")
-                if axdict == self.data and self.data[a]["cax"] is not None:
+                if axdict == self.data and isinstance(self.data[a]["cax"], Axes):
                     self.data[a]["cax"].set_ylabel(cbar_label)
                 elif isinstance(axdict[a]["cax"], Axes):
                     axdict[a]["cax"].set_ylabel("intensity [a.u.]")
@@ -191,7 +191,7 @@ class QDMCanvas(FigureCanvas):
                     continue
                 self.LOG.debug(f"Updating outlier mask to axis {ax}")
                 axdict[ax]["outlier"] = qdmplot.plot_outlier(
-                    ax, outlier, img=axdict[ax]["outlier"]
+                    ax, outlier, img=axdict[ax]["outlier"],
                 )
         self.draw()
 
@@ -443,10 +443,12 @@ class SimpleCanvas(QDMCanvas):
             self.light = {self.light_ax: self.img_dict.copy()}
         elif "laser" in dtype.lower():
             self.laser_ax = self.fig.add_subplot(111)
-            cax, original_locator = self._add_cax(self.laser_ax)
             self.laser = {self.laser_ax: self.img_dict.copy()}
-            self.laser[self.laser_ax]["cax"] = cax
-            self.laser[self.laser_ax]["cax_locator"] = original_locator
+            self.add_cax(self.laser_ax, self.laser, save=True)
+        elif "outlier" in dtype.lower():
+            self.outlier_ax = self.fig.add_subplot(111)
+            self.data = {self.outlier_ax: self.img_dict.copy()}
+            self.add_cax(self.outlier_ax, self.data)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 

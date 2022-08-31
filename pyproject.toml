@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pyqdm"
+name = "QDMpy"
 version = "0.0.1"
 description = "A python package for calculating magnetic maps from ODMR spectra measured on a quantum diamond microscope"
 authors = [
@@ -8,9 +8,9 @@ authors = [
 license = "MIT"
 readme = "README.md"
 
-documentation = "https://mikevolk.github.io/pyqdm"
-homepage = "https://mikevolk.github.io/pyqdm"
-repository = "https://github.com/mikevolk/pyqdm"
+documentation = "https://mikevolk.github.io/QDMpy"
+homepage = "https://mikevolk.github.io/QDMpy"
+repository = "https://github.com/mikevolk/QDMpy"
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -42,6 +42,7 @@ scipy = "^1.9.1"
 matplotlib = "^3.5.3"
 matplotlib-scalebar = "^0.8.1"
 coloredlogs = "^15.0.1"
+superqt = "^0.3.5"
 
 
 [tool.poetry.dev-dependencies]
@@ -67,13 +68,6 @@ pytest-cov = "*"
 python-kacl = "*"
 pyupgrade = "*"
 tryceratops = "*"
-numba = "*"
-numpy = "<=1.22"
-scipy = "*"
-matplotlib = "*"
-matplotlib-scalebar = "*"
-jupyterlab = "*"
-pyside6 = "*"
 
 
 [build-system]

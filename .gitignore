@@ -80,3 +80,5 @@ venv.bak/
 .idea/
 
 poetry.lock
+
+src/tst.py

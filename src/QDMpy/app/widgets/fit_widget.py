@@ -10,10 +10,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pyqdm.app.canvas import FitCanvas
-from pyqdm.app.widgets.qdm_widget import QDMWidget
-from pyqdm.app.widgets.quality_widget import QualityWidget
-from pyqdm.utils import polyfit2d
+from QDMpy.app.canvas import FitCanvas
+from QDMpy.app.widgets.qdm_widget import QDMWidget
+from QDMpy.app.widgets.quality_widget import QualityWidget
+from QDMpy.app.widgets.simple_widget import StatisticsWidget
+from QDMpy.utils import polyfit2d
 
 B111 = "B$_{111}$"
 
@@ -27,6 +28,7 @@ class FitWidget(QDMWidget):
         self._add_b111_select_box(self.mainToolbar)
         self._add_subtract_box(self.mainToolbar)
         self._add_quality_button(self.mainToolbar)
+        self._add_statistsics_button(self.mainToolbar)
 
         self.update_data()
         self.add_light()
@@ -76,6 +78,7 @@ class FitWidget(QDMWidget):
         self.set_ylim()
     def on_quality_clicked(self):
         if self.quality_widget is None:
+            self.LOG.debug("Creating Quality Widget")
             self.quality_widget = QualityWidget(parent=self.caller)
             self.caller.quality_widget = self.quality_widget
         if self.quality_widget.isVisible():
@@ -83,6 +86,15 @@ class FitWidget(QDMWidget):
         else:
             self.quality_widget.show()
 
+    def on_stat_clicked(self):
+        if self.stat_widget is None:
+            self.LOG.debug("Creating Statistics Widget")
+            self.stat_widget = StatisticsWidget(parent=self.caller)
+            self.caller.stat_widget = self.stat_widget
+        if self.stat_widget.isVisible():
+            self.stat_widget.hide()
+        else:
+            self.stat_widget.show()
     def on_subtract_median_clicked(self):
         if self.subtract_median.isChecked() and self.subtract_quad.isChecked():
             self.subtract_quad.setChecked(False)
@@ -120,6 +132,12 @@ class FitWidget(QDMWidget):
         self.qualityButton = QPushButton("Quality")
         self.qualityButton.clicked.connect(self.on_quality_clicked)
         toolbar.addWidget(self.qualityButton)
+
+    def _add_statistsics_button(self, toolbar):
+        self.stat_widget = None
+        self.stat_button = QPushButton("Statistics")
+        self.stat_button.clicked.connect(self.on_stat_clicked)
+        toolbar.addWidget(self.stat_button)
 
     def _add_b111_select_box(self, toolbar):
         b111_widget = QWidget()

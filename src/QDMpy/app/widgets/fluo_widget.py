@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from QDMpy.app.canvas import FluoImgCanvas
-from QDMpy.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.widgets.qdm_widget import QDMWidget
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -28,7 +28,7 @@ matplotlib.rcParams.update(
 SCALEBAR_LOC = "lower left"
 
 
-class FluoWidget(PyQdmWindow):
+class FluoWidget(QDMWidget):
     def __init__(self, *args, **kwargs) -> None:
         canvas = FluoImgCanvas()
         super().__init__(canvas=canvas, *args, **kwargs)
@@ -398,7 +398,7 @@ class FluorescenceWindowOLD(QMainWindow):
 
 #
 # class MplCanvas(FigureCanvas):
-#     LOG = logging.getLogger(f'pyQDM.{self.__class__.__name__}')
+#     LOG = logging.getLogger(f'QDMpy.{self.__class__.__name__}')
 #
 #     def __init__(self, parent=None, width=5, height=4, dpi=100):
 #         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -412,7 +412,7 @@ class FluorescenceWindowOLD(QMainWindow):
 #     This "window" is a QWidget. If it has no parent,
 #     it will appear as a free-floating window.
 #     """
-#     LOG = logging.getLogger(f'pyQDM.{self.__class__.__name__}')
+#     LOG = logging.getLogger(f'QDMpy.{self.__class__.__name__}')
 #
 #     def __init__(self, QDMObj):
 #         self.QDMObj = QDMObj

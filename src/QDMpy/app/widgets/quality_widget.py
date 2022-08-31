@@ -4,14 +4,14 @@ from matplotlib import pyplot as plt
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 from QDMpy.app.canvas import QualityCanvas
-from QDMpy.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.widgets.qdm_widget import QDMWidget
 
 AU = "[a.u.]"
 PERCENT = "[%]"
 GHZ = "[GHz]"
 
 
-class QualityWidget(PyQdmWindow):
+class QualityWidget(QDMWidget):
     TITLES = {
         "center": r"f$_{\mathrm{resonance}}$",
         "contrast": r"$\Sigma$contrast",
@@ -35,9 +35,9 @@ class QualityWidget(PyQdmWindow):
         "chi_squared": AU,
     }
 
-    def __init__(self, caller, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         canvas = QualityCanvas(self, width=12, height=12, dpi=100)
-        super().__init__(caller, canvas, *args, **kwargs)
+        super().__init__(canvas, *args, **kwargs)
         self._add_dtype_selector(self.mainToolbar)
         self._init_lines()
         self.init_plots()

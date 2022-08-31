@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider
 
 from QDMpy.app.canvas import GlobalFluorescenceCanvas
 from QDMpy.app.widgets.misc import gf_applied_window
-from QDMpy.app.widgets.qdm_widget import PyQdmWindow
+from QDMpy.app.widgets.qdm_widget import QDMWidget
 
 matplotlib.rcParams.update(
     {  # 'font.size': 8,
@@ -15,7 +15,7 @@ matplotlib.rcParams.update(
 )
 
 
-class GlobalWidget(PyQdmWindow):
+class GlobalWidget(QDMWidget):
     def add_odmr(self):
         self.canvas.add_odmr(
             freq=self.qdm.odmr.f_ghz,
