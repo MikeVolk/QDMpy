@@ -80,3 +80,5 @@ venv.bak/
 .idea/
 
 poetry.lock
+
+.DS_Store
