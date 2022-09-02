@@ -15,11 +15,12 @@ CONFIG_PATH = Path().home() / ".config" / "QDMpy"
 CONFIG_FILE = CONFIG_PATH / "config.ini"
 CONFIG_INI = PROJECT_PATH / "config.ini"
 
-from utils import load_config
+SRC_PATH = PROJECT_PATH.parent
+sys.path.append(SRC_PATH)
 
 logging_conf = Path(projectdir, "logging.conf")
 
-fileConfig(logging_conf)
+logging_conf = Path(PROJECT_PATH, "logging.conf")
 
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("h5py").setLevel(logging.WARNING)
@@ -41,6 +42,7 @@ LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
+make_configfile()
 settings = load_config()
 
 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
@@ -49,16 +51,16 @@ desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 import importlib.util
 
 package = "pygpufit"
-pygpufit_present = importlib.util.find_spec(package)  # find_spec will look for the package
+PYGPUFIT_PRESENT = importlib.util.find_spec(package)  # find_spec will look for the package
 
-if pygpufit_present is None:
+if PYGPUFIT_PRESENT is None:
     LOG.error(
         "Can't import pyGpufit. The package is necessary for most of the calculations. Functionality of QDMpy "
         "will be greatly diminished."
     )
     LOG.error(
         f"try running:\n"
-        f">>> pip install --no-index --find-links={os.path.join(src_directory, 'pyGpufit', 'win', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit"
+        f">>> pip install --no-index --find-links={os.path.join(SRC_PATH, 'pyGpufit', 'win', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit"
     )
 else:
     import pygpufit.gpufit as gf
@@ -66,10 +68,9 @@ else:
     LOG.info(f"CUDA available: {gf.cuda_available()}")
     LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
 
-
-from QDMpy.core.qdm import QDM
-from QDMpy.core.odmr import ODMR
 from QDMpy.core.fit import Fit
+from QDMpy.core.odmr import ODMR
+from QDMpy.core.qdm import QDM
 
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")

@@ -322,7 +322,7 @@ class QDM:
         """
         Fit the data using the current fit type.
         """
-        if not QDMpy.pygpufit_present:
+        if not QDMpy.PYGPUFIT_PRESENT:
             self.LOG.error("pygpufit not installed. Skipping fitting.")
             raise ImportError("pygpufit not installed.")
         self._fit.fit_odmr()

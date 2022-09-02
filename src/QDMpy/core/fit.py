@@ -7,7 +7,7 @@ import pandas as pd
 
 import QDMpy
 
-if QDMpy.pygpufit_present:
+if QDMpy.PYGPUFIT_PRESENT:
     import pygpufit.gpufit as gf
 from scipy.io import savemat
 
