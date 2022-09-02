@@ -3,7 +3,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.io import savemat
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
@@ -173,6 +172,12 @@ class QDM:
         self._outliers = outliers
         return self._outliers
 
+    def apply_outlier_mask(self, outlier=None):
+        if outlier is None:
+            outlier = self.outliers
+        self.LOG.debug(f"Applying outlier mask of shape {outlier.shape}")
+        self.odmr.apply_outlier_mask(outlier)
+
     # binning
     @property
     def bin_factor(self):
@@ -195,13 +200,13 @@ class QDM:
     def _check_bin_factor(self):
         bin_factors = self.light.shape / self.odmr.data_shape
 
-        if np.all(self.odmr._img_schape != self.light.shape):
+        if np.all(self.odmr._img_shape != self.light.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.odmr._img_schape}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+                f"Scan dimensions of ODMR ({self.odmr._img_shape}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
             )
             # set the true bin factor
             self.odmr._pre_bin_factor = bin_factors[0]
-            self.odmr._img_schape = np.array(self.light.shape)
+            self.odmr._img_shape = np.array(self.light.shape)
 
     # global fluorescence
     def correct_glob_fluorescence(self, glob_fluo):

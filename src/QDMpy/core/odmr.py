@@ -2,15 +2,15 @@ import itertools
 import logging
 import os
 import re
-from functools import cached_property
 
 import mat73
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import ma as ma
 from scipy.io import loadmat
-from skimage.transform import downscale_local_mean
+from skimage.measure import block_reduce
 
+import QDMpy
 from QDMpy.exceptions import WrongFileNumber
 from QDMpy.utils import idx2rc, rc2idx
 
@@ -24,7 +24,7 @@ class ODMR:
         self.LOG.debug(f"read parameter shape: data: {data.shape}")
         self.LOG.debug(f"                      scan_dimensions: {scan_dimensions}")
         self.LOG.debug(f"                      frequencies: {frequencies.shape}")
-        self.LOG.debug(f"                      n_freqs: {data.shape[-1]}")
+        self.LOG.debug(f"                      n(freqs): {data.shape[-1]}")
 
         self._raw_data = data
 
@@ -33,7 +33,8 @@ class ODMR:
         self._frequencies = frequencies
         self._frequencies_cropped = None
 
-        self._img_schape = np.array(scan_dimensions)
+        self.outlier_mask = None
+        self._img_shape = np.array(scan_dimensions)
 
         self._data_edited = None
         self._norm_method = QDMpy.settings["odmr"]["norm_method"]
@@ -41,7 +42,7 @@ class ODMR:
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,
-            self.remove_overexposed,
+            self._apply_outlier_mask,
             None,
             None,
             None,
@@ -61,7 +62,9 @@ class ODMR:
         self.is_fcropped = False
 
     def __repr__(self):
-        return f"ODMR(data={self.data.shape}, scan_dimensions={self.data_shape}, n_pol={self.n_pol}, n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}, frequencies={self.frequencies.shape})"
+        return f"ODMR(data={self.data.shape}, " \
+               f"scan_dimensions={self.data_shape}, n_pol={self.n_pol}, " \
+               f"n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}"
 
     def __getitem__(self, item):
         """
@@ -99,7 +102,7 @@ class ODMR:
             d = d[:, :, linear_idx]
         elif reshape:
             self.LOG.debug("ODMR: reshaping data")
-            d = d.reshape(self.n_pol, self.n_frange, *self.data_shape, self.n_freqs)
+            d = d.reshape(self.n_pol, self.n_frange, self.data_shape[0], self.data_shape[1], self.n_freqs)
 
         # catch case where only indices are provided
         if len(item) == 0:
@@ -174,7 +177,7 @@ class ODMR:
         img_stack1, img_stack2 = [], []
 
         if n_img_stacks == 2:
-            # IF ONLY 2 IMGSTACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
+            # IF ONLY 2 IMG-STACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
             cls.LOG.debug("Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
             img_stack1 = mfile["imgStack1"].T
@@ -254,7 +257,7 @@ class ODMR:
     # properties
     @property
     def data_shape(self):
-        return (self._img_schape / self.bin_factor).astype(np.uint32)
+        return (self._img_shape / self.bin_factor).astype(np.uint32)
 
     @property
     def n_pixel(self):
@@ -387,11 +390,28 @@ class ODMR:
         self.is_normalized = True
         self._data_edited /= self._norm_factors
 
+    def apply_outlier_mask(self, outlier: np.ndarray = None, **kwargs) -> None:
+        """
+        Apply the outlier mask.
+        """
+        self.outlier_mask = outlier
+        self._apply_edit_stack()
+
+    def _apply_outlier_mask(self, **kwargs):
+        """
+        Apply the outlier mask.
+        """
+        if self.outlier_mask is None:
+            self.LOG.debug("No outlier mask applied.")
+            return
+        self.LOG.debug("Applying outlier mask")
+        self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
+
     def bin_data(self, bin_factor, **kwargs):
         """
         Bin the data.
         """
-        self._edit_stack[2] = self._bin_data
+        self._edit_stack[3] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
     def _bin_data(self, bin_factor=None, **kwargs):
@@ -408,15 +428,15 @@ class ODMR:
         reshape_data = self.data.reshape(
             self.n_pol,
             self.n_frange,
-            *(self._img_schape / self._pre_bin_factor).astype(int),
+            *(self._img_shape / self._pre_bin_factor).astype(int),
             self.n_freqs,
         )  # reshapes the data to the scan dimensions
-        _odmr_binned = downscale_local_mean(
+        _odmr_binned = block_reduce(
             reshape_data,
-            factors=(1, 1, int(bin_factor), int(bin_factor), 1),
+            block_size=(1, 1, int(bin_factor), int(bin_factor), 1),
+            func=np.nanmean,
             cval=np.median(reshape_data),
         )  # bins the data
-
         self._data_edited = _odmr_binned.reshape(
             self.n_pol, self.n_frange, -1, self.n_freqs
         )  # reshapes the data back to the ODMR data format

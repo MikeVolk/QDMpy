@@ -54,6 +54,9 @@ class Fit:
             for k in constraints:
                 self.set_constraints(k, constraints[k])
 
+    def __repr__(self):
+        return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model})"
+
     def _reset_fit(self):
         self._fitted = False
         self._parameter: np.array = None
@@ -393,8 +396,6 @@ class Fit:
         npol, npix, _ = self.data[0].shape
         result = result.reshape((npol, npix, -1))
         return np.squeeze(result)
-
-
 
 
 def guess_contrast(data):
