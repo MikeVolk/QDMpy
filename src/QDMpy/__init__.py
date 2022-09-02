@@ -10,9 +10,10 @@ import matplotlib as mpl
 
 mpl.rcParams["figure.facecolor"] = "white"
 
-projectdir = os.path.dirname(os.path.abspath(__file__))
-src_directory = os.path.join(projectdir, "..")
-sys.path.append(projectdir)
+PROJECT_PATH = Path(os.path.abspath(__file__)).parent
+CONFIG_PATH = Path().home() / ".config" / "QDMpy"
+CONFIG_FILE = CONFIG_PATH / "config.ini"
+CONFIG_INI = PROJECT_PATH / "config.ini"
 
 from utils import load_config
 
@@ -36,7 +37,9 @@ coloredlogs.install(
     isatty=True,
 )
 
-LOG.info("WELCOME TO pyQDM")
+LOG.info("WELCOME TO QDMpy")
+LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
+LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
 settings = load_config()
 

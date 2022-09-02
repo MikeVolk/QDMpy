@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
-from QDMpy import projectdir
+from QDMpy import PROJECT_PATH
 
 
 class PyGPUfitNotInstalledDialog(QDialog):
@@ -20,7 +20,7 @@ class PyGPUfitNotInstalledDialog(QDialog):
         self.layout = QVBoxLayout()
         message = QLabel(
             "pyGPUfit needs to be installed. Please install it and try again. Try running:\n\n"
-            f">>> pip install --no-index --find-links={os.path.join(projectdir, 'pyGpufit', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit"
+            f">>> pip install --no-index --find-links={os.path.join(PROJECT_PATH, 'pyGpufit', 'pyGpufit-1.2.0-py2.py3-none-any.whl')} pyGpufit"
         )
         self.layout.addWidget(message)
         self.layout.addWidget(self.buttonBox)

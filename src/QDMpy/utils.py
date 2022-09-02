@@ -6,7 +6,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import tomli
 
-import QDMpy
+from QDMpy import CONFIG_FILE, CONFIG_INI, CONFIG_PATH
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -93,18 +93,25 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
 
 
-def load_config(config_file="config.ini"):
+def load_config():
     """
     Loads the config file.
 
-    :param config_file: str, default is 'config.ini'
-        name to the config file
     :return: dict
         config file
     """
-    with open(os.path.join(QDMpy.projectdir, config_file)) as fileObj:
-        content = fileObj.read()
-        return tomli.loads(content)
+    with open(CONFIG_FILE, "rb") as fileObj:
+        return tomli.load(fileObj)
+
+
+def make_configfile(reset=False):
+    """
+    Creates the config file if it does not exist.
+    """
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    if not CONFIG_FILE.exists() or reset:
+        LOG.info(f"Copying default QDMpy 'config.ini' file to {CONFIG_FILE}")
+        shutil.copy2(CONFIG_INI, CONFIG_FILE)
 
 
 def set_path(path, config, default):
@@ -181,3 +188,14 @@ def double_norm(data, axis):
     data -= mn
     mx = np.expand_dims(np.max(data, axis=axis), data.ndim - 1)
     return data / mx
+
+
+def main():
+    """
+    Main function.
+    """
+    make_configfile()
+
+
+if __name__ == "__main__":
+    main()
