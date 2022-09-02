@@ -140,7 +140,7 @@ class QDMpyApp(QMainWindow):
         self.debug = kwargs.pop("debug", False)
         self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
 
-        if not QDMpy.pygpufit_present:
+        if not QDMpy.PYGPUFIT_PRESENT:
             self.pygpufit_not_available_dialog()
 
         screen = kwargs.pop("screen", None)
