@@ -81,4 +81,6 @@ venv.bak/
 
 poetry.lock
 
+.DS_Store
+
 src/tst.py
