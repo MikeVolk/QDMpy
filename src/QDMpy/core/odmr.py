@@ -36,7 +36,8 @@ class ODMR:
         self._img_schape = np.array(scan_dimensions)
 
         self._data_edited = None
-        self._norm_method = "max"  # todo add to config
+        self._norm_method = QDMpy.settings["odmr"]["norm_method"]
+
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,

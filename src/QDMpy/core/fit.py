@@ -11,7 +11,6 @@ if QDMpy.PYGPUFIT_PRESENT:
     import pygpufit.gpufit as gf
 from scipy.io import savemat
 
-from QDMpy import settings
 from QDMpy.core import models
 
 FIT_PARAMETER = {
@@ -49,7 +48,7 @@ class Fit:
         self._constraints: dict = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
         self._constraint_types: np.array = None
 
-        self.estimator_id = ESTIMATOR_ID[settings["fitting"]["estimator"]]  # 0 for LSE, 1 for MLE
+        self.estimator_id = ESTIMATOR_ID[QDMpy.settings["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
         self._set_initial_constraints()
         if constraints is not None:
             for k in constraints:
@@ -172,7 +171,7 @@ class Fit:
         """
         Set the initial constraints for the fit.
         """
-        default_constraints = settings["default_fitconstraints"]
+        default_constraints = QDMpy.settings["fit"]["constraints"]
         self.set_constraints(
             "center",
             default_constraints["center_min"],
@@ -374,8 +373,8 @@ class Fit:
             initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
             weights=None,
             model_id=self.model_id,
-            max_number_iterations=settings["fitting"]["max_number_iterations"],
-            tolerance=settings["fitting"]["tolerance"],
+            max_number_iterations=QDMpy.settings["fit"]["max_number_iterations"],
+            tolerance=QDMpy.settings["fit"]["tolerance"],
         )
 
         return list(results)

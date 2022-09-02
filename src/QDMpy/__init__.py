@@ -19,6 +19,7 @@ sys.path.append(SRC_PATH)
 
 ### LOGGING ###
 from logging.config import fileConfig
+
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("h5py").setLevel(logging.WARNING)
 
@@ -43,6 +44,7 @@ LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
 from QDMpy.utils import make_configfile, load_config
+
 make_configfile()
 settings = load_config()
 
@@ -72,6 +74,15 @@ else:
 from QDMpy.core.fit import Fit
 from QDMpy.core.odmr import ODMR
 from QDMpy.core.qdm import QDM
+
+
+def reset_config():
+    """
+    Resets the config file.
+    """
+    make_configfile(reset=True)
+    LOG.info("Config file reset")
+
 
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")
