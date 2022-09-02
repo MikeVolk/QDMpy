@@ -3,7 +3,6 @@ __version__ = "0.1.0a"
 import logging
 import os
 import sys
-from logging.config import fileConfig
 from pathlib import Path
 
 import matplotlib as mpl
@@ -18,12 +17,13 @@ CONFIG_INI = PROJECT_PATH / "config.ini"
 SRC_PATH = PROJECT_PATH.parent
 sys.path.append(SRC_PATH)
 
-logging_conf = Path(projectdir, "logging.conf")
-
-logging_conf = Path(PROJECT_PATH, "logging.conf")
-
+### LOGGING ###
+from logging.config import fileConfig
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 logging.getLogger("h5py").setLevel(logging.WARNING)
+
+logging_conf = Path(PROJECT_PATH, "logging.conf")
+fileConfig(logging_conf)
 
 LOG = logging.getLogger(f"QDMpy")
 
@@ -42,6 +42,7 @@ LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
+from QDMpy.utils import make_configfile, load_config
 make_configfile()
 settings = load_config()
 
