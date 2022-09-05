@@ -16,6 +16,7 @@ from QDMpy.utils import idx2rc, rc2idx
 
 
 class ODMR:
+    """ """
     LOG = logging.getLogger(__name__)
 
     def __init__(self, data, scan_dimensions, frequencies, **kwargs):
@@ -37,7 +38,7 @@ class ODMR:
         self._img_shape = np.array(scan_dimensions)
 
         self._data_edited = None
-        self._norm_method = QDMpy.settings["odmr"]["norm_method"]
+        self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
         self._edit_stack = [
             self.reset_data,
@@ -139,8 +140,14 @@ class ODMR:
     # index related
     def get_binned_pixel_indices(self, x, y):
         """
-        Return the indices of the binned pixels. Reference is the data index.
-        :return: numpy.ndarray
+
+        Args:
+          x: 
+          y: 
+
+        Returns:
+          :return: numpy.ndarray
+
         """
         idx = list(
             itertools.product(
@@ -153,15 +160,29 @@ class ODMR:
         return xid, yid
 
     def rc2idx(self, rc):
+        """
+
+        Args:
+          rc: 
+
+        Returns:
+
+        """
         return rc2idx(rc, self.data_shape)
 
     def idx2rc(self, idx):
+        """
+
+        Args:
+          idx: 
+
+        Returns:
+
+        """
         return idx2rc(idx, self.data_shape)
 
     def get_most_divergent_from_mean(self):
-        """
-        Get the most divergent pixel from the mean in data coordinates.
-        """
+        """Get the most divergent pixel from the mean in data coordinates."""
         delta = self.delta_mean.copy()
         delta[delta > 0.001] = np.nan
         return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)
@@ -170,8 +191,13 @@ class ODMR:
 
     @classmethod
     def _qdmio_stack_data(cls, mfile):
-        """
-        Stack the data in the ODMR object.
+        """Stack the data in the ODMR object.
+
+        Args:
+          mfile: 
+
+        Returns:
+
         """
         n_img_stacks = len([k for k in mfile.keys() if "imgStack" in k])
         img_stack1, img_stack2 = [], []
@@ -191,8 +217,13 @@ class ODMR:
 
     @classmethod
     def from_qdmio(cls, data_folder):
-        """
-        Loads QDM data from a Matlab file.
+        """Loads QDM data from a Matlab file.
+
+        Args:
+          data_folder: 
+
+        Returns:
+
         """
         files = os.listdir(data_folder)
         run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
@@ -233,12 +264,14 @@ class ODMR:
 
     @classmethod
     def get_norm_factors(cls, data, method="max"):
-        """
-        Return the normalization factors for the data.
+        """Return the normalization factors for the data.
 
-        :param data: data
-        :param method:
-        :return:
+        Args:
+          data: data
+          method: return: (Default value = "max")
+
+        Returns:
+
         """
 
         match method:
@@ -257,33 +290,47 @@ class ODMR:
     # properties
     @property
     def data_shape(self):
+        """ """
         return (self.img_shape / self.bin_factor).astype(np.uint32)
 
     @property
     def img_shape(self):
+        """ """
         return self._img_shape
 
     @property
     def n_pixel(self):
         """
-        Return the number of pixels.
-        :return: int
+
+        Args:
+
+        Returns:
+          :return: int
+
         """
         return int(self.data_shape[0] * self.data_shape[1])
 
     @property
     def n_freqs(self):
         """
-        Return the number of frequencies to be used in the fits.
-        :return: int
+
+        Args:
+
+        Returns:
+          :return: int
+
         """
         return self.frequencies.shape[1]
 
     @property
     def frequencies(self):
         """
-        Return the cropped or uncropped frequencies.
-        :return: numpy.ndarray
+
+        Args:
+
+        Returns:
+          :return: numpy.ndarray
+
         """
         if self._frequencies_cropped is None:
             return self._frequencies
@@ -292,24 +339,22 @@ class ODMR:
 
     @property
     def f_hz(self):
-        """
-        Returns the frequencies of the ODMR in Hz.
-        """
+        """Returns the frequencies of the ODMR in Hz."""
         return self.frequencies
 
     @property
     def f_ghz(self):
-        """
-        Returns the frequencies of the ODMR in GHz.
-        """
+        """Returns the frequencies of the ODMR in GHz."""
         return self.frequencies / 1e9
 
     @property
     def global_factor(self):
+        """ """
         return self._gf_factor
 
     @property
     def data(self):
+        """ """
         if self._data_edited is None:
             return np.ascontiguousarray(self._raw_data)
         else:
@@ -317,31 +362,27 @@ class ODMR:
 
     @property
     def delta_mean(self):
+        """ """
         return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
 
     @property
     def mean_odmr(self):
-        """
-        Calculate the mean of the data.
-        """
+        """Calculate the mean of the data."""
         return self.data.mean(axis=-2)
 
     @property
     def raw_contrast(self):
-        """
-        Calculate the minimum of MW sweep for each pixel.
-        """
+        """Calculate the minimum of MW sweep for each pixel."""
         return np.min(self.data, -2)
 
     @property
     def mean_contrast(self):
-        """
-        Calculate the mean contrast of the data.
-        """
+        """Calculate the mean contrast of the data."""
         return np.mean(self.raw_contrast)
 
     @property
     def _mean_baseline(self):
+        """ """
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
         baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
@@ -349,13 +390,19 @@ class ODMR:
 
     @property
     def bin_factor(self):
+        """ """
         return self._bin_factor * self._pre_bin_factor
 
     # edit methods
 
     def _apply_edit_stack(self, **kwargs):
-        """
-        Apply the edit stack.
+        """Apply the edit stack.
+
+        Args:
+          **kwargs: 
+
+        Returns:
+
         """
         self.LOG.debug("Applying edit stack")
         for edit_func in self._edit_stack:
@@ -363,8 +410,13 @@ class ODMR:
                 edit_func(**kwargs)
 
     def reset_data(self, **kwargs):
-        """
-        Reset the data.
+        """Reset the data.
+
+        Args:
+          **kwargs: 
+
+        Returns:
+
         """
         self.LOG.debug("Resetting data to raw data.")
         self._data_edited = self._raw_data.copy()
@@ -376,8 +428,14 @@ class ODMR:
         self.is_fcropped = False
 
     def normalize_data(self, method=None, **kwargs):
-        """
-        Normalize the data.
+        """Normalize the data.
+
+        Args:
+          method:  (Default value = None)
+          **kwargs: 
+
+        Returns:
+
         """
         if method is None:
             method = self._norm_method
@@ -385,8 +443,14 @@ class ODMR:
         self._apply_edit_stack(method=method)
 
     def _normalize_data(self, method="max", **kwargs):
-        """
-        Normalize the data.
+        """Normalize the data.
+
+        Args:
+          method:  (Default value = "max")
+          **kwargs: 
+
+        Returns:
+
         """
         self._norm_factors = self.get_norm_factors(self.data, method=method)
         self.LOG.debug(f"Normalizing data with method: {method}")
@@ -395,15 +459,26 @@ class ODMR:
         self._data_edited /= self._norm_factors
 
     def apply_outlier_mask(self, outlier: np.ndarray = None, **kwargs) -> None:
-        """
-        Apply the outlier mask.
+        """Apply the outlier mask.
+
+        Args:
+          outlier: np.ndarray:  (Default value = None)
+          **kwargs: 
+
+        Returns:
+
         """
         self.outlier_mask = outlier
         self._apply_edit_stack()
 
     def _apply_outlier_mask(self, **kwargs):
-        """
-        Apply the outlier mask.
+        """Apply the outlier mask.
+
+        Args:
+          **kwargs: 
+
+        Returns:
+
         """
         if self.outlier_mask is None:
             self.LOG.debug("No outlier mask applied.")
@@ -412,15 +487,27 @@ class ODMR:
         self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
 
     def bin_data(self, bin_factor, **kwargs):
-        """
-        Bin the data.
+        """Bin the data.
+
+        Args:
+          bin_factor: 
+          **kwargs: 
+
+        Returns:
+
         """
         self._edit_stack[3] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
     def _bin_data(self, bin_factor=None, **kwargs):
-        """
-        Bin the data from the raw data.
+        """Bin the data from the raw data.
+
+        Args:
+          bin_factor:  (Default value = None)
+          **kwargs: 
+
+        Returns:
+
         """
         if bin_factor is not None and self._pre_bin_factor:
             bin_factor /= self._pre_bin_factor
@@ -454,8 +541,13 @@ class ODMR:
         )
 
     def remove_overexposed(self, **kwargs):
-        """
-        Remove overexposed pixels from the data.
+        """Remove overexposed pixels from the data.
+
+        Args:
+          **kwargs: 
+
+        Returns:
+
         """
         self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
 
@@ -465,18 +557,41 @@ class ODMR:
 
     ### CORRECTION METHODS ###
     def get_gf_correction(self, gf):
+        """
+
+        Args:
+          gf: 
+
+        Returns:
+
+        """
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
         return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
     def correct_glob_fluorescence(self, gf_factor, **kwargs):
-        """
-        Correct the data for the gradient factor.
+        """Correct the data for the gradient factor.
+
+        Args:
+          gf_factor: 
+          **kwargs: 
+
+        Returns:
+
         """
         self._edit_stack[3] = self._correct_glob_fluorescence
         self._gf_factor = gf_factor
         self._apply_edit_stack(glob_fluorescence=gf_factor, **kwargs)
 
     def _correct_glob_fluorescence(self, gf_factor=None, **kwargs):
+        """
+
+        Args:
+          gf_factor:  (Default value = None)
+          **kwargs: 
+
+        Returns:
+
+        """
         if gf_factor is None:
             gf_factor = self._gf_factor
 
@@ -489,6 +604,15 @@ class ODMR:
 
     # noinspection PyTypeChecker
     def check_glob_fluorescence(self, gf_factor=None, idx=None):
+        """
+
+        Args:
+          gf_factor:  (Default value = None)
+          idx:  (Default value = None)
+
+        Returns:
+
+        """
         if idx is None:
             idx = self.get_most_divergent_from_mean()[-1]
 

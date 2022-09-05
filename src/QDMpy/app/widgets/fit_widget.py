@@ -17,7 +17,6 @@ from QDMpy.app.widgets.stats_widget import StatisticsWidget
 from QDMpy.utils import polyfit2d
 
 
-
 class FitWidget(QDMWidget):
     def __init__(self, *args, **kwargs):
         canvas = FitCanvas(self, width=12, height=12, dpi=100)

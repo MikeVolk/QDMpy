@@ -48,7 +48,7 @@ class Fit:
         self._constraints: dict = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
         self._constraint_types: np.array = None
 
-        self.estimator_id = ESTIMATOR_ID[QDMpy.settings["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
+        self.estimator_id = ESTIMATOR_ID[QDMpy.SETTINGS["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
         self._set_initial_constraints()
         if constraints is not None:
             for k in constraints:
@@ -174,7 +174,7 @@ class Fit:
         """
         Set the initial constraints for the fit.
         """
-        default_constraints = QDMpy.settings["fit"]["constraints"]
+        default_constraints = QDMpy.SETTINGS["fit"]["constraints"]
         self.set_constraints(
             "center",
             default_constraints["center_min"],
@@ -376,8 +376,8 @@ class Fit:
             initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
             weights=None,
             model_id=self.model_id,
-            max_number_iterations=QDMpy.settings["fit"]["max_number_iterations"],
-            tolerance=QDMpy.settings["fit"]["tolerance"],
+            max_number_iterations=QDMpy.SETTINGS["fit"]["max_number_iterations"],
+            tolerance=QDMpy.SETTINGS["fit"]["tolerance"],
         )
 
         return list(results)

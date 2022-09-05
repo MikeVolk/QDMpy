@@ -1,8 +1,10 @@
-import numpy.testing as npt
-import numpy as np
-from skimage.transform import downscale_local_mean
 import itertools
 import unittest
+
+import numpy as np
+import numpy.testing as npt
+from skimage.transform import downscale_local_mean
+
 from QDMpy.app.models import Pix
 
 

@@ -34,7 +34,7 @@ class StatisticsPercentile(Outlier):
         Initialize the outlier detection.
         """
         self.LOG.info(f"initializing outlier detection using default settings")
-        self.settings = QDMpy.settings["outlier_detection"][self.__class__.__name__]
+        self.settings = QDMpy.SETTINGS["outlier_detection"][self.__class__.__name__]
         self.detected = False
 
         # set the percentiles

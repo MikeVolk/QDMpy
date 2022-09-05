@@ -19,9 +19,10 @@ MODELS = ["gauss1d", "esrsingle", "esr15n", "esr14n"]
 POLARITIES = ["positive", "negative"]
 FRANGES = ["high", "low"]
 
+from pathlib import Path
+
 import pandas as pd
 from scipy.io import savemat
-from pathlib import Path
 
 
 class QDM:
@@ -208,7 +209,7 @@ class QDM:
             self.odmr._pre_bin_factor = bin_factors[0]
             self.odmr._img_shape = np.array(self.light.shape)
 
-    # global fluorescence
+    # global fluorescence related functions
     def correct_glob_fluorescence(self, glob_fluo):
         """
         Corrects the global fluorescence.
@@ -323,7 +324,7 @@ class QDM:
         """
         self._fit._set_initial_constraints()
 
-    def fit_ODMR(self):
+    def fit_odmr(self):
         """
         Fit the data using the current fit type.
         """

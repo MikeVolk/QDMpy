@@ -1,5 +1,5 @@
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtWidgets import QLabel, QDoubleSpinBox
+from PySide6.QtWidgets import QDoubleSpinBox, QLabel
 
 
 def LabeledDoubleSpinBox(label, value, decimals, step, vmin, vmax, callback):

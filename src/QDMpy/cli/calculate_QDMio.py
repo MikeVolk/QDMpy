@@ -62,7 +62,7 @@ def main(argv):
     qdm_obj = QDM.from_qdmio(args.input, diamond_type=args.diamond)
     qdm_obj.bin_data(bin_factor=args.binfactor)
     qdm_obj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
-    qdm_obj.fit_ODMR()
+    qdm_obj.fit_odmr()
     qdm_obj.export_qdmio()
     QDMpy.LOG.info(f"QDMpy finished in {time.process_time() - tstart:.2f} seconds")
 

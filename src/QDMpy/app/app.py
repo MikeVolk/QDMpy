@@ -11,7 +11,7 @@ import pandas as pd
 matplotlib.use("Agg")
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen, QFont
+from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence, QScreen
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -44,8 +44,8 @@ from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
 from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
 from QDMpy.core.qdm import QDM
-from QDMpy.utils import millify
 from QDMpy.exceptions import CantImportError
+from QDMpy.utils import millify
 
 """
 This file contains the QDMpy mainwindow for the gui.
@@ -772,7 +772,7 @@ class QDMpyApp(QMainWindow):
         self.LOG.debug("Bin Button clicked")
         self.qdm.bin_data(self.binfactor_select.value())
         if self.qdm.fitted:
-            self.qdm.fit_ODMR()
+            self.qdm.fit_odmr()
         self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
         self.update_main_content()
         self._fill_fitconstraints_widget()
@@ -782,7 +782,7 @@ class QDMpyApp(QMainWindow):
             self.LOG.warning("PyGpuFit not present")
             return
 
-        self.qdm.fit_ODMR()
+        self.qdm.fit_odmr()
         self.update_main_content()
         self.update_marker()
         self.update_odmr()

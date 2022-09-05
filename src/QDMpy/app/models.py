@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 from PySide6.QtCore import QAbstractTableModel, Qt
 
-from QDMpy.utils import rc2idx, idx2rc
+from QDMpy.utils import idx2rc, rc2idx
 
 
 class Pix:

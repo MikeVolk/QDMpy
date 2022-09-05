@@ -26,7 +26,7 @@ logging.getLogger("h5py").setLevel(logging.WARNING)
 logging_conf = Path(PROJECT_PATH, "logging.conf")
 fileConfig(logging_conf)
 
-LOG = logging.getLogger(f"QDMpy")
+LOG = logging.getLogger("QDMpy")
 
 import coloredlogs
 
@@ -43,10 +43,10 @@ LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
-from QDMpy.utils import make_configfile, load_config
+from QDMpy.utils import load_config, make_configfile
 
 make_configfile()
-settings = load_config()
+SETTINGS = load_config()
 
 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 

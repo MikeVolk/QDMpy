@@ -7,17 +7,17 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QToolBar,
     QVBoxLayout,
     QWidget,
-    QComboBox,
 )
 
-from QDMpy.app.models import Pix
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
+from QDMpy.app.models import Pix
 from QDMpy.core import models
 
 B111 = "B$_{111}$"
