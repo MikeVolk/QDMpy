@@ -694,14 +694,18 @@ class QDMpyApp(QMainWindow):
         self.import_file(work_directory, dialect="QDMio")
 
     def on_detect_outlier_button_press(self):
-        self.LOG.debug("Detecting outliers")
-        self.qdm.detect_outliers("width", method="IsolationForest")
+        if self.qdm.fitted:
+            self.LOG.debug("Detecting outliers")
+            self.qdm.detect_outliers("width", method="IsolationForest")
 
-        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
-        self.outlier_pd["x"] = self.qdm.outliers_xy[:, 0]
-        self.outlier_pd["y"] = self.qdm.outliers_xy[:, 1]
-        self.outlier_pd["idx"] = self.qdm.outliers_idx
-        self.statusBar().showMessage(f"{self.qdm.outliers_idx.size:8b} Outliers detected")
+            self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
+            self.outlier_pd["x"] = self.qdm.outliers_xy[:, 0]
+            self.outlier_pd["y"] = self.qdm.outliers_xy[:, 1]
+            self.outlier_pd["idx"] = self.qdm.outliers_idx
+            self.statusBar().showMessage(f"{self.qdm.outliers_idx.size:8b} Outliers detected")
+        else:
+            self.LOG.warning("No fit calculated yet, no outliers detected.")
+            self.statusBar().showMessage("No fit calculated yet.")
 
     def mark_outlier(self):
         for w in self._data_windows:
@@ -752,6 +756,10 @@ class QDMpyApp(QMainWindow):
         self.fill_fitconstraints_widget()
 
     def on_fit_button_press(self):
+        if not QDMpy.PYGPUFIT_PRESENT:
+            self.LOG.warning("PyGpuFit not present")
+            return
+
         self.qdm.fit_ODMR()
         self.update_main_content()
         self.update_marker()
@@ -899,11 +907,21 @@ class QDMpyApp(QMainWindow):
         self.qdm.export_qdmpy(filename.with_suffix(".b111"))
 
     def debug_call(self):
-        self.import_file(r"/media/mike/OS/Users/micha/Dropbox/FOV18x")
-        # self.import_file(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
-        # self.on_quick_start_button_press()
-        self.on_fit_button_press()
+        self.import_file(test_data_location())
+        self.on_quick_start_button_press()
 
+        if not sys.platform == 'darwin':
+            self.on_fit_button_press()
+
+def test_data_location():
+    if sys.platform == "linux":
+        return Path("/media/mike/OS/Users/micha/Dropbox/FOV18x")
+    elif sys.platform == "darwin":
+        return Path("/Users/mike/Dropbox/FOV18x")
+    elif sys.platform == "win32":
+        return Path(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+    else:
+        raise NotImplementedError
 
 def main(**kwargs):
     app = QApplication(sys.argv)

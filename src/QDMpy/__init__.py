@@ -56,7 +56,7 @@ import importlib.util
 package = "pygpufit"
 PYGPUFIT_PRESENT = importlib.util.find_spec(package)  # find_spec will look for the package
 
-if PYGPUFIT_PRESENT is None:
+if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     LOG.error(
         "Can't import pyGpufit. The package is necessary for most of the calculations. Functionality of QDMpy "
         "will be greatly diminished."
