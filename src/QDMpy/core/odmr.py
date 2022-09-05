@@ -257,7 +257,11 @@ class ODMR:
     # properties
     @property
     def data_shape(self):
-        return (self._img_shape / self.bin_factor).astype(np.uint32)
+        return (self.img_shape / self.bin_factor).astype(np.uint32)
+
+    @property
+    def img_shape(self):
+        return self._img_shape
 
     @property
     def n_pixel(self):
