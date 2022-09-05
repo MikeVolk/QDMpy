@@ -406,7 +406,7 @@ class QDMWidget(QMainWindow):
 
         # get current correction
         if self.qdm.odmr.global_factor > 0:
-            current_correct = self.qdm.odmr.get_gf_correction(gf=self.qdm.odmr.global_factor)
+            current_correct = self.qdm.odmr.calc_gf_correction(gf=self.qdm.odmr.global_factor)
             # make uncorrected
             current_data += current_correct
         return current_data
@@ -428,7 +428,7 @@ class QDMWidget(QMainWindow):
         uncorrected_odmr = self.get_uncorrected_odmr()
 
         if slider_value is not None:
-            new_correct = self.qdm.odmr.get_gf_correction(gf=slider_value / 100)
+            new_correct = self.qdm.odmr.calc_gf_correction(gf=slider_value / 100)
             corrected = uncorrected_odmr - new_correct
         else:
             corrected = self.get_current_odmr()

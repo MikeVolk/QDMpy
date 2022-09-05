@@ -2,8 +2,8 @@ import logging
 import os
 import shutil
 import sys
-from typing import Union, Tuple, List, Optional, Sequence
-
+from typing import Union, Tuple, List, Optional, Sequence, Any
+from numpy.typing import ArrayLike, NDArray
 import matplotlib.image as mpimg
 import numpy as np
 import tomli
@@ -38,7 +38,7 @@ def millify(n: float, sign: int = 1) -> str:
     return f"{n / 10**(3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
 
-def idx2rc(idx: Union[int, List[int], np.ndarray], shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarray]:
+def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[NDArray, NDArray]:
     """Convert an index to a yx coordinate of the reference.
 
     Args:
@@ -59,7 +59,7 @@ def idx2rc(idx: Union[int, List[int], np.ndarray], shape: Tuple[int, ...]) -> Tu
     return np.unravel_index(idx, shape)  # type: ignore[return-value]
 
 
-def rc2idx(rc: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
+def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
     """Convert the xy coordinates to the index of the data.
 
     Args:
@@ -74,7 +74,7 @@ def rc2idx(rc: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
 
     """
     rc = np.array(rc).astype(int)
-    return np.ravel_multi_index(rc, shape)  # type: ignore[no-any-return, call-overload]
+    return np.ravel_multi_index(rc, shape)  # type: ignore[call-overload]
 
 
 def polyfit2d(
@@ -159,7 +159,7 @@ def make_configfile(reset: bool = False) -> None:
         shutil.copy2(CONFIG_INI, CONFIG_FILE)
 
 
-def has_csv(lst: list) -> bool:
+def has_csv(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> bool:
     """Checks if a list of files contains a csv file.
 
     Args:
@@ -170,10 +170,10 @@ def has_csv(lst: list) -> bool:
       bool
 
     """
-    return any(".csv" in s for s in lst)
+    return any(".csv" in str(s) for s in lst)
 
 
-def get_image_file(lst: list) -> str:
+def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
     """Returns the first image file in the list.
 
     Args:
@@ -186,10 +186,9 @@ def get_image_file(lst: list) -> str:
 
     """
     if has_csv(lst):
-        lst = [s for s in lst if ".csv" in s]
+        lst = [s for s in lst if ".csv" in str(s)]
     else:
-        lst = [s for s in lst if ".jpg" in s]
-
+        lst = [s for s in lst if ".jpg" in str(s)]
     return str(lst[0])
 
 
@@ -202,6 +201,8 @@ def get_image(folder: Union[str,bytes, os.PathLike], lst: Sequence[Union[str,byt
     Returns: loaded image from either csv or jpg file if csv is not available
 
     """
+    folder = str(folder)
+
     if has_csv(lst):
         img = np.loadtxt(os.path.join(folder, get_image_file(lst)))
     else:

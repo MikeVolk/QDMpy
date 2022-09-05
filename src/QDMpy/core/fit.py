@@ -1,17 +1,22 @@
 import logging
 import os.path
 from pathlib import Path
+from typing import List, Tuple, Union, Any, Dict, Optional
+from collections.abc import Callable
+from numpy.typing import ArrayLike, NDArray
 
 import numpy as np
 import pandas as pd
 
 import QDMpy
 
-if QDMpy.PYGPUFIT_PRESENT:
+if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
     import pygpufit.gpufit as gf
+
 from scipy.io import savemat
 
-from QDMpy.core import models
+import QDMpy.core.models
+from QDMpy.core.models import IMPLEMENTED
 
 FIT_PARAMETER = {
     "GAUSS_1D": ["contrast", "center", "width", "offset"],
@@ -23,18 +28,17 @@ UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
 CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
-MODELS = {
-    "gauss1d": [models.gauss1d, 3],
-    "esr14n": [models.esr14n, 6],
-    "esr15n": [models.esr15n, 5],
-    "esrsingle": [models.esrsingle, 4],
+MODELS: Dict[str, Tuple[Callable, int]] = {
+    "gauss1d": (QDMpy.core.models.esrsingle, 3),
+    "esr14n": (QDMpy.core.models.esr14n, 6),
+    "esr15n": (QDMpy.core.models.esr15n, 5),
+    "esrsingle": (QDMpy.core.models.esrsingle, 4),
 }
-
 
 class Fit:
     LOG = logging.getLogger(__name__)
 
-    def __init__(self, data, frequencies, model, constraints=None):
+    def __init__(self, data: NDArray, frequencies: NDArray, model: str, constraints: Optional[Dict[str, Any]] = None):
 
         self._data = data
         self.f_ghz = frequencies
@@ -46,8 +50,8 @@ class Fit:
 
         # fit results
         self._reset_fit()
-        self._constraints: dict = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
-        self._constraint_types: np.array = None
+        self._constraints: Dict[str,List[Union[float, str]]] = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
+        self._constraint_types: List[Union[str, None]] = None
 
         self.estimator_id = ESTIMATOR_ID[QDMpy.SETTINGS["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
         self._set_initial_constraints()
@@ -55,27 +59,34 @@ class Fit:
             for k in constraints:
                 self.set_constraints(k, constraints[k])
 
-    def __repr__(self):
+    @property
+    def model_params(self) -> dict:
+        """
+        Return the model parameters.
+        """
+        return IMPLEMENTED[self.model]
+
+    def __repr__(self) -> str:
         return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model})"
 
-    def _reset_fit(self):
+    def _reset_fit(self) -> None:
         self._fitted = False
-        self._parameter: np.array = None
-        self._states: np.array = None
-        self._chi_squares: np.array = None
-        self._number_iterations: np.array = None
-        self._execution_time: np.array = None
+        self._fit_results = None
+        self._states = None
+        self._chi_squares = None
+        self._number_iterations = None
+        self._execution_time = None
 
     @property
-    def fitted(self):
+    def fitted(self) -> bool:
         return self._fitted
 
     @property
-    def data(self):
+    def data(self) -> NDArray:
         return self._data
 
     @data.setter
-    def data(self, data):
+    def data(self, data:NDArray) -> None:
         if np.all(self._data == data):
             return
         self._data = data
@@ -83,19 +94,19 @@ class Fit:
         self._reset_fit()
 
     @property
-    def model(self):
-        return MODELS[self._model.lower()]
+    def model(self) -> Callable:
+        return MODELS[self._model.lower()][0]
 
     @model.setter
-    def model(self, model):
-        if model.lower() not in MODELS:
-            raise ValueError(f"Unknown model: {model} choose from {MODELS}")
+    def model(self, model:str) -> None:
+        if model.upper() not in IMPLEMENTED:
+            raise ValueError(f"Unknown model: {model} choose from {list(IMPLEMENTED.keys())}")
         self._model = model.upper()
         self._reset_fit()
         self._initial_parameter = self.get_initial_parameter()
 
     @property
-    def initial_parameter(self):
+    def initial_parameter(self) -> NDArray:
         """
         Return the initial parameter.
         """
@@ -104,15 +115,15 @@ class Fit:
         return self._initial_parameter
 
     @property
-    def model_id(self):
+    def model_id(self) -> int:
         return getattr(gf.ModelID, self._model)
 
     @property
-    def fitting_parameter(self):
+    def fitting_parameter(self) -> List[str]:
         return FIT_PARAMETER[self._model]
 
     @property
-    def fitting_parameter_unique(self):
+    def fitting_parameter_unique(self) -> List[str]:
         """
         Return a list of unique fitting parameters.
         :return: list
@@ -129,10 +140,14 @@ class Fit:
         return lst
 
     @property
-    def n_parameter(self):
+    def n_parameter(self) -> int:
         return len(self.fitting_parameter)
 
-    def set_constraints(self, param, vmin=None, vmax=None, constraint_type=None):
+    def set_constraints(self,
+                        param:str,
+                        vmin:Union[float, None]=None,
+                        vmax:Union[float, None]=None,
+                        constraint_type:Union[str, None]=None):
         """
         Set the constraints for the fit.
 
@@ -202,27 +217,27 @@ class Fit:
         )
 
     @property
-    def constraints(self):
+    def constraints(self) -> Dict[str, List[Union[float, str]]]:
         return self._constraints
 
-    def constraints_changed(self, constraints, constraint_types):
+    def constraints_changed(self, constraints: List[float], constraint_types: List[str]) -> bool:
         """
         Check if the constraints have changed.
         """
-        return self._constraints != constraints or self._constraint_types != constraint_types
+        return list(self._constraints.keys()) != constraints or self._constraint_types != constraint_types
 
-    def get_constraints_array(self, n_pixel):
+    def get_constraints_array(self, n_pixel: int) -> NDArray:
         """
         Return the constraints as an array (pixel, 2*fitting_parameters).
         :return: np.array
         """
-        constraints_list = []
+        constraints_list:List[float] = []
         for k in self.fitting_parameter_unique:
             constraints_list.extend((self._constraints[k][0], self._constraints[k][1]))
         constraints = np.tile(constraints_list, (n_pixel, 1))
         return constraints
 
-    def get_constraint_types(self):
+    def get_constraint_types(self) -> NDArray:
         """
         Return the constraint types.
         :return: np.array
@@ -232,24 +247,23 @@ class Fit:
 
     # parameters
     @property
-    def parameter(self):
-        return self._parameter
+    def parameter(self) -> NDArray:
+        return self._fit_results
 
-    def get_param(self, param):
+    def get_param(self, param: str) -> Union[NDArray, None]:
         """
         Get the value of a parameter reshaped to the image dimesions.
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
-        if param in ["chi2", "chi_squares", "chi_squared"]:
+        if param in ("chi2", "chi_squares", "chi_squared"):
             return self._chi_squares
         idx = self._param_idx(param)
+        if param == "mean_contrast":
+            return np.mean(self._fit_results[:, :, :, idx], axis=-1)  # type: ignore[index]
+        return self._fit_results[:, :, :, idx]  # type: ignore[index]
 
-        if param == 'mean_contrast':
-            return np.mean(self._parameter[:, :, :, idx], axis=-1)
-        return self._parameter[:, :, :, idx]
-
-    def _param_idx(self, parameter):
+    def _param_idx(self, parameter: str) -> List[int]:
         """
         Get the index of the fitted parameter.
         :param parameter:
@@ -267,7 +281,7 @@ class Fit:
         return idx
 
     # initial guess
-    def _guess_center(self):
+    def _guess_center(self) -> NDArray:
         """
         Guess the center of the ODMR spectra.
         """
@@ -275,7 +289,7 @@ class Fit:
         self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
         return center
 
-    def _guess_contrast(self):
+    def _guess_contrast(self) -> NDArray:
         """
         Guess the contrast of the ODMR spectra.
         """
@@ -284,7 +298,7 @@ class Fit:
         # np.ones((self.n_pol, self.n_frange, self.n_pixel)) * 0.03
         return contrast
 
-    def _guess_width(self):
+    def _guess_width(self) -> NDArray:
         """
         Guess the width of the ODMR spectra.
         """
@@ -292,7 +306,7 @@ class Fit:
         self.LOG.debug(f"Guessing width of ODMR spectra {width.shape}.")
         return width
 
-    def _guess_offset(self):
+    def _guess_offset(self) -> NDArray:
         """
         Guess the offset from 0 of the ODMR spectra. Usually this is 1
         """
@@ -301,7 +315,7 @@ class Fit:
         self.LOG.debug(f"Guessing offset {offset.shape}")
         return offset
 
-    def get_initial_parameter(self):
+    def get_initial_parameter(self) -> NDArray:
         """
         Constructs an initial guess for the fit.
         """
@@ -314,7 +328,7 @@ class Fit:
         fit_parameter = np.stack(fit_parameter, axis=fit_parameter[-1].ndim)
         return np.ascontiguousarray(fit_parameter, dtype=np.float32)
 
-    def fit_odmr(self):
+    def fit_odmr(self) -> None:
         if self._fitted:
             self.LOG.debug("Already fitted")
             return
@@ -331,24 +345,24 @@ class Fit:
             )
             results = self.reshape_results(results)
 
-            if self._parameter is None:
-                self._parameter = results[0]
+            if self._fit_results is None:
+                self._fit_results = results[0]
                 self._states = results[1]
                 self._chi_squares = results[2]
                 self._number_iterations = results[3]
                 self._execution_time = results[4]
             else:
-                self._parameter = np.stack((self._parameter, results[0]))
+                self._fit_results = np.stack((self._fit_results, results[0]))
                 self._states = np.stack((self._states, results[1]))
                 self._chi_squares = np.stack((self._chi_squares, results[2]))
                 self._number_iterations = np.stack((self._number_iterations, results[3]))
                 self._execution_time = np.stack((self._execution_time, results[4]))
 
             self.LOG.info(f"fit finished in {results[4]:.2f} seconds")
-        self._parameter = np.swapaxes(self._parameter, 0, 1)
+        self._fit_results = np.swapaxes(self._fit_results, 0, 1)  # type: ignore[call-overload]
         self._fitted = True
 
-    def fit_frange(self, data, freq, initial_parameters):
+    def fit_frange(self, data: NDArray, freq: NDArray, initial_parameters: NDArray) -> List[NDArray]:
         """
         Wrapper for the fit_constrained function.
 
@@ -383,14 +397,14 @@ class Fit:
 
         return list(results)
 
-    def reshape_results(self, results):
+    def reshape_results(self, results: List[NDArray]) -> NDArray:
         for i in range(len(results)):
             if isinstance(results[i], float):
                 continue
             results[i] = self.reshape_result(results[i])
         return results
 
-    def reshape_result(self, result):
+    def reshape_result(self, result: NDArray) -> NDArray:
         """
         Reshape the results to the original shape of (npol, npix, -1)
         """
@@ -399,7 +413,7 @@ class Fit:
         return np.squeeze(result)
 
 
-def guess_contrast(data):
+def guess_contrast(data: NDArray) -> NDArray:
     """
     Guess the contrast of a ODMR data.
 
@@ -414,7 +428,7 @@ def guess_contrast(data):
     return amp * 0.9
 
 
-def guess_center(data, freq):
+def guess_center(data: NDArray, freq: NDArray) -> NDArray:
     """
     Guess the center frequency of ODMR data.
 
@@ -437,7 +451,7 @@ def guess_center(data, freq):
     return center
 
 
-def guess_width(data, freq):
+def guess_width(data: NDArray, freq: NDArray) -> NDArray:
     """
     Guess the width of a ODMR resonance peaks.
 
@@ -460,7 +474,7 @@ def guess_width(data, freq):
     return width / 6
 
 
-def guess_width_single(data, freq):
+def guess_width_single(data: NDArray, freq: NDArray) -> NDArray:
     """
     Guess the width of a single frequency range.
 
@@ -478,14 +492,27 @@ def guess_width_single(data, freq):
     return freq[lidx] - freq[ridx]
 
 
-def normalized_cumsum(data):
+def normalized_cumsum(data: NDArray) -> NDArray:
+    """Calculate the normalized cumulative sum of the data.
+
+    Parameters
+    ----------
+    data : NDArray
+        Data to calculate the normalized cumulative sum of.
+
+
+    Returns
+    -------
+    NDArray
+        Normalized cumulative sum of the data.
+    """
     data = np.cumsum(data - 1, axis=-1)
     data -= np.expand_dims(np.min(data, axis=-1), axis=2)
     data /= np.expand_dims(np.max(data, axis=-1), axis=2)
     return data
 
 
-def guess_center_freq_single(data, freq):
+def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
     """
     Guess the center frequency of a single frequency range.
 
@@ -501,11 +528,14 @@ def guess_center_freq_single(data, freq):
     return freq[idx]
 
 
-def make_dummy_data(model: str = "esr14n", n_freq: int = 100, scan_dimensions=None, noise=0):
+def make_dummy_data(
+    model: str = "esr14n", n_freq: int = 100, scan_dimensions: Union[Tuple[int, int], None] = None, noise: float = 0
+) -> Tuple[NDArray, NDArray, NDArray]:
     if scan_dimensions is None:
-        scan_dimensions = [120, 190]
+        scan_dimensions = (120, 190)
     if model not in MODELS:
         raise ValueError(f"Unknown model {model}")
+
     model_func = MODELS[model][0]
     n_parameter = MODELS[model][1]
 
@@ -543,14 +573,27 @@ def make_dummy_data(model: str = "esr14n", n_freq: int = 100, scan_dimensions=No
     return mall, f_ghz, pall
 
 
-def make_parameter_array(c0, n_params, p, params):
+def make_parameter_array(c0: float, n_params: int, p: NDArray, params: Dict[int, List[float]]) -> np.ndarray:
+    """Make a parameter array for a given center frequency.
+
+    :param c0: float
+        center frequency
+    :param n_params: int
+        number of parameters
+    :param p: np.array
+        parameter array
+    :param params: dict
+        parameter dictionary
+    :return: np.array
+        parameter array
+    """
     p00 = p.copy()
     p00[:, 0] *= c0 - 0.0001
     p00[:, 1:] *= params[n_params]
     return p00
 
 
-def write_test_qdmio_file(path, **kwargs):
+def write_test_qdmio_file(path: Union[str, os.PathLike], **kwargs: Any) -> None:
     path = Path(path)
     path.mkdir(exist_ok=True)
 

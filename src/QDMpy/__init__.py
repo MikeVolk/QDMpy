@@ -54,7 +54,7 @@ desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 import importlib.util
 
 package = "pygpufit"
-PYGPUFIT_PRESENT = importlib.util.find_spec(package)  # find_spec will look for the package
+PYGPUFIT_PRESENT = True if importlib.util.find_spec(package) is not None else False # find_spec will look for the package
 
 if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     LOG.error(
@@ -87,3 +87,14 @@ def reset_config():
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")
     sys.exit(0)
+
+
+def test_data_location():
+    if sys.platform == "linux":
+        return Path("/media/mike/OS/Users/micha/Dropbox/FOV18x")
+    elif sys.platform == "darwin":
+        return Path("/Users/mike/Dropbox/FOV18x")
+    elif sys.platform == "win32":
+        return Path(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+    else:
+        raise NotImplementedError

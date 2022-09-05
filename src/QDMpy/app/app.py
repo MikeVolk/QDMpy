@@ -1,52 +1,5 @@
-import contextlib
-import logging
-import sys
-import time
-from pathlib import Path
-
-import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
-
-matplotlib.use("Agg")
-
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence, QScreen
-from PySide6.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QDoubleSpinBox,
-    QFileDialog,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QProgressDialog,
-    QPushButton,
-    QSizePolicy,
-    QStatusBar,
-    QTableWidget,
-    QTableWidgetItem,
-    QToolBar,
-    QVBoxLayout,
-    QWidget,
-)
-
-import QDMpy
-from QDMpy.app.widgets.fit_widget import FitWidget
-from QDMpy.app.widgets.fluo_widget import FluoWidget
-from QDMpy.app.widgets.global_widget import GlobalWidget
-from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
-from QDMpy.app.widgets.simple_widget import SimpleWidget
-from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from QDMpy.core.qdm import QDM
-from QDMpy.exceptions import CantImportError
-from QDMpy.utils import millify
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 This file contains the QDMpy mainwindow for the gui.
 QDMpy is free software: you can redistribute it and/or modify
@@ -63,17 +16,20 @@ Copyright (c) the QDMpy Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/mikevolk/QDMpy>
 """
 
-colors = {
-    "Bright Gray": "#EAEFF9",
-    "Pale Cerulean": "#A1C4D8",
-    "Blue-Gray": "#5C9DC0",
-    "X11 Gray": "#BEBEBE",
-    "Taupe Gray": "#878787",
-    "near-white": "#F8F8F8",
-    "near-black": "#1E1E1E",
-}
-plt.style.use("fast")
-matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5})
+import contextlib
+import logging
+import sys
+import time
+from pathlib import Path
+
+import matplotlib
+
+from src.QDMpy import test_data_location
+
+matplotlib.use("Agg")
+
+from QDMpy.app.widgets.fit_widget import FitWidget
+from QDMpy.utils import millify
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -91,7 +47,6 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -100,10 +55,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QStatusBar,
-    QTableWidget,
-    QTableWidgetItem,
     QToolBar,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -502,7 +454,9 @@ class QDMpyApp(QMainWindow):
 
     ### INFO TABLE ###
     def get_infotable_widget(self):
-        self.infotable_widget = QGroupBox("Measurement Infos", )
+        self.infotable_widget = QGroupBox(
+            "Measurement Infos",
+        )
         self.info_grid = QGridLayout()
         self.infotable_widget.setLayout(self.info_grid)
 
@@ -517,7 +471,6 @@ class QDMpyApp(QMainWindow):
             "# frequencies",
             "bin factor",
         ]
-
 
         # fill index column
         if self._info_elements is None:
@@ -540,7 +493,6 @@ class QDMpyApp(QMainWindow):
         if infos is not None:
             for i, e in enumerate(entries):
                 self._info_elements[e][1].setText(str(infos[i]))
-
 
     def on_info_button_press(self):
         if self.infotable_widget is None:
@@ -816,11 +768,11 @@ class QDMpyApp(QMainWindow):
 
     def get_infos(self):
         return [
-            f'{self.qdm.odmr.img_shape[0]}x{self.qdm.odmr.img_shape[1]}',
-            f'{self.qdm.odmr.data_shape[0]}x{self.qdm.odmr.data_shape[1]}',
+            f"{self.qdm.odmr.img_shape[0]}x{self.qdm.odmr.img_shape[1]}",
+            f"{self.qdm.odmr.data_shape[0]}x{self.qdm.odmr.data_shape[1]}",
             self.qdm.odmr.n_pol,
             self.qdm.odmr.n_frange,
-            millify(self.qdm.odmr.data[0,0,:,0].size),
+            millify(self.qdm.odmr.data[0, 0, :, 0].size),
             self.qdm.odmr.n_freqs,
             self.qdm.bin_factor,
         ]
@@ -909,17 +861,6 @@ class QDMpyApp(QMainWindow):
 
         if not sys.platform == "darwin":
             self.on_fit_button_press()
-
-
-def test_data_location():
-    if sys.platform == "linux":
-        return Path("/media/mike/OS/Users/micha/Dropbox/FOV18x")
-    elif sys.platform == "darwin":
-        return Path("/Users/mike/Dropbox/FOV18x")
-    elif sys.platform == "win32":
-        return Path(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
-    else:
-        raise NotImplementedError
 
 
 def main(**kwargs):

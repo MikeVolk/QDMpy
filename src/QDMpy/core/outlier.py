@@ -1,7 +1,9 @@
 import logging
 from dataclasses import dataclass
+from typing import Any, List, Tuple, Union
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 import QDMpy
 import QDMpy.utils
@@ -9,49 +11,55 @@ import QDMpy.utils
 
 @dataclass
 class Outlier:
-    b111: np.ndarray
-    chi2: np.ndarray
-    width: np.ndarray
-    mean_contrast: np.ndarray
+    data_shape: Tuple[int, int]
     LOG = logging.getLogger(f"QDMpy.{__name__}")
 
-
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.outlier: np.ndarray = np.zeros(self.b111.shape, dtype=bool)
         self.settings = None
 
-    def detect_outlier(self, **kwargs):
+    def detect_outlier(self, **kwargs) -> None:
         pass
 
-    def __repr__(self):
-        return f"Outlier(b111={self.b111.shape}, chi2={self.chi2.shape}, width={self.width.shape}, mean_contrast={self.mean_contrast.shape})"
+    @property
+    def n(self):
+        return self.outlier.sum()
+
+    def __repr__(self) -> str:
+        return f"Outlier(b111={self.data_shape})"
 
 
 class StatisticsPercentile(Outlier):
+    def __repr__(self):
+        return (
+            f"Outlier(b111={self.data_shape}, chi2={self.chi2.shape}, "
+            f"width={self.width.shape}, mean_contrast={self.mean_contrast.shape})"
+        )
+
+    def __init__(self, b111: NDArray, chi2: NDArray, width: NDArray, mean_contrast: NDArray):
+        self.b111 = b111
+        self.chi2 = chi2
+        self.width = width
+        self.mean_contrast = mean_contrast
+        super(StatisticsPercentile, self).__init__(data_shape=b111.shape)
 
     def __post_init__(self):
         """
         Initialize the outlier detection.
         """
-        self.LOG.info(f"initializing outlier detection using default settings")
+        self.LOG.info("initializing outlier detection using default settings")
         self.settings = QDMpy.SETTINGS["outlier_detection"][self.__class__.__name__]
+        self.data_shape = self.b111.shape
         self.detected = False
-
-        # set the percentiles
         self._chi2_percentile = self.settings["chi2_percentile"]
         self._width_percentile = self.settings["width_percentile"]
         self._contrast_percentile = self.settings["contrast_percentile"]
-
-        # initialize the ranges
         self._chi2_range = [self.chi2.min(), self.chi2.max()]
         self._width_range = [self.width.min(), self.width.max()]
         self._contrast_range = [self.mean_contrast.min(), self.mean_contrast.max()]
-
-        # initialize arrays
         self.chi2_outlier = np.zeros(self.b111.shape, dtype=bool)
         self.width_outlier = np.zeros(self.b111.shape, dtype=bool)
         self.contrast_outlier = np.zeros(self.b111.shape, dtype=bool)
-        # detect outliers
         self.detect_outlier(self._chi2_percentile, self._width_percentile, self._contrast_percentile)
 
     # PROPERTIES AND SETTERS
@@ -94,9 +102,6 @@ class StatisticsPercentile(Outlier):
     def contrast_range(self):
         return self._contrast_range
 
-    @property
-    def n(self):
-        return sum(self.outliers)
     # METHODS
 
     def set_ranges(self, chi2_percentile, contrast_percentile, width_percentile):
@@ -144,6 +149,7 @@ class StatisticsPercentile(Outlier):
             self.LOG.warning(f"parameter range for {dtype} changed, outlier detection needs to be rerun")
             self.detected = False
         return data_range
+
 
 def main():
     from scipy.io import loadmat

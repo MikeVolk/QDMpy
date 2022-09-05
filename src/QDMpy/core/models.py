@@ -2,8 +2,20 @@ import numpy as np
 
 
 def esr14n(x, parameter):
-    """
-    ESR14N model
+    """ ESR14N model
+
+    Args:
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = contrast
+            parameter[4] = contrast
+            parameter[5] = offset
+
+    Returns:
+        np.ndarray: y values
     """
     out = []
     AHYP = 0.002158
@@ -26,8 +38,19 @@ def esr14n(x, parameter):
 
 
 def esr15n(x, parameter):
-    """
-    ESR15N model
+    """ ESR15N model
+
+    Args:
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = contrast
+            parameter[4] = offset
+
+    Returns:
+        np.ndarray: y values
     """
     out = []
     AHYP = 0.0015
@@ -48,8 +71,18 @@ def esr15n(x, parameter):
 
 
 def esrsingle(x, parameter):
-    """
-    ESR15N model
+    """ ESRSINGLE model
+
+    Args:
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = offset
+
+    Returns:
+        np.ndarray: y values
     """
     out = []
 
@@ -62,3 +95,31 @@ def esrsingle(x, parameter):
 
         out.append(1 + p[3] - dip1)
     return np.array(out)
+
+
+IMPLEMENTED = {
+    "GAUSS1D": {
+        "n_peaks": 1,
+        "model_func": None,
+        "param": ["contrast", "center", "width", "offset"],
+        "model_id": 0,
+    },
+    "ESR14N": {
+        "n_peaks": 3,
+        "model_func": esr14n,
+        "param": ["center", "width", "contrast", "contrast", "contrast", "offset"],
+        "model_id": 13,
+    },
+    "ESR15N": {
+        "n_peaks": 2,
+        "model_func": esr15n,
+        "param": ["center", "width", "contrast", "contrast", "offset"],
+        "model_id": 14,
+    },
+    "ESRSINGLE": {
+        "n_peaks": 1,
+        "model_func": esrsingle,
+        "param": ["center", "width", "contrast", "offset"],
+        "model_id": 15,
+    },
+}

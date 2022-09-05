@@ -219,7 +219,7 @@ class QDM:
         """mirrors the bin_factor of the ODMR instance"""
         return self.odmr.bin_factor
 
-    def bin_data(self, bin_factor: float) -> None:
+    def bin_data(self, bin_factor: int) -> None:
         """Bin the data.
 
         Args:
@@ -340,7 +340,7 @@ class QDM:
             self._fit.model = MODELS[self._diamond_type]
 
     @property
-    def data_shape(self) -> Tuple[int, ...]:
+    def data_shape(self) -> NDArray:
         """ """
         return self.odmr.data_shape
 
@@ -433,7 +433,7 @@ class QDM:
 
     ## from METHODS ##
     @classmethod
-    def from_matlab(cls, matlab_files: Union[os.PathLike[Any], str], dialect: str = "QDM.io") -> QDM:
+    def from_matlab(cls, matlab_files: Union[os.PathLike[Any], str], dialect: str = "QDM.io") -> Any:
         """Loads QDM data from a Matlab file.
 
         Args:
@@ -451,7 +451,7 @@ class QDM:
         raise NotImplementedError(f'Dialect "{dialect}" not implemented.')
 
     @classmethod
-    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], diamond_type: Union[str, int, None] = None) -> QDM:
+    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], diamond_type: Union[str, int, None] = None) -> Any:
         """Loads QDM data from a Matlab file.
 
         Args:
@@ -586,7 +586,7 @@ class QDM:
             shape = self.odmr.img_shape
         else:
             raise ValueError(f"Reference {ref} not supported.")
-        return rc2idx(rc, shape)
+        return rc2idx(rc, shape) # type: ignore[arg-type]
 
     def idx2rc(
         self, idx: Union[int, np.ndarray], ref: str = "data"
@@ -606,7 +606,7 @@ class QDM:
 
         """
         if ref == "data":
-            rc = idx2rc(idx, self.data_shape)
+            rc = idx2rc(idx, self.data_shape) # type: ignore[arg-type]
         elif ref == "img":
             rc = idx2rc(idx, self.light.shape)
         else:

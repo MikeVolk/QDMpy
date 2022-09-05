@@ -2,6 +2,7 @@ import itertools
 import logging
 import os
 import re
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import mat73
 import numpy as np
@@ -12,15 +13,16 @@ from scipy.io import loadmat
 from skimage.measure import block_reduce
 
 import QDMpy
+import QDMpy.utils
 from QDMpy.exceptions import WrongFileNumber
-from QDMpy.utils import idx2rc, rc2idx
 
 
 class ODMR:
     """ """
+
     LOG = logging.getLogger(__name__)
 
-    def __init__(self, data, scan_dimensions, frequencies, **kwargs):
+    def __init__(self, data: NDArray, scan_dimensions: NDArray, frequencies: NDArray, **kwargs: Any) -> None:
         self.LOG.info("ODMR data object initialized")
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {data.shape}")
@@ -38,7 +40,7 @@ class ODMR:
         self.outlier_mask = None
         self._img_shape = np.array(scan_dimensions)
 
-        self._data_edited = None
+        self._data_edited = np.ones(data.shape)
         self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
         self._edit_stack = [
@@ -55,7 +57,7 @@ class ODMR:
         self._bin_factor = 1
         self._pre_bin_factor = 1  # in case pre binned data is loaded
 
-        self._gf_factor = 0
+        self._gf_factor = 0.0
 
         self.is_binned = False
         self.is_gf_corrected = False  # global fluorescence correction
@@ -63,33 +65,39 @@ class ODMR:
         self.is_cropped = False
         self.is_fcropped = False
 
-    def __repr__(self):
-        return f"ODMR(data={self.data.shape}, " \
-               f"scan_dimensions={self.data_shape}, n_pol={self.n_pol}, " \
-               f"n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}"
+    def __repr__(self) -> str:
+        return (
+            f"ODMR(data={self.data.shape}, "
+            f"scan_dimensions={self.data_shape}, n_pol={self.n_pol}, "
+            f"n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}"
+        )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[Sequence[Union[str]], str]) -> NDArray:
         """
         Return the data of a given polarization, frequency range, pixel or frequency.
-        Usage:
-            odmr['+'] -> pos. polarization
-            odmr['+', '<'] -> pos. polarization + low frequency range
-            NOTE: pixels need to be specified as a list of indices.
-            odmr['+', '<', [0]] -> pos. polarization + low frequency range + pixel 0
-            odmr['+', '<', [[1],[2]] -> pos. polarization + low frequency range + pixel with x/y coordinates (2,1)
 
-        :param item: str, int, list
-        :return: numpy.ndarray
+        Args:
+            item: desired return value   (Default value = None)
+                  currently available:
+                      '+' - positive polarization
+                      '-' - negative polarization
+                      '<' - lower frequency range
+                      '>' - higher frequency range
+                      'r' - reshape to 2D image (data_shape)
+
+        Returns: data of the desired return value
+
+        Examples:
+        >>> odmr['+'] -> pos. polarization
+        >>> odmr['+', '<'] -> pos. polarization + low frequency range
+
         """
         # todo implement slicing
         # if isinstance(item, slice):
         #     return self.data[item]
 
-        # if all items are indices make a list of indices
-        if all(isinstance(i, int) for i in item):
-            item = [item]
-
-        item = np.atleast_1d(item)
+        if isinstance(item, int) or all(isinstance(i, int) for i in item):
+            raise NotImplementedError("Indexing with only integers is not implemented yet.")
 
         idx, linear_idx = None, None
 
@@ -139,12 +147,12 @@ class ODMR:
         return np.squeeze(d)
 
     # index related
-    def get_binned_pixel_indices(self, x, y):
+    def get_binned_pixel_indices(self, x: int, y: int) -> Tuple[Sequence[int], Sequence[int]]:
         """
 
         Args:
-          x: 
-          y: 
+          x:
+          y:
 
         Returns:
           :return: numpy.ndarray
@@ -160,72 +168,73 @@ class ODMR:
         yid = [i[1] for i in idx]
         return xid, yid
 
-    def rc2idx(self, rc):
+    def rc2idx(self, rc: ArrayLike) -> NDArray:
         """
 
         Args:
-          rc: 
+          rc:
 
         Returns:
 
         """
-        return rc2idx(rc, self.data_shape)
+        return QDMpy.utils.rc2idx(rc, self.data_shape)  # type: ignore[arg-type]
 
-    def idx2rc(self, idx):
+    def idx2rc(self, idx: ArrayLike) -> Tuple[NDArray, NDArray]:
         """
 
         Args:
-          idx: 
+          idx:
 
         Returns:
 
         """
-        return idx2rc(idx, self.data_shape)
+        return QDMpy.utils.idx2rc(idx, self.data_shape)  # type: ignore[arg-type]
 
-    def get_most_divergent_from_mean(self):
+    def get_most_divergent_from_mean(self) -> Tuple[int, int]:
         """Get the most divergent pixel from the mean in data coordinates."""
         delta = self.delta_mean.copy()
         delta[delta > 0.001] = np.nan
-        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)
+        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)  # type: ignore[return-value]
 
     # from methods
 
     @classmethod
-    def _qdmio_stack_data(cls, mfile):
+    def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
         """Stack the data in the ODMR object.
 
         Args:
-          mfile: 
+          mat_dict:
 
         Returns:
 
         """
-        n_img_stacks = len([k for k in mfile.keys() if "imgStack" in k])
+        n_img_stacks = len([k for k in mat_dict.keys() if "imgStack" in k])
         img_stack1, img_stack2 = [], []
 
         if n_img_stacks == 2:
             # IF ONLY 2 IMG-STACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
             cls.LOG.debug("Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
-            img_stack1 = mfile["imgStack1"].T
-            img_stack2 = mfile["imgStack2"].T
+            img_stack1 = mat_dict["imgStack1"].T
+            img_stack2 = mat_dict["imgStack2"].T
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-            img_stack1 = np.concatenate([mfile["imgStack1"].T, mfile["imgStack2"].T])
-            img_stack2 = np.concatenate([mfile["imgStack3"].T, mfile["imgStack4"].T])
+            img_stack1 = np.concatenate([mat_dict["imgStack1"].T, mat_dict["imgStack2"].T])
+            img_stack2 = np.concatenate([mat_dict["imgStack3"].T, mat_dict["imgStack4"].T])
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
-    def from_qdmio(cls, data_folder):
+    def from_qdmio(cls, data_folder: Union[str, os.PathLike]) -> "ODMR":
         """Loads QDM data from a Matlab file.
 
         Args:
-          data_folder: 
+          data_folder:
 
         Returns:
 
         """
+
         files = os.listdir(data_folder)
         run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
 
@@ -240,11 +249,13 @@ class ODMR:
             raw_data = [mat73.loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
 
         data = None
+
         for mfile in raw_data:
             d = cls._qdmio_stack_data(mfile)
             data = d if data is None else np.stack((data, d), axis=0)
-        if data.ndim == 3:
-            data = data[np.newaxis, :, :, :]
+
+        if data.ndim == 3:  # type: ignore[union-attr]
+            data = data[np.newaxis, :, :, :]  # type: ignore[index]
         scan_dimensions = np.array(
             [np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(raw_data[0]["imgNumCols"])], dtype=int
         )
@@ -261,10 +272,10 @@ class ODMR:
         frequencies = np.squeeze(raw_data[0]["freqList"]).astype(np.float32)
         if n_freqs != len(frequencies):
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
-        return cls(data=data, scan_dimensions=scan_dimensions, frequencies=frequencies)
+        return cls(data=data, scan_dimensions=scan_dimensions, frequencies=frequencies)  # type: ignore[arg-type]
 
     @classmethod
-    def get_norm_factors(cls, data, method="max"):
+    def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
         """Return the normalization factors for the data.
 
         Args:
@@ -273,6 +284,7 @@ class ODMR:
 
         Returns:
 
+        Raises: NotImplementedError: if method is not implemented
         """
 
         match method:
@@ -290,17 +302,17 @@ class ODMR:
 
     # properties
     @property
-    def data_shape(self):
+    def data_shape(self) -> NDArray:
         """ """
         return (self.img_shape / self.bin_factor).astype(np.uint32)
 
     @property
-    def img_shape(self):
+    def img_shape(self) -> NDArray:
         """ """
         return self._img_shape
 
     @property
-    def n_pixel(self):
+    def n_pixel(self) -> int:
         """
 
         Args:
@@ -312,7 +324,7 @@ class ODMR:
         return int(self.data_shape[0] * self.data_shape[1])
 
     @property
-    def n_freqs(self):
+    def n_freqs(self) -> int:
         """
 
         Args:
@@ -324,7 +336,7 @@ class ODMR:
         return self.frequencies.shape[1]
 
     @property
-    def frequencies(self):
+    def frequencies(self) -> NDArray:
         """
 
         Args:
@@ -339,22 +351,22 @@ class ODMR:
             return self._frequencies_cropped
 
     @property
-    def f_hz(self):
+    def f_hz(self) -> NDArray:
         """Returns the frequencies of the ODMR in Hz."""
         return self.frequencies
 
     @property
-    def f_ghz(self):
+    def f_ghz(self) -> NDArray:
         """Returns the frequencies of the ODMR in GHz."""
         return self.frequencies / 1e9
 
     @property
-    def global_factor(self):
+    def global_factor(self) -> float:
         """ """
         return self._gf_factor
 
     @property
-    def data(self):
+    def data(self) -> NDArray:
         """ """
         if self._data_edited is None:
             return np.ascontiguousarray(self._raw_data)
@@ -362,45 +374,45 @@ class ODMR:
             return np.ascontiguousarray(self._data_edited)
 
     @property
-    def delta_mean(self):
+    def delta_mean(self) -> NDArray:
         """ """
         return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
 
     @property
-    def mean_odmr(self):
+    def mean_odmr(self) -> NDArray:
         """Calculate the mean of the data."""
         return self.data.mean(axis=-2)
 
     @property
-    def raw_contrast(self):
+    def raw_contrast(self) -> NDArray:
         """Calculate the minimum of MW sweep for each pixel."""
         return np.min(self.data, -2)
 
     @property
-    def mean_contrast(self):
-        """Calculate the mean contrast of the data."""
+    def mean_contrast(self) -> NDArray:
+        """Calculate the mean of the minimum of MW sweep for each pixel."""
         return np.mean(self.raw_contrast)
 
     @property
-    def _mean_baseline(self):
-        """ """
+    def _mean_baseline(self) -> Tuple[NDArray, NDArray, NDArray]:
+        """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
         baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
     @property
-    def bin_factor(self):
+    def bin_factor(self) -> int:
         """ """
         return self._bin_factor * self._pre_bin_factor
 
     # edit methods
 
-    def _apply_edit_stack(self, **kwargs):
+    def _apply_edit_stack(self, **kwargs: Any) -> None:
         """Apply the edit stack.
 
         Args:
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
@@ -408,13 +420,13 @@ class ODMR:
         self.LOG.debug("Applying edit stack")
         for edit_func in self._edit_stack:
             if edit_func is not None:
-                edit_func(**kwargs)
+                edit_func(**kwargs)  # type: ignore[operator]
 
-    def reset_data(self, **kwargs):
+    def reset_data(self, **kwargs: Any) -> None:
         """Reset the data.
 
         Args:
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
@@ -428,12 +440,12 @@ class ODMR:
         self.is_cropped = False
         self.is_fcropped = False
 
-    def normalize_data(self, method=None, **kwargs):
+    def normalize_data(self, method: Union[str, None] = None, **kwargs: Any) -> None:
         """Normalize the data.
 
         Args:
           method:  (Default value = None)
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
@@ -443,43 +455,43 @@ class ODMR:
         self._edit_stack[1] = self._normalize_data
         self._apply_edit_stack(method=method)
 
-    def _normalize_data(self, method="max", **kwargs):
+    def _normalize_data(self, method: str = "max", **kwargs: Any) -> None:
         """Normalize the data.
 
         Args:
           method:  (Default value = "max")
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
         """
-        self._norm_factors = self.get_norm_factors(self.data, method=method)
+        self._norm_factors = self.get_norm_factors(self.data, method=method)  # type: ignore[assignment]
         self.LOG.debug(f"Normalizing data with method: {method}")
         self._norm_method = method
         self.is_normalized = True
-        self._data_edited /= self._norm_factors
+        self._data_edited /= self._norm_factors # type: ignore[arg-type]
 
-    def apply_outlier_mask(self, outlier: Union[ArrayLike, None] = None, **kwargs: Any) -> None:
+    def apply_outlier_mask(self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any) -> None:  # todo get to work
         """Apply the outlier mask.
 
         Args:
-          outlier: np.ndarray:  (Default value = None)
-          **kwargs: 
+          outlier_mask: np.ndarray:  (Default value = None)
+          **kwargs:
 
         Returns:
 
         """
-        if outlier is None:
-            return
+        if outlier_mask is None:
+            outlier_mask = self.outlier_mask
 
-        self.outlier_mask = outlier
+        self.outlier_mask = outlier_mask
         self._apply_edit_stack()
 
-    def _apply_outlier_mask(self, **kwargs):
+    def _apply_outlier_mask(self, **kwargs: Any) -> None:
         """Apply the outlier mask.
 
         Args:
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
@@ -490,12 +502,12 @@ class ODMR:
         self.LOG.debug("Applying outlier mask")
         self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
 
-    def bin_data(self, bin_factor, **kwargs):
+    def bin_data(self, bin_factor: int, **kwargs: Any) -> None:
         """Bin the data.
 
         Args:
-          bin_factor: 
-          **kwargs: 
+          bin_factor:
+          **kwargs:
 
         Returns:
 
@@ -503,12 +515,12 @@ class ODMR:
         self._edit_stack[3] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
-    def _bin_data(self, bin_factor=None, **kwargs):
+    def _bin_data(self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any) -> None:
         """Bin the data from the raw data.
 
         Args:
           bin_factor:  (Default value = None)
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
@@ -544,15 +556,18 @@ class ODMR:
             f"--> {_odmr_binned.shape[0]}x{_odmr_binned.shape[1]}x{_odmr_binned.shape[2]}x{_odmr_binned.shape[3]}x{_odmr_binned.shape[4]}"
         )
 
-    def remove_overexposed(self, **kwargs):
+    def remove_overexposed(self, **kwargs: Any) -> None:
         """Remove overexposed pixels from the data.
 
         Args:
-          **kwargs: 
+          **kwargs:
 
         Returns:
 
         """
+        if self._data_edited is None:
+            return self.LOG.warning("No data to remove overexposed pixels from.")
+
         self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
 
         if np.sum(self._overexposed) > 0:
@@ -560,24 +575,23 @@ class ODMR:
             self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
 
     ### CORRECTION METHODS ###
-    def get_gf_correction(self, gf):
-        """
+    def calc_gf_correction(self, gf: float) -> NDArray:
+        """Calculate the global fluorescence correction.
 
         Args:
-          gf: 
+          gf: The global fluorescence factor
 
-        Returns:
-
+        Returns: The global fluorescence correction
         """
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
         return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
-    def correct_glob_fluorescence(self, gf_factor, **kwargs):
+    def correct_glob_fluorescence(self, gf_factor: float, **kwargs: Any) -> None:
         """Correct the data for the gradient factor.
 
         Args:
-          gf_factor: 
-          **kwargs: 
+          gf_factor:
+          **kwargs:
 
         Returns:
 
@@ -586,28 +600,25 @@ class ODMR:
         self._gf_factor = gf_factor
         self._apply_edit_stack(glob_fluorescence=gf_factor, **kwargs)
 
-    def _correct_glob_fluorescence(self, gf_factor=None, **kwargs):
-        """
+    def _correct_glob_fluorescence(self, gf_factor: Union[float, None] = None, **kwargs: Any) -> None:
+        """Correct the data for the global fluorescence.
 
         Args:
-          gf_factor:  (Default value = None)
-          **kwargs: 
-
-        Returns:
-
+          gf_factor: global fluorescence factor (Default value = None)
+          **kwargs: pass though for additional _apply_edit_stack kwargs
         """
         if gf_factor is None:
             gf_factor = self._gf_factor
 
         self.LOG.debug(f"Correcting for global fluorescence with value {gf_factor}")
-        correction = self.get_gf_correction(gf=gf_factor)
+        correction = self.calc_gf_correction(gf=gf_factor)
 
         self._data_edited -= correction[:, :, np.newaxis, :]
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
 
     # noinspection PyTypeChecker
-    def check_glob_fluorescence(self, gf_factor=None, idx=None):
+    def check_glob_fluorescence(self, gf_factor: Union[float, None] = None, idx: Union[int, None] = None) -> None:
         """
 
         Args:
@@ -623,14 +634,14 @@ class ODMR:
         if gf_factor is None:
             gf_factor = self._gf_factor
 
-        new_correct = self.get_gf_correction(gf=gf_factor)
+        new_correct = self.calc_gf_correction(gf=gf_factor)
 
         f, ax = plt.subplots(2, 2, sharex=False, sharey=True, figsize=(15, 10))
         for p in np.arange(self.n_pol):
             for f in np.arange(self.n_frange):
                 d = self.data[p, f, idx].copy()
 
-                old_correct = self.get_gf_correction(gf=self._gf_factor)
+                old_correct = self.calc_gf_correction(gf=self._gf_factor)
                 if self._gf_factor != 0:
                     ax[p, f].plot(self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}")
 
@@ -653,3 +664,14 @@ class ODMR:
                 ax[p, f].legend()
                 # , ylim=(0, 1.5))
                 ax[p, f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]")
+
+
+def main() -> None:
+    odmr = ODMR.from_qdmio(QDMpy.test_data_location())
+    print(odmr[">"].shape)
+    print(odmr["+"].shape)
+    print(odmr["+>"].shape)
+
+
+if __name__ == "__main__":
+    main()
