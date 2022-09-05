@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 import sys
-from typing import Union, Tuple, List, Optional
+from typing import Union, Tuple, List, Optional, Sequence
 
 import matplotlib.image as mpimg
 import numpy as np
@@ -38,7 +38,7 @@ def millify(n: float, sign: int = 1) -> str:
     return f"{n / 10**(3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
 
-def idx2rc(idx: Union[int, List[int], np.ndarray], shape: Tuple[int, int]) -> Tuple[np.ndarray, np.ndarray]:
+def idx2rc(idx: Union[int, List[int], np.ndarray], shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarray]:
     """Convert an index to a yx coordinate of the reference.
 
     Args:
@@ -59,7 +59,7 @@ def idx2rc(idx: Union[int, List[int], np.ndarray], shape: Tuple[int, int]) -> Tu
     return np.unravel_index(idx, shape)  # type: ignore[return-value]
 
 
-def rc2idx(rc: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+def rc2idx(rc: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
     """Convert the xy coordinates to the index of the data.
 
     Args:
@@ -193,7 +193,7 @@ def get_image_file(lst: list) -> str:
     return str(lst[0])
 
 
-def get_image(folder: str, lst: List[str]) -> np.ndarray:
+def get_image(folder: Union[str,bytes, os.PathLike], lst: Sequence[Union[str,bytes, os.PathLike]]) -> np.ndarray:
     """Loads an image from a list of files.
 
     Args:

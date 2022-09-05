@@ -7,6 +7,7 @@ import mat73
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import ma as ma
+from numpy.typing import ArrayLike, NDArray
 from scipy.io import loadmat
 from skimage.measure import block_reduce
 
@@ -458,7 +459,7 @@ class ODMR:
         self.is_normalized = True
         self._data_edited /= self._norm_factors
 
-    def apply_outlier_mask(self, outlier: np.ndarray = None, **kwargs) -> None:
+    def apply_outlier_mask(self, outlier: Union[ArrayLike, None] = None, **kwargs: Any) -> None:
         """Apply the outlier mask.
 
         Args:
@@ -468,6 +469,9 @@ class ODMR:
         Returns:
 
         """
+        if outlier is None:
+            return
+
         self.outlier_mask = outlier
         self._apply_edit_stack()
 

@@ -24,6 +24,7 @@ CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
 MODELS = {
+    "gauss1d": [models.gauss1d, 3],
     "esr14n": [models.esr14n, 6],
     "esr15n": [models.esr15n, 5],
     "esrsingle": [models.esrsingle, 4],
