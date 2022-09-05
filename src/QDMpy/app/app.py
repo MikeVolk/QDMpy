@@ -11,7 +11,7 @@ import pandas as pd
 matplotlib.use("Agg")
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen, QFont
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -37,8 +37,8 @@ from PySide6.QtWidgets import (
 )
 
 import QDMpy
-from QDMpy.app.widgets.fluo_widget import FluoWidget
 from QDMpy.app.widgets.fit_widget import FitWidget
+from QDMpy.app.widgets.fluo_widget import FluoWidget
 from QDMpy.app.widgets.global_widget import GlobalWidget
 from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
@@ -161,6 +161,9 @@ class QDMpyApp(QMainWindow):
         self.qdm = None
         self.fitconstraints_widget = None
         self.fitconstraints = {}
+
+        self.infotable_widget = None
+        self._info_elements = None
 
         self._current_idx = None
 
@@ -438,7 +441,7 @@ class QDMpyApp(QMainWindow):
 
         if self.fitconstraints_widget is None:
             self.get_fitconstraints_widget()
-            self.fill_fitconstraints_widget()
+            self._fill_fitconstraints_widget()
 
         if self.fitconstraints_widget.isVisible():
             self.fitconstraints_widget.hide()
@@ -451,7 +454,7 @@ class QDMpyApp(QMainWindow):
         self.fitconstraints_widget.setTitle("Fit Constraints")
         self.fitconstraints_widget.setLayout(self.fitconstraints_gridlayout)
 
-    def fill_fitconstraints_widget(self):
+    def _fill_fitconstraints_widget(self):
         self.get_fitconstraints_widget()
         for i, (k, v) in enumerate(self.qdm.fit.constraints.items()):
             self.set_fitconstraints_widget_line(i, k, v[0], v[1], v[3], v[2])
@@ -494,38 +497,58 @@ class QDMpyApp(QMainWindow):
     def on_fitconstraints_widget_item_changed(self):
         for k, v in self.fitconstraints.items():
             self.qdm.set_constraints(k, [float(v[1].text()), float(v[2].text())], v[-1].currentIndex())
-        self.fill_fitconstraints_widget()
+        self._fill_fitconstraints_widget()
 
-    # info widget #todo make into txt
+    ### INFO TABLE ###
     def get_infotable_widget(self):
-        self.infotableWidget = QGroupBox("Infos")
-        layout = QVBoxLayout()
+        self.infotable_widget = QGroupBox("Measurement Infos", )
+        self.info_grid = QGridLayout()
+        self.infotable_widget.setLayout(self.info_grid)
 
-        self.info_table = QTableWidget(6, 2, self)  # todo rewrite info table
-        # self.infoTable.setStyleSheet('font-size: 11px; alternate-background-color: #F8F8F8;')
-        self.info_table.setStyleSheet(
-            "*{"
-            "background-color: #F8F8F8;"
-            "border: 0px solid #F8F8F8;"
-            "color: #1E1E1E;"
-            "selection-background-color: #F8F8F8;"
-            "selection-color: #FFF;"
-            "}"
-        )
-        self.info_table.horizontalHeader().hide()
-        self.info_table.verticalHeader().hide()
-        self.info_table.setEnabled(False)
+    def _fill_info_table(self):
 
-        layout.addWidget(self.info_table)
-        self.infotableWidget.setLayout(layout)
+        entries = [
+            "Image dimensions",
+            "Data dimensions",
+            "Field directions",
+            "Frequency ranges",
+            "# pixels",
+            "# frequencies",
+            "bin factor",
+        ]
 
-        self.infotableWidget.setWindowTitle("Measurement Information")
-        self.infotableWidget.resize(180, 230)
 
-        self.infotableWidget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # fill index column
+        if self._info_elements is None:
+            self._info_elements = {}
+            for i, e in enumerate(entries):
+                self._info_elements[e] = [QLabel(e), QLabel()]
+                self._info_elements[e][0].setStyleSheet("font-weight: bold")
 
-        self.info_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.info_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                self.info_grid.addWidget(self._info_elements[e][0], i, 0)
+                self.info_grid.addWidget(self._info_elements[e][1], i, 1)
+
+        # stop if qdm is not loaded, yet
+        if self.qdm is None:
+            return
+
+        # fill the info column
+        infos = self.get_infos()
+
+        self.LOG.debug("updating info table")
+        if infos is not None:
+            for i, e in enumerate(entries):
+                self._info_elements[e][1].setText(str(infos[i]))
+
+
+    def on_info_button_press(self):
+        if self.infotable_widget is None:
+            self.get_infotable_widget()
+            self._fill_info_table()
+        elif self.infotable_widget.isVisible():
+            self.infotable_widget.hide()
+        else:
+            self.infotable_widget.show()
 
     # status bar # todo add statusbar updates
     def get_statusbar(self):
@@ -595,6 +618,10 @@ class QDMpyApp(QMainWindow):
     def update_main_content(self):
         self.LOG.debug("Updating main content")
         self._change_tool_visibility()
+
+        if self.qdm is not None:
+            self._fill_info_table()
+
         if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
@@ -683,12 +710,6 @@ class QDMpyApp(QMainWindow):
         else:
             self.light_window.show()
 
-    def on_info_button_press(self):
-        if self.infotableWidget.isVisible():
-            self.infotableWidget.hide()
-        else:
-            self.infotableWidget.show()
-
     def on_qdmio_button_press(self):
         work_directory = QFileDialog.getExistingDirectory(self, "Open path", "./")
         self.import_file(work_directory, dialect="QDMio")
@@ -753,7 +774,7 @@ class QDMpyApp(QMainWindow):
             self.qdm.fit_ODMR()
         self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
         self.update_main_content()
-        self.fill_fitconstraints_widget()
+        self._fill_fitconstraints_widget()
 
     def on_fit_button_press(self):
         if not QDMpy.PYGPUFIT_PRESENT:
@@ -765,7 +786,7 @@ class QDMpyApp(QMainWindow):
         self.update_marker()
         self.update_odmr()
         self._fill_info_table()
-        self.fill_fitconstraints_widget()
+        self._fill_fitconstraints_widget()
 
     def on_gf_detect_button_press(self):
         if self.gf_window is None:
@@ -794,10 +815,11 @@ class QDMpyApp(QMainWindow):
 
     def get_infos(self):
         return [
-            self.qdm.odmr.data_shape,
+            f'{self.qdm.odmr.img_shape[0]}x{self.qdm.odmr.img_shape[1]}',
+            f'{self.qdm.odmr.data_shape[0]}x{self.qdm.odmr.data_shape[1]}',
             self.qdm.odmr.n_pol,
             self.qdm.odmr.n_frange,
-            self.qdm.odmr.data.size,
+            self.qdm.odmr.data[0,0,:,0].size,
             self.qdm.odmr.n_freqs,
             self.qdm.bin_factor,
         ]
@@ -808,30 +830,6 @@ class QDMpyApp(QMainWindow):
         for action in self._visible_if_fitted:
             if self.qdm is not None:
                 action.setEnabled(self.qdm.fitted)
-
-    def _fill_info_table(self, infos=None):
-        entries = [
-            "Image dimensions",
-            "Field directions",
-            "Frequency ranges",
-            "# pixels",
-            "# frequencies",
-            "bin factor",
-        ]
-        for i, e in enumerate(entries):
-            self.info_table.setItem(i, 0, QTableWidgetItem(e))
-
-        header = self.info_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-
-        if infos is not None:
-            for i, n in enumerate(infos):
-                self.info_table.setItem(i, 1, QTableWidgetItem(str(n)))
-            header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-
-        self.info_table.resizeColumnsToContents()
-        self.info_table.resizeRowsToContents()
-        self.info_table.resize(180, 230)
 
     def import_file(self, work_directory, dialect="QDMio"):
         loading_progress_dialog = self.get_loading_progress_dialog(
@@ -856,7 +854,7 @@ class QDMpyApp(QMainWindow):
         Initializes the app for a new QDMobj.
         """
         self._change_tool_visibility()
-        self._fill_info_table(self.get_infos())
+        self._fill_info_table()
         # in data coordinates
         self.set_current_idx(idx=self.qdm.odmr.get_most_divergent_from_mean()[-1])
         self.file_imported()
@@ -881,7 +879,7 @@ class QDMpyApp(QMainWindow):
         self.statusBar().showMessage(f"Successfully imported QDM files from {self.work_directory}")
 
         self._change_tool_visibility()
-        self._fill_info_table(self.get_infos())
+        self._fill_info_table()
         self.set_pixel_size_from_qdm_obj()
         self.binfactor_select.setValue(self.qdm.bin_factor)
         self.main_label.setText("No fits calculated yet.")
@@ -889,18 +887,16 @@ class QDMpyApp(QMainWindow):
     # EXPORT FUNCTIONS
 
     def export_qdmio(self):
-        work_directory = QFileDialog.getExistingDirectory(self, "Open path", str(self.work_directory),
-                                                          QFileDialog.ShowDirsOnly)
+        work_directory = QFileDialog.getExistingDirectory(
+            self, "Open path", str(self.work_directory), QFileDialog.ShowDirsOnly
+        )
 
         self.LOG.debug(f"Exporting QDMio like files to {work_directory}")
         self.qdm.export_qdmio(work_directory)
 
     def export_qdmpy(self):
         filename, _ = QFileDialog.getSaveFileName(
-            self,
-            'Save File As',
-            str(self.work_directory),
-            "QDMpy B111 Files (*.b111)"
+            self, "Save File As", str(self.work_directory), "QDMpy B111 Files (*.b111)"
         )
         filename = Path(filename)
         self.LOG.debug(f"Exporting QDMpy like files to {filename}")
@@ -910,8 +906,9 @@ class QDMpyApp(QMainWindow):
         self.import_file(test_data_location())
         self.on_quick_start_button_press()
 
-        if not sys.platform == 'darwin':
+        if not sys.platform == "darwin":
             self.on_fit_button_press()
+
 
 def test_data_location():
     if sys.platform == "linux":
@@ -922,6 +919,7 @@ def test_data_location():
         return Path(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
     else:
         raise NotImplementedError
+
 
 def main(**kwargs):
     app = QApplication(sys.argv)
