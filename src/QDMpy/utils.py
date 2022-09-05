@@ -13,6 +13,23 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 LOG = logging.getLogger(__name__)
 
+MILLNAMES = ["n", "μ", "m", "", " K", " M", " B", " T"]
+
+
+def millify(n:float, sign:int=1) -> str: # todo lower <1
+    """ Convert a number to a human readable string.
+
+    :param n: float
+        number to convert
+    :param sign: int
+        number of digits after the decimal point
+    :return: str
+        human readable string
+    """
+    n = float(n)
+    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
+    return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx+3]}"
+
 
 def idx2rc(idx, shape):
     """
@@ -195,7 +212,8 @@ def main():
     """
     Main function.
     """
-    make_configfile()
+    print(millify(0.001, 10))
+
 
 
 if __name__ == "__main__":

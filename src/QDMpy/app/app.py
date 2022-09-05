@@ -44,6 +44,7 @@ from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
 from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
 from QDMpy.core.qdm import QDM
+from QDMpy.utils import millify
 from QDMpy.exceptions import CantImportError
 
 """
@@ -819,7 +820,7 @@ class QDMpyApp(QMainWindow):
             f'{self.qdm.odmr.data_shape[0]}x{self.qdm.odmr.data_shape[1]}',
             self.qdm.odmr.n_pol,
             self.qdm.odmr.n_frange,
-            self.qdm.odmr.data[0,0,:,0].size,
+            millify(self.qdm.odmr.data[0,0,:,0].size),
             self.qdm.odmr.n_freqs,
             self.qdm.bin_factor,
         ]
