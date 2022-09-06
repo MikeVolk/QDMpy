@@ -2,7 +2,7 @@ import numpy as np
 
 
 def esr14n(x, parameter):
-    """ ESR14N model
+    """ESR14N model
 
     Args:
         x (np.ndarray): x values
@@ -38,7 +38,7 @@ def esr14n(x, parameter):
 
 
 def esr15n(x, parameter):
-    """ ESR15N model
+    """ESR15N model
 
     Args:
         x (np.ndarray): x values
@@ -71,7 +71,7 @@ def esr15n(x, parameter):
 
 
 def esrsingle(x, parameter):
-    """ ESRSINGLE model
+    """ESRSINGLE model
 
     Args:
         x (np.ndarray): x values
@@ -100,26 +100,27 @@ def esrsingle(x, parameter):
 IMPLEMENTED = {
     "GAUSS1D": {
         "n_peaks": 1,
-        "model_func": None,
-        "param": ["contrast", "center", "width", "offset"],
+        "func": None,
+        "params": ["contrast", "center", "width", "offset"],
         "model_id": 0,
     },
     "ESR14N": {
         "n_peaks": 3,
-        "model_func": esr14n,
-        "param": ["center", "width", "contrast", "contrast", "contrast", "offset"],
+        "func": esr14n,
+        "params": ["center", "width", "contrast", "contrast", "contrast", "offset"],
         "model_id": 13,
     },
     "ESR15N": {
         "n_peaks": 2,
-        "model_func": esr15n,
-        "param": ["center", "width", "contrast", "contrast", "offset"],
+        "func": esr15n,
+        "params": ["center", "width", "contrast", "contrast", "offset"],
         "model_id": 14,
     },
     "ESRSINGLE": {
         "n_peaks": 1,
-        "model_func": esrsingle,
-        "param": ["center", "width", "contrast", "offset"],
+        "func": esrsingle,
+        "params": ["center", "width", "contrast", "offset"],
         "model_id": 15,
     },
 }
+PEAK_TO_TYPE = {1: "ESRSINGLE", 2: "ESR15N", 3: "ESR14N"}

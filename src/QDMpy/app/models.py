@@ -46,7 +46,7 @@ class Pix:
                 raise ValueError(f"{ref} is not a valid reference")
 
             if x is not None and y is not None:
-                self._idx = rc2idx([y, x], shape=scan_dimensions)
+                self._idx = rc2idx(np.array([y, x]), shape=scan_dimensions)
             elif idx is not None:
                 if ref == "data":
                     r, c = idx2rc(idx, shape=self.data_shape)

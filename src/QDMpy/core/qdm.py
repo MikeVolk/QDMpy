@@ -12,13 +12,12 @@ import QDMpy
 import QDMpy.core.fit
 from QDMpy.core.fit import Fit
 from QDMpy.core.odmr import ODMR
+from QDMpy.core import models
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
 GAMMA = 28.024 / 1e6  # GHz/muT;
-DIAMOND_TYPES = ["NaN", "MISC.", "N15", "N14"]
 
-MODELS = ["gauss1d", "esrsingle", "esr15n", "esr14n"]
 POLARITIES = ["positive", "negative"]
 FRANGES = ["high", "low"]
 
@@ -332,12 +331,16 @@ class QDM:
         self.LOG.debug(f'Setting diamond type to "{diamond_type}"')
 
         if isinstance(diamond_type, int):
-            diamond_type = DIAMOND_TYPES[diamond_type]
+            # get str of diamond type from number of peaks (e.g. 2 -> ESR15N)
+            diamond_type = models.PEAK_TO_TYPE[diamond_type]
 
-        self._diamond_type = {"N14": 3, "N15": 2, "SINGLE": 1, "MISC.": 1}[diamond_type]
+        if diamond_type not in models.IMPLEMENTED:
+            raise NotImplementedError('diamond type has not been implemented, yet')
+
+        self._diamond_model = diamond_type
 
         if hasattr(self, "_fit") and self._fit is not None:
-            self._fit.model = MODELS[self._diamond_type]
+            self._fit.model = models.IMPLEMENTED[self._diamond_type]
 
     @property
     def data_shape(self) -> NDArray:

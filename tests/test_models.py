@@ -50,7 +50,7 @@ class Pix_test(unittest.TestCase):
             self.assertEqual(img_y, p0.y)
 
         for y, x in itertools.product(
-            np.arange(self.data_array.shape[0], self.data_array.shape[1])
+                np.arange(self.data_array.shape[0], self.data_array.shape[1])
         ):
             p0.set_idx(x=x, y=y, ref="data")
             self.assertEqual(x, p0.data_x)
@@ -60,7 +60,7 @@ class Pix_test(unittest.TestCase):
             )
 
         for y, x in itertools.product(
-            np.arange(self.img_array.shape[0], self.img_array.shape[1])
+                np.arange(self.img_array.shape[0], self.img_array.shape[1])
         ):
             p0.set_idx(x=x, y=y, ref="img")
             self.assertEqual(x, p0.x)
@@ -71,3 +71,8 @@ class Pix_test(unittest.TestCase):
             p0.set_idx(x=data_x, y=data_y, ref="notimplemented")
         with self.assertRaises(ValueError):
             p0.set_idx()
+
+
+class test_N14:
+    def test_esr14n(self):
+        assert False

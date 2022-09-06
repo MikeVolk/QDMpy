@@ -15,25 +15,11 @@ if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
 
 from scipy.io import savemat
 
-import QDMpy.core.models
-from QDMpy.core.models import IMPLEMENTED
+from QDMpy.core import models
 
-FIT_PARAMETER = {
-    "GAUSS_1D": ["contrast", "center", "width", "offset"],
-    "ESR14N": ["center", "width", "contrast", "contrast", "contrast", "offset"],
-    "ESR15N": ["center", "width", "contrast", "contrast", "offset"],
-    "ESRSINGLE": ["center", "width", "contrast", "offset"],
-}
 UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
 CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
-
-MODELS: Dict[str, Tuple[Callable, int]] = {
-    "gauss1d": (QDMpy.core.models.esrsingle, 3),
-    "esr14n": (QDMpy.core.models.esr14n, 6),
-    "esr15n": (QDMpy.core.models.esr15n, 5),
-    "esrsingle": (QDMpy.core.models.esrsingle, 4),
-}
 
 class Fit:
     LOG = logging.getLogger(__name__)
@@ -45,12 +31,15 @@ class Fit:
         self.LOG.debug(
             f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies with {model}"
         )
-        self._model = model.upper()
+
+        self.model = model.upper()
         self._initial_parameter = None
 
         # fit results
         self._reset_fit()
-        self._constraints: Dict[str,List[Union[float, str]]] = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
+        self._constraints: Dict[
+            str, List[Union[float, str]]
+        ] = {}  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
         self._constraint_types: List[Union[str, None]] = None
 
         self.estimator_id = ESTIMATOR_ID[QDMpy.SETTINGS["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
@@ -64,7 +53,7 @@ class Fit:
         """
         Return the model parameters.
         """
-        return IMPLEMENTED[self.model]
+        return models.IMPLEMENTED[self._model]['params']
 
     def __repr__(self) -> str:
         return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model})"
@@ -86,7 +75,7 @@ class Fit:
         return self._data
 
     @data.setter
-    def data(self, data:NDArray) -> None:
+    def data(self, data: NDArray) -> None:
         if np.all(self._data == data):
             return
         self._data = data
@@ -95,13 +84,18 @@ class Fit:
 
     @property
     def model(self) -> Callable:
-        return MODELS[self._model.lower()][0]
+        return self._model
+
+    @property
+    def model_func(self) -> Callable:
+        return self._model_dict["func"]
 
     @model.setter
-    def model(self, model:str) -> None:
-        if model.upper() not in IMPLEMENTED:
-            raise ValueError(f"Unknown model: {model} choose from {list(IMPLEMENTED.keys())}")
+    def model(self, model: str) -> None:
+        if model.upper() not in models.IMPLEMENTED:
+            raise ValueError(f"Unknown model: {model} choose from {list(models.IMPLEMENTED.keys())}")
         self._model = model.upper()
+        self._model_dict = models.IMPLEMENTED[model]
         self._reset_fit()
         self._initial_parameter = self.get_initial_parameter()
 
@@ -116,11 +110,11 @@ class Fit:
 
     @property
     def model_id(self) -> int:
-        return getattr(gf.ModelID, self._model)
+        return self._model_dict["model_id"]
 
     @property
     def fitting_parameter(self) -> List[str]:
-        return FIT_PARAMETER[self._model]
+        return self._model_dict["params"]
 
     @property
     def fitting_parameter_unique(self) -> List[str]:
@@ -143,11 +137,13 @@ class Fit:
     def n_parameter(self) -> int:
         return len(self.fitting_parameter)
 
-    def set_constraints(self,
-                        param:str,
-                        vmin:Union[float, None]=None,
-                        vmax:Union[float, None]=None,
-                        constraint_type:Union[str, None]=None):
+    def set_constraints(
+        self,
+        param: str,
+        vmin: Union[float, None] = None,
+        vmax: Union[float, None] = None,
+        constraint_type: Union[str, None] = None,
+    ):
         """
         Set the constraints for the fit.
 
@@ -231,7 +227,7 @@ class Fit:
         Return the constraints as an array (pixel, 2*fitting_parameters).
         :return: np.array
         """
-        constraints_list:List[float] = []
+        constraints_list: List[float] = []
         for k in self.fitting_parameter_unique:
             constraints_list.extend((self._constraints[k][0], self._constraints[k][1]))
         constraints = np.tile(constraints_list, (n_pixel, 1))
@@ -529,15 +525,19 @@ def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
 
 
 def make_dummy_data(
-    model: str = "esr14n", n_freq: int = 100, scan_dimensions: Union[Tuple[int, int], None] = None, noise: float = 0
+    model: str = "esr14n",
+    n_freq: int = 50,
+    scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
+    noise: float = 0,
 ) -> Tuple[NDArray, NDArray, NDArray]:
-    if scan_dimensions is None:
-        scan_dimensions = (120, 190)
-    if model not in MODELS:
+
+    model = model.upper()
+
+    if model not in models.IMPLEMENTED:
         raise ValueError(f"Unknown model {model}")
 
-    model_func = MODELS[model][0]
-    n_parameter = MODELS[model][1]
+    model_func = models.IMPLEMENTED[model]['func']
+    n_parameter = len(models.IMPLEMENTED[model]['params'])
 
     f0 = np.linspace(2.84, 2.85, n_freq)
     f1 = np.linspace(2.89, 2.9, n_freq)
