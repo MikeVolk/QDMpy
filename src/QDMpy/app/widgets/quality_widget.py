@@ -1,7 +1,7 @@
 import numpy as np
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 from matplotlib import colors
 from matplotlib import pyplot as plt
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 from QDMpy.app.canvas import QualityCanvas
 from QDMpy.app.widgets.qdm_widget import QDMWidget
@@ -49,7 +49,7 @@ class QualityWidget(QDMWidget):
         parameter_box = QHBoxLayout()
         parameter_label = QLabel("param: ")
         self.data_select = QComboBox()
-        self.data_select.addItems(self.qdm.fit.fitting_parameter_unique + ["contrast", "chi_squared"])
+        self.data_select.addItems(self.qdm.fit.model_params_unique + ["contrast", "chi_squared"])
         self.data_select.setCurrentText("chi_squared")
         self.data_select.currentTextChanged.connect(self.update_img_plots)
         parameter_box.addWidget(parameter_label)

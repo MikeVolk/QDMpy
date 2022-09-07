@@ -2,7 +2,8 @@ import itertools
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from copy import deepcopy
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import mat73
 import numpy as np
@@ -248,6 +249,8 @@ class ODMR:
         except NotImplementedError:
             raw_data = [mat73.loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
 
+        cls.LOG.info(f">> done reading run_* files.")
+
         data = None
 
         for mfile in raw_data:
@@ -432,7 +435,7 @@ class ODMR:
 
         """
         self.LOG.debug("Resetting data to raw data.")
-        self._data_edited = self._raw_data.copy()
+        self._data_edited = deepcopy(self._raw_data)
         self._norm_factors = None
         self.is_normalized = False
         self.is_binned = False
@@ -469,7 +472,7 @@ class ODMR:
         self.LOG.debug(f"Normalizing data with method: {method}")
         self._norm_method = method
         self.is_normalized = True
-        self._data_edited /= self._norm_factors # type: ignore[arg-type]
+        self._data_edited /= self._norm_factors  # type: ignore[arg-type]
 
     def apply_outlier_mask(self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any) -> None:  # todo get to work
         """Apply the outlier mask.

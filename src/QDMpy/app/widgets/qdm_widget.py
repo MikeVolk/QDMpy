@@ -2,8 +2,6 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.backend_bases import MouseButton
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -15,12 +13,15 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from matplotlib.backend_bases import MouseButton
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.app.models import Pix
 from QDMpy.core import models
 
 B111 = "B$_{111}$"
+
 
 class QDMWidget(QMainWindow):
     """
@@ -383,7 +384,7 @@ class QDMWidget(QMainWindow):
 
     def get_current_fit(self):
         parameter = self.qdm.fit.parameter[:, :, self._current_idx]
-        model_func = self.qdm.fit.model[0]
+        model_func = self.qdm.fit.model_func
         freqs = np.empty((parameter.shape[1], 200))
         models = np.empty((parameter.shape[0], parameter.shape[1], 200))
         for f in np.arange(parameter.shape[1]):

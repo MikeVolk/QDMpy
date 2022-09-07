@@ -1,18 +1,17 @@
 import logging
 import os
+from typing import Union, Tuple, Optional, Any
 
-import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
-from typing import Union, Tuple, List, Optional, Any
-from numpy.typing import ArrayLike, NDArray
 
 import QDMpy
 import QDMpy.core.fit
+from QDMpy.core import models
 from QDMpy.core.fit import Fit
 from QDMpy.core.odmr import ODMR
-from QDMpy.core import models
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
@@ -20,6 +19,7 @@ GAMMA = 28.024 / 1e6  # GHz/muT;
 
 POLARITIES = ["positive", "negative"]
 FRANGES = ["high", "low"]
+DIAMOND_TYPES = ["", "MISC.", "N15", "N14"]
 
 from pathlib import Path
 
@@ -32,28 +32,29 @@ class QDM:
 
     LOG = logging.getLogger(__name__)
 
-    @property
-    def outliers(self) -> NDArray:
-        """
-
-        Args:
-
-        Returns:
-          :return: ndarray of boolean
-
-        """
-        return self._outliers
-
     # outliers
     def __init__(
-        self,
-        odmr_instance: ODMR,
-        light: np.ndarray,
-        laser: np.ndarray,
-        working_directory: Union[str, os.PathLike],
-        pixel_size: float = 4e-6,
-        diamond_type: Union[str, int, None] = None,
+            self,
+            odmr_instance: ODMR,
+            light: np.ndarray,
+            laser: np.ndarray,
+            working_directory: Union[str, os.PathLike],
+            pixel_size: float = 4e-6,
+            model_name: str = 'auto',
     ) -> None:
+        """Initialize the QDM object.
+
+        Args:
+            odmr_instance: ODMR instance
+            light: light image
+            laser: laser image
+            working_directory: working directory
+            pixel_size: pixel size in m
+            model_name: model name (Default value = 'auto')
+                If 'auto' the model is chosen based on the mean ODMR data.
+                See Also: QDMpy.core.models.guess_model_name
+
+        """
 
         self.LOG.info("Initializing QDM object.")
         self.LOG.info(f'Working directory: "{working_directory}"')
@@ -74,16 +75,25 @@ class QDM:
 
         self._B111 = None
 
-        if diamond_type is None:
-            diamond_type = self.guess_diamond_type()
-
-        self.set_diamond_type(diamond_type)
-        self._fit = Fit(self.odmr.data, self.odmr.f_ghz, model=MODELS[self._diamond_type])
-        self._fit.model = MODELS[self._diamond_type]
+        self._fit = Fit(data=self.odmr.data,
+                        frequencies=self.odmr.f_ghz,
+                        model_name=model_name)
 
         self.pixel_size = pixel_size  # 4 um
 
         self._check_bin_factor()
+
+    @property
+    def outliers(self) -> NDArray:
+        """
+
+        Args:
+
+        Returns:
+          :return: ndarray of boolean
+
+        """
+        return self._outliers
 
     @property
     def outliers_idx(self) -> NDArray:
@@ -130,7 +140,8 @@ class QDM:
         outlier_pdf["idx"] = self.outliers_idx
         return outlier_pdf
 
-    def detect_outliers(self, dtype:str="width", method:str="LocalOutlierFactor", **outlier_props:Any) -> np.ndarray:
+    def detect_outliers(self, dtype: str = "width", method: str = "LocalOutlierFactor",
+                        **outlier_props: Any) -> np.ndarray:
         """Detect outliers in the ODMR data.
 
         The outliers are detected using 'method'. The method can be either 'LocalOutlierFactor' or 'IsolationForest'.
@@ -152,7 +163,7 @@ class QDM:
         d1 = self.get_param("chi2", reshape=False)
         d1 = np.sum(d1, axis=tuple(range(0, d1.ndim - 1)))
 
-        if dtype in self.fit.fitting_parameter + self.fit.fitting_parameter_unique:
+        if dtype in self.fit.model_params + self.fit.model_params_unique:
             d2 = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
@@ -169,15 +180,15 @@ class QDM:
                 k: v
                 for k, v in outlier_props.items()
                 if k
-                in [
-                    "n_estimators",
-                    "max_samples",
-                    "contamination",
-                    "max_features",
-                    "bootstrap",
-                    "n_jobs",
-                    "random_state",
-                ]
+                   in [
+                       "n_estimators",
+                       "max_samples",
+                       "contamination",
+                       "max_features",
+                       "bootstrap",
+                       "n_jobs",
+                       "random_state",
+                   ]
             }
             clf = IsolationForest(**outlier_props)
         else:
@@ -267,80 +278,30 @@ class QDM:
         """Global fluorescence factor used for correction"""
         return self.odmr.global_factor
 
-    # diamond related
-    def guess_diamond_type(self, *args: Any) -> int:
-        """Guess the diamond type based on the number of peaks.
-
-        :return: diamond_type (int)
-
-        Args:
-          *args:
-
-        Returns:
-
-        """
-        from scipy.signal import find_peaks
-
-        indices = []
-
-        # Find the indices of the peaks
-        for p in range(self.odmr.n_pol - 1):
-            for f in range(self.odmr.n_frange - 1):
-                peaks = find_peaks(-self.odmr.mean_odmr[p, f], prominence=0.003)
-                indices.append(peaks[0])
-
-        n_peaks = int(np.round(np.mean([len(idx) for idx in indices])))
-
-        doubt = np.std([len(idx) for idx in indices]) != 0
-
-        if doubt:
-            self.LOG.warning(
-                "Doubt on the diamond type. Check using `QDMdata.guess_diamond_type('debug')` "
-                "and set manually if incorrect."
-            )
-        if "debug" in args:
-            self.LOG.debug(f"Indices of peaks: {indices}")
-            n = 0
-            for i in range(self.odmr.mean_odmr.shape[0]):
-                for j in range(self.odmr.mean_odmr.shape[1]):
-                    plt.plot(self.odmr.mean_odmr[i, j], color=f"C{n}")
-                    plt.plot(
-                        indices[n],
-                        self.odmr.mean_odmr[i, j, indices[n]],
-                        "X",
-                        color=f"C{n}",
-                        label=f"{n}: {len(indices[n])}",
-                    )
-                    n += 1
-            plt.legend()
-        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {DIAMOND_TYPES[n_peaks]}")
-
-        return n_peaks
-
+    # MODEL related
     @property
-    def diamond_type(self) -> str:
-        """Returns the diamond type as string."""
-        return DIAMOND_TYPES[self._diamond_type]
+    def model_names(self) -> str:
+        """List of available models"""
+        return self.fit.model['func_name']
 
-    def set_diamond_type(self, diamond_type: Union[str, int]) -> None:
+    def set_model_name(self, model_name: Union[str, int]) -> None:
         """Set the diamond type.
 
         Args:
-          diamond_type: type of diamond used (int or str) e.g. N15 of 2 as in 2 peaks
+          model_name: type of diamond used (int or str) e.g. N15 of 2 as in 2 peaks
         """
-        self.LOG.debug(f'Setting diamond type to "{diamond_type}"')
 
-        if isinstance(diamond_type, int):
+        if isinstance(model_name, int):
             # get str of diamond type from number of peaks (e.g. 2 -> ESR15N)
-            diamond_type = models.PEAK_TO_TYPE[diamond_type]
+            model_name = models.PEAK_TO_TYPE[model_name]
 
-        if diamond_type not in models.IMPLEMENTED:
+        if model_name not in models.IMPLEMENTED:
             raise NotImplementedError('diamond type has not been implemented, yet')
 
-        self._diamond_model = diamond_type
+        self.LOG.debug(f'Setting model to "{model_name}"')
 
         if hasattr(self, "_fit") and self._fit is not None:
-            self._fit.model = models.IMPLEMENTED[self._diamond_type]
+            self._fit.model_name = models.IMPLEMENTED[self._model_name]['func_name']
 
     @property
     def data_shape(self) -> NDArray:
@@ -359,11 +320,11 @@ class QDM:
         return self._fit.fitted
 
     def set_constraints(
-        self,
-        param: str,
-        vmin: Optional[Union[str, None]] = None,
-        vmax: Optional[Union[str, None]] = None,
-        bound_type: Optional[Union[str, None]] = None,
+            self,
+            param: str,
+            vmin: Optional[Union[str, None]] = None,
+            vmax: Optional[Union[str, None]] = None,
+            bound_type: Optional[Union[str, None]] = None,
     ) -> None:
         """Set the constraints for the fit.
 
@@ -383,12 +344,12 @@ class QDM:
         """Reset the constraints to the default values."""
         self._fit._set_initial_constraints()
 
-    def fit_odmr(self) -> None:
+    def fit_odmr(self, refit=False) -> None:
         """Fit the data using the current fit type."""
         if not QDMpy.PYGPUFIT_PRESENT:
             self.LOG.error("pygpufit not installed. Skipping fitting.")
             raise ImportError("pygpufit not installed.")
-        self._fit.fit_odmr()
+        self._fit.fit_odmr(refit=refit)
 
     def get_param(self, param: str, reshape: bool = True) -> NDArray:
         """Get the value of a parameter reshaped to the image dimesions.
@@ -413,10 +374,10 @@ class QDM:
         return np.squeeze(out)
 
     def _reshape_parameter(
-        self,
-        data: NDArray,
-        n_pol: int,
-        n_frange: int,
+            self,
+            data: NDArray,
+            n_pol: int,
+            n_frange: int,
     ) -> NDArray:
         """Reshape data so that all data for a frange are in series (i.e. [low_freq(B+), low_freq(B-)]).
         Input data must have format: [polarity, frange, n_pixel, n_freqs]
@@ -454,16 +415,17 @@ class QDM:
         raise NotImplementedError(f'Dialect "{dialect}" not implemented.')
 
     @classmethod
-    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], diamond_type: Union[str, int, None] = None) -> Any:
+    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], model_name: str = "auto") -> Any:
         """Loads QDM data from a Matlab file.
 
         Args:
           data_folder:
-          diamond_type:  (Default value = None)
+          model_name:  (Default value = None)
 
         Returns:
 
         """
+        cls.LOG.info(f"Initializing QDMpy object from QDMio data in {data_folder}")
         files = os.listdir(data_folder)
         light_files = [f for f in files if "led" in f.lower()]
         laser_files = [f for f in files if "laser" in f.lower()]
@@ -480,7 +442,7 @@ class QDM:
             odmr_obj,
             light=light,
             laser=laser,
-            diamond_type=diamond_type,
+            model_name=model_name,
             working_directory=data_folder,
         )
 
@@ -589,10 +551,10 @@ class QDM:
             shape = self.odmr.img_shape
         else:
             raise ValueError(f"Reference {ref} not supported.")
-        return rc2idx(rc, shape) # type: ignore[arg-type]
+        return rc2idx(rc, shape)  # type: ignore[arg-type]
 
     def idx2rc(
-        self, idx: Union[int, np.ndarray], ref: str = "data"
+            self, idx: Union[int, np.ndarray], ref: str = "data"
     ) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
         """Convert an index to a rc coordinate of the reference.
 
@@ -609,7 +571,7 @@ class QDM:
 
         """
         if ref == "data":
-            rc = idx2rc(idx, self.data_shape) # type: ignore[arg-type]
+            rc = idx2rc(idx, self.data_shape)  # type: ignore[arg-type]
         elif ref == "img":
             rc = idx2rc(idx, self.light.shape)
         else:
@@ -638,7 +600,7 @@ class QDM:
                 "contrast": self.get_param("contrast"),
                 "offset": self.get_param("offset"),
                 "fit.constraints": self.fit.constraints,
-                "diamond_type": self.diamond_type,
+                "diamond_type": self.model_name,
                 "laser": self.laser,
                 "light": self.light,
                 "bin_factor": self.bin_factor,

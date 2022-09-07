@@ -59,7 +59,7 @@ def main(argv):
     else:
         QDMpy.LOG.setLevel("INFO")
 
-    qdm_obj = QDM.from_qdmio(args.input, diamond_type=args.diamond)
+    qdm_obj = QDM.from_qdmio(args.input, model_name=args.diamond)
     qdm_obj.bin_data(bin_factor=args.binfactor)
     qdm_obj.correct_glob_fluorescecne(glob_fluorescence=args.globalfluorescence)
     qdm_obj.fit_odmr()

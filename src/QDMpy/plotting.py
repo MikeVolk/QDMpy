@@ -1,12 +1,11 @@
 import itertools
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 
-import QDMpy
 from QDMpy.core import models
 from QDMpy.core.qdm import QDM
 from QDMpy.utils import double_norm
@@ -16,7 +15,7 @@ CONTRAST_LABEL = "c [%]"
 
 
 def plot_light_img(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
 ) -> mpl.image.AxesImage:
     """
 
@@ -44,9 +43,8 @@ def plot_light_img(
 
 
 def plot_fluorescence(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
 ) -> mpl.image.AxesImage:
-
     """
 
     Args:
@@ -73,7 +71,7 @@ def plot_fluorescence(
 
 
 def plot_laser_img(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -101,7 +99,8 @@ def plot_laser_img(
 
 
 def update_line(
-    ax: plt.Axes, x: np.ndarray, y: Optional[Union[np.ndarray, None]] = None, line: plt.Line2D = None, **plt_props: Any
+        ax: plt.Axes, x: np.ndarray, y: Optional[Union[np.ndarray, None]] = None, line: plt.Line2D = None,
+        **plt_props: Any
 ) -> plt.Line2D:
     """
 
@@ -148,7 +147,7 @@ def update_marker(ax: plt.Axes, x: np.ndarray, y: np.ndarray, line: plt.Line2D =
 
 
 def plot_quality_data(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -169,7 +168,7 @@ def plot_quality_data(
 
 
 def plot_data(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -234,11 +233,11 @@ def get_color_norm(vmin: float, vmax: float) -> colors.Normalize:
 
 
 def plot_overlay(
-    ax: plt.Axes,
-    data: np.ndarray,
-    img: Optional[Union[mpl.image.AxesImage, None]] = None,
-    normtype: str = "simple",
-    **plt_props: Any,
+        ax: plt.Axes,
+        data: np.ndarray,
+        img: Optional[Union[mpl.image.AxesImage, None]] = None,
+        normtype: str = "simple",
+        **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -261,7 +260,7 @@ def plot_overlay(
 
 
 def plot_outlier(
-    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -297,12 +296,12 @@ def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image
 
 
 def update_cbar(
-    img: mpl.image.AxesImage,
-    cax: plt.Axes,
-    vmin: float,
-    vmax: float,
-    original_cax_locator: plt.Locator,
-    **plt_props: dict,
+        img: mpl.image.AxesImage,
+        cax: plt.Axes,
+        vmin: float,
+        vmax: float,
+        original_cax_locator: plt.Locator,
+        **plt_props: dict,
 ) -> None:
     """
 
@@ -398,9 +397,9 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     # noinspection PyTypeChecker
     f, ax = plt.subplots(1, 2, figsize=(10, 4), sharex=False, sharey=True)
     polarities = ["+", "-"]
-    model = [None, models.esrsingle, models.esr15n, models.esr14n][qdm_obj.diamond_type]
+    model = [None, models.esrsingle, models.esr15n, models.esr14n][qdm_obj.model_name]
     print(f"IDX: {idx}, Model: {model.__name__}")
-    lst = ["pol/side"] + qdm_obj.fit.fitting_parameter + ["chi2"]
+    lst = ["pol/side"] + qdm_obj.fit.model_params + ["chi2"]
     header = " ".join([f"{i:>8s}" for i in lst])
     print(f"{header}")
     print("-" * 100)
@@ -409,7 +408,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.fit.initial_parameter[p, f, [idx]], x=f_new)
-        m_fit = model(parameter=qdm_obj.fit.fitting_parameter[p, f, [idx]], x=f_new)
+        m_fit = model(parameter=qdm_obj.fit.model_params[p, f, [idx]], x=f_new)
 
         ax[f].plot(
             qdm_obj.odmr.f_ghz[f],
@@ -431,7 +430,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
             borderaxespad=0.0,
         )
 
-        line = " ".join([f"{v:>8.5f}" for v in qdm_obj.fit.fitting_parameter[p, f, idx]])
+        line = " ".join([f"{v:>8.5f}" for v in qdm_obj.fit.model_params[p, f, idx]])
         line += f" {qdm_obj.fit._chi_squares[p, f, idx]:>8.2e}"
         print(f'{["+", "-"][p]},{["<", ">"][p]}:     {line}')
 
@@ -504,7 +503,6 @@ def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> p
     if save:
         f.savefig(save)
     return f
-
 
 # def plot_fluorescence(qdm_obj, f_idx):
 #     # noinspection PyTypeChecker

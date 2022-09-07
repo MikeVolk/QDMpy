@@ -2,12 +2,14 @@ import logging
 import os
 import shutil
 import sys
-from typing import Union, Tuple, List, Optional, Sequence, Any
-from numpy.typing import ArrayLike, NDArray
+from typing import Union, Tuple, Optional, Sequence, Any
+
 import matplotlib.image as mpimg
 import numpy as np
 import tomli
+from numpy.typing import ArrayLike, NDArray
 
+import QDMpy
 from QDMpy import CONFIG_FILE, CONFIG_INI, CONFIG_PATH
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +37,7 @@ def millify(n: float, sign: int = 1) -> str:
     """
     millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
 
-    return f"{n / 10**(3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
+    return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
 
 def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[NDArray, NDArray]:
@@ -78,12 +80,12 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
-    kx: Optional[int] = 3,
-    ky: Optional[int] = 3,
-    order: Optional[Union[None, int]] = None,
+        x: np.ndarray,
+        y: np.ndarray,
+        z: np.ndarray,
+        kx: Optional[int] = 3,
+        ky: Optional[int] = 3,
+        order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
@@ -121,7 +123,7 @@ def polyfit2d(
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x**i * y**j
+            arr = coeffs[i, j] * x ** i * y ** j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
@@ -129,7 +131,7 @@ def polyfit2d(
     return solution, res, rank, s
 
 
-def load_config() -> dict:
+def load_config(file=CONFIG_FILE) -> dict:
     """Loads the config file.
 
     :return: dict
@@ -140,7 +142,8 @@ def load_config() -> dict:
     Returns:
 
     """
-    with open(CONFIG_FILE, "rb") as fileObj:
+    QDMpy.LOG.info(f"Loading config file: {file}")
+    with open(file, "rb") as fileObj:
         return tomli.load(fileObj)
 
 
@@ -192,7 +195,7 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
     return str(lst[0])
 
 
-def get_image(folder: Union[str,bytes, os.PathLike], lst: Sequence[Union[str,bytes, os.PathLike]]) -> np.ndarray:
+def get_image(folder: Union[str, bytes, os.PathLike], lst: Sequence[Union[str, bytes, os.PathLike]]) -> np.ndarray:
     """Loads an image from a list of files.
 
     Args:
