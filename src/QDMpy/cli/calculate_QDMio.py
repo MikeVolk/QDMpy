@@ -6,9 +6,13 @@ import time
 
 import QDMpy
 from QDMpy._core.qdm import QDM
+from argdoc import generate_doc
 
-
+@generate_doc
 def main(argv):
+    """
+    Main function for the QDMpy command line interface.
+    """
     tstart = time.process_time()
 
     parser = argparse.ArgumentParser(
@@ -29,11 +33,11 @@ def main(argv):
         required=False,
     )
     parser.add_argument(
-        "-d",
-        "--diamond",
+        "-m",
+        "--model",
         type=str,
-        help="Type of diamond used in the experiment. Default: 'auto'",
-        default=None,
+        help="Type of model used in the experiment. Default: 'auto'",
+        default='auto',
         required=False,
     )
     parser.add_argument(

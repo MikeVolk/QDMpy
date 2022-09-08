@@ -28,7 +28,15 @@ from scipy.io import savemat
 
 
 class QDM:
-    """ """
+    """ The QDM class is a container for all data related to a single QDM measurement.
+
+    The QDM class contains the light and laser images as well as an ODMR and Fit instances.
+
+    See Also:
+        QDMpy._core.odmr.ODMR
+        QDMpy._core.fit.Fit
+
+    """
 
     LOG = logging.getLogger(__name__)
 
