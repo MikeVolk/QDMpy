@@ -9,14 +9,14 @@ import pandas as pd
 from numpy.typing import NDArray
 
 import QDMpy
-from QDMpy.core.models import guess_model
+from QDMpy._core.models import guess_model
 
 if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
     import pygpufit.gpufit as gf
 
 from scipy.io import savemat
 
-from QDMpy.core import models
+from QDMpy._core import models
 
 UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
 CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
@@ -24,7 +24,7 @@ ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
 
 def main():
-    from QDMpy.core.qdm import QDM
+    from QDMpy._core.qdm import QDM
 
     q = QDM.from_qdmio("/home/mike/Desktop/test_data/FOV1")
 

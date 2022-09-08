@@ -41,7 +41,7 @@ class StatisticsPercentile(Outlier):
         self.chi2 = chi2
         self.width = width
         self.mean_contrast = mean_contrast
-        super(StatisticsPercentile, self).__init__(data_shape=b111.shape)
+        super().__init__(data_shape=b111.shape)
 
     def __post_init__(self):
         """

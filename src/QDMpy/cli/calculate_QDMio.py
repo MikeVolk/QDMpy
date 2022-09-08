@@ -5,7 +5,7 @@ import sys
 import time
 
 import QDMpy
-from QDMpy.core.qdm import QDM
+from QDMpy._core.qdm import QDM
 
 
 def main(argv):

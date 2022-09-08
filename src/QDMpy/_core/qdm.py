@@ -8,10 +8,10 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
 import QDMpy
-import QDMpy.core.fit
-from QDMpy.core import models
-from QDMpy.core.fit import Fit
-from QDMpy.core.odmr import ODMR
+import QDMpy._core.fit
+from QDMpy._core import models
+from QDMpy._core.fit import Fit
+from QDMpy._core.odmr import ODMR
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
@@ -52,7 +52,7 @@ class QDM:
             pixel_size: pixel size in m
             model_name: model name (Default value = 'auto')
                 If 'auto' the model is chosen based on the mean ODMR data.
-                See Also: QDMpy.core.models.guess_model_name
+                See Also: QDMpy._core.models.guess_model_name
 
         """
 

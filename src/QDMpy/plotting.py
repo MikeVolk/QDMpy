@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 
-from QDMpy.core import models
-from QDMpy.core.qdm import QDM
+from QDMpy._core import models
+from QDMpy._core.qdm import QDM
 from QDMpy.utils import double_norm
 
 FREQ_LABEL = "f [GHz]"

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 This file contains the QDMpy mainwindow for the gui.
 QDMpy is free software: you can redistribute it and/or modify
@@ -65,8 +64,8 @@ from QDMpy.app.widgets.global_widget import GlobalWidget
 from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
 from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from QDMpy.core.fit import CONSTRAINT_TYPES
-from QDMpy.core.qdm import QDM
+from QDMpy._core.fit import CONSTRAINT_TYPES
+from QDMpy._core.qdm import QDM
 from QDMpy.exceptions import CantImportError
 
 colors = {

@@ -18,7 +18,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.app.models import Pix
-from QDMpy.core import models
+from QDMpy._core import models
 
 B111 = "B$_{111}$"
 

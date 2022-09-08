@@ -68,13 +68,12 @@ if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     )
 else:
     import pygpufit.gpufit as gf
+    LOG.info(f"CUDA available: {gf.cuda_available()}")
+    LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
 
-LOG.info(f"CUDA available: {gf.cuda_available()}")
-LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
-
-from QDMpy.core.fit import Fit
-from QDMpy.core.odmr import ODMR
-from QDMpy.core.qdm import QDM
+from QDMpy._core.fit import Fit
+from QDMpy._core.odmr import ODMR
+from QDMpy._core.qdm import QDM
 
 
 def reset_config():
@@ -83,7 +82,7 @@ def reset_config():
     """
     make_configfile(reset=True)
     LOG.info("Config file reset")
-    
+
 
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")

@@ -4,7 +4,7 @@ import numpy.testing as npt
 import pygpufit.gpufit as gf
 
 import QDMpy
-from QDMpy.core import fit, models
+from QDMpy._core import fit, models
 
 
 class test_Fit_class(unittest.TestCase):
