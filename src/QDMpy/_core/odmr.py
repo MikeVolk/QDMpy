@@ -48,9 +48,6 @@ class ODMR:
             self.reset_data,
             self._normalize_data,
             self._apply_outlier_mask,
-            None,
-            None,
-            None,
         ]
 
         self._apply_edit_stack()
@@ -93,9 +90,6 @@ class ODMR:
         >>> odmr['+', '<'] -> pos. polarization + low frequency range
 
         """
-        # todo implement slicing
-        # if isinstance(item, slice):
-        #     return self.data[item]
 
         if isinstance(item, int) or all(isinstance(i, int) for i in item):
             raise NotImplementedError("Indexing with only integers is not implemented yet.")
@@ -259,11 +253,8 @@ class ODMR:
 
         if data.ndim == 3:  # type: ignore[union-attr]
             data = data[np.newaxis, :, :, :]  # type: ignore[index]
-        scan_dimensions = np.array(
-            [np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(raw_data[0]["imgNumCols"])], dtype=int
-        )
 
-        scan_dimensions = np.array(
+        img_shape = np.array(
             [
                 np.squeeze(raw_data[0]["imgNumRows"]),
                 np.squeeze(raw_data[0]["imgNumCols"]),
@@ -273,9 +264,10 @@ class ODMR:
 
         n_freqs = int(np.squeeze(raw_data[0]["numFreqs"]))
         frequencies = np.squeeze(raw_data[0]["freqList"]).astype(np.float32)
+
         if n_freqs != len(frequencies):
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
-        return cls(data=data, scan_dimensions=scan_dimensions, frequencies=frequencies)  # type: ignore[arg-type]
+        return cls(data=data, data_shape=img_shape, frequencies=frequencies)  # type: ignore[arg-type]
 
     @classmethod
     def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
@@ -307,7 +299,7 @@ class ODMR:
     @property
     def data_shape(self) -> NDArray:
         """ """
-        return (self.img_shape / self.bin_factor).astype(np.uint32)
+        return (self.img_shape / self._bin_factor).astype(np.uint32)
 
     @property
     def img_shape(self) -> NDArray:
@@ -504,6 +496,7 @@ class ODMR:
             return
         self.LOG.debug("Applying outlier mask")
         self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
+        self.LOG.debug(f"Outlier mask applied, set {np.isnan(self._data_edited[0,0,:,0]).sum()} to NaN.")
 
     def bin_data(self, bin_factor: int, **kwargs: Any) -> None:
         """Bin the data.
@@ -515,7 +508,7 @@ class ODMR:
         Returns:
 
         """
-        self._edit_stack[3] = self._bin_data
+        self._edit_stack.append(self._bin_data)
         self._apply_edit_stack(bin_factor=bin_factor)
 
     def _bin_data(self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any) -> None:
@@ -530,15 +523,18 @@ class ODMR:
         """
         if bin_factor is not None and self._pre_bin_factor:
             bin_factor /= self._pre_bin_factor
+            self.LOG.debug(f"Pre binned data with factor {self._pre_bin_factor} reducing bin factor to {bin_factor}")
 
         if bin_factor is None:
             bin_factor = self._bin_factor
+
+        self.LOG.debug(f"Binning data {self.data_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
 
         # reshape into image size
         reshape_data = self.data.reshape(
             self.n_pol,
             self.n_frange,
-            *(self._img_shape / self._pre_bin_factor).astype(int),
+            *self.data_shape,
             self.n_freqs,
         )  # reshapes the data to the scan dimensions
         _odmr_binned = block_reduce(

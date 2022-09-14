@@ -37,11 +37,11 @@ class Fit:
     LOG = logging.getLogger(__name__)
 
     def __init__(
-        self,
-        data: NDArray,
-        frequencies: NDArray,
-        model_name: str = "auto",
-        constraints: Optional[Dict[str, Any]] = None,
+            self,
+            data: NDArray,
+            frequencies: NDArray,
+            model_name: str = "auto",
+            constraints: Optional[Dict[str, Any]] = None,
     ):
         """
         Fit the data to a model.
@@ -81,6 +81,7 @@ class Fit:
 
     @data.setter
     def data(self, data: NDArray) -> None:
+        self.LOG.info("Data changed, fits need to be recalculated!")
         if np.all(self._data == data):
             return
         self._data = data
@@ -88,8 +89,7 @@ class Fit:
         self._reset_fit()
 
     ### MODEL RELATED METHODS ###
-    @property
-    def guess_model_name(self, n_spectra=100, *args, **kwargs) -> str:
+    def guess_model_name(self) -> str:
         """Guess the model name from the data."""
         data = np.median(self.data, axis=2)
         n_peaks, doubt, peaks = guess_model(data)
@@ -100,7 +100,7 @@ class Fit:
             )
 
         model = [mdict for m, mdict in models.IMPLEMENTED.items() if mdict["n_peaks"] == n_peaks][0]
-        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {model}")
+        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})")
         return model["func_name"]
 
     @property
@@ -186,12 +186,12 @@ class Fit:
         return defaults
 
     def set_constraints(
-        self,
-        param: str,
-        vmin: Union[float, None] = None,
-        vmax: Union[float, None] = None,
-        constraint_type: Union[str, None] = None,
-        reset_fit: bool = True,
+            self,
+            param: str,
+            vmin: Union[float, None] = None,
+            vmax: Union[float, None] = None,
+            constraint_type: Union[str, None] = None,
+            reset_fit: bool = True,
     ):
         """
         Set the constraints for the fit.
@@ -598,11 +598,11 @@ def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
 
 
 def make_dummy_data(
-    model: str = "esr14n",
-    n_freqs: int = 50,
-    scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
-    shift: float = 0,
-    noise: float = 0,
+        model: str = "esr14n",
+        n_freqs: int = 50,
+        scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
+        shift: float = 0,
+        noise: float = 0,
 ) -> Tuple[NDArray, NDArray, NDArray]:
     model = model.upper()
 
