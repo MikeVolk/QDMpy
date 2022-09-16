@@ -146,6 +146,17 @@ def load_config(file=CONFIG_FILE) -> dict:
     with open(file, "rb") as fileObj:
         return tomli.load(fileObj)
 
+def rms(data):
+    """Calculate the root mean square of a data set.
+
+    Args:
+      data: data set
+
+    Returns:
+      root mean square
+
+    """
+    return np.sqrt(np.mean(np.square(data)))
 
 def make_configfile(reset: bool = False) -> None:
     """Creates the config file if it does not exist.
