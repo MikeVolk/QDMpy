@@ -669,11 +669,10 @@ class ODMR:
 
 
 def main() -> None:
-    odmr = ODMR.from_qdmio(QDMpy.test_data_location())
-    print(odmr[">"].shape)
-    print(odmr["+"].shape)
-    print(odmr["+>"].shape)
-
+    QDMpy.LOG.setLevel(logging.DEBUG)
+    odmr = ODMR.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
+    for i in [4,6,8,16]:
+        odmr.bin_data(i)
 
 if __name__ == "__main__":
     main()
