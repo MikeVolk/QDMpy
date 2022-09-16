@@ -36,6 +36,8 @@ class FitWidget(QDMWidget):
         self.quad_background = [None, None]  # for BG of ferro/induced
 
         self.set_main_window()
+
+        self.add_bottom_infobar()
         self.update_clims()
         self.add_scalebars()
         self.canvas.draw_idle()
