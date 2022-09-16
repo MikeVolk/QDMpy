@@ -16,12 +16,13 @@ matplotlib.rcParams.update(
 
 
 class GlobalWidget(QDMWidget):
-    def add_odmr(self):
-        self.canvas.add_odmr(
+    def add_odmr(self, mean=True):
+        self.canvas.update_odmr(
             freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),
             uncorrected=self.get_current_odmr(),
             corrected=self.get_corrected_odmr(self.global_slider.value()),
+            mean=self.qdm.odmr.mean_odmr,
         )
 
     def __init__(self, qdm_instance, *args, **kwargs):
@@ -29,6 +30,8 @@ class GlobalWidget(QDMWidget):
         super().__init__(canvas=canvas, *args, **kwargs)
         self.LOG.debug("GlobalFluorescenceWindow.__init__")
         self.setWindowTitle("Global Fluorescence")
+
+        # global fluorescence slider
         self.global_label = QLabel(f"Global Fluorescence: {self.qdm.global_factor:.2f}")
         self.global_slider = QSlider()
         self.global_slider.setValue(self.caller.gf_select.value())
@@ -47,38 +50,39 @@ class GlobalWidget(QDMWidget):
         self.set_main_window()
 
         # add plotting elements
-        self.add_mean_odmr()
+        self.add_odmr(mean=True)
         self.add_light()
         self.add_laser()
         self.add_scalebars()
         self.update_marker()
-        # data and uncorrected are swapped so that the markers are always for
-        # the uncorrected data. Other widgets will not have this.
-        self.canvas.add_odmr(
-            freq=self.qdm.odmr.f_ghz,
-            data=self.get_uncorrected_odmr(),
-            uncorrected=self.get_current_odmr(),
-            corrected=self.get_corrected_odmr(self.global_slider.value()),
-        )
-        self.canvas.update_odmr_lims()
         self.canvas.set_img()
-        self.canvas.draw()
+        self.update_clims()
+        self.canvas.draw_idle()
 
     def on_global_slider_change(self):
         self.global_label.setText(f"Global Fluorescence: {self.global_slider.value() / 100:.2f}")
         self.update_odmr()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def update_odmr(self):
         """
         Update the marker position on the image plots.
         """
         self.canvas.update_odmr(
+            freq=self.qdm.odmr.f_ghz,
             data=self.get_uncorrected_odmr(),
             uncorrected=self.get_current_odmr(),
             corrected=self.get_corrected_odmr(self.global_slider.value()),
+            mean=self.qdm.odmr.mean_odmr,
         )
-        self.canvas.update_odmr_lims()
+        self.canvas.update_odmr_lims(
+            [
+                self.qdm.odmr.mean_odmr,
+                self.get_uncorrected_odmr(),
+                self.get_current_odmr(),
+                self.get_corrected_odmr(self.global_slider.value()),
+            ]
+        )
 
     def apply_global_factor(self):
         self.LOG.debug(f"applying global factor {self.global_slider.value() / 100:.2f}")
