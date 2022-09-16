@@ -47,6 +47,7 @@ class ODMR:
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,
+            None,
             self._apply_outlier_mask,
         ]
 
@@ -509,7 +510,7 @@ class ODMR:
         Returns:
 
         """
-        self._edit_stack.append(self._bin_data)
+        self._edit_stack[2] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
     def _bin_data(self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any) -> None:
@@ -522,20 +523,21 @@ class ODMR:
         Returns:
 
         """
-        if bin_factor is not None and self._pre_bin_factor:
+        if bin_factor != 1 and self._pre_bin_factor != 1:
             bin_factor /= self._pre_bin_factor
             self.LOG.debug(f"Pre binned data with factor {self._pre_bin_factor} reducing bin factor to {bin_factor}")
 
         if bin_factor is None:
             bin_factor = self._bin_factor
 
-        self.LOG.debug(f"Binning data {self.data_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
+        self.LOG.debug(f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
 
         # reshape into image size
         reshape_data = self.data.reshape(
             self.n_pol,
             self.n_frange,
-            *self.data_shape,
+            int(self.img_shape[0] / self._pre_bin_factor),
+            int(self.img_shape[1] / self._pre_bin_factor),
             self.n_freqs,
         )  # reshapes the data to the scan dimensions
         _odmr_binned = block_reduce(
