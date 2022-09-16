@@ -1,35 +1,3 @@
-# -*- coding: utf-8 -*-
-import contextlib
-import logging
-import sys
-import time
-from pathlib import Path
-
-import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
-
-matplotlib.use('Agg')
-
-import pyqdm
-from PySide6.QtCore import Qt, QSize, QAbstractTableModel
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QScreen
-from PySide6.QtWidgets import (
-    QMainWindow, QApplication, QHeaderView, QWidget, QGroupBox, QDoubleSpinBox, QPushButton, QHBoxLayout,
-    QAbstractItemView,
-    QLabel, QToolBar, QStatusBar, QTableWidget, QTableWidgetItem, QSizePolicy, QComboBox, QLineEdit, QTableView,
-    QMessageBox, QFileDialog, QProgressDialog, QVBoxLayout, QGridLayout)
-from pyqdm.core.qdm import QDM
-from pyqdm.exceptions import CantImportError
-
-from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
-from pyqdm.app.windows.misc import gf_applied_window
-from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
-from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
-from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
-
-from pyqdm.app.windows import fit_window
-
 """
 This file contains the pyqdm mainwindow for the gui.
 pyqdm is free software: you can redistribute it and/or modify
@@ -46,18 +14,118 @@ Copyright (c) the pyqdm Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/mikevolk/pyqdm>
 """
 
-colors = {'Bright Gray': '#EAEFF9', 'Pale Cerulean': '#A1C4D8', 'Blue-Gray': '#5C9DC0',
-          'X11 Gray': '#BEBEBE', 'Taupe Gray': '#878787', "near-white": '#F8F8F8', "near-black": '#1E1E1E'}
-plt.style.use('fast')
-matplotlib.rcParams.update({
-    'font.size': 8,
-    'axes.labelsize': 8,
-    'grid.linestyle': '-',
-    'grid.alpha': 0.5})
+import contextlib
+import logging
+import sys
+import time
+from pathlib import Path
+
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+
+matplotlib.use("Agg")
+
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
+from PySide6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QProgressDialog,
+    QPushButton,
+    QSizePolicy,
+    QStatusBar,
+    QTableWidget,
+    QTableWidgetItem,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
+
+import pyqdm
+from pyqdm.app.windows import fit_window
+from pyqdm.app.windows.fluorescence_window import FluorescenceWindow
+from pyqdm.app.windows.global_fluorescence_window import GlobalFluorescenceWindow
+from pyqdm.app.windows.misc import PandasWidget, gf_applied_window
+from pyqdm.app.windows.simple_plot_window import SimplePlotWindow
+from pyqdm.app.windows.warning_windows import pyGPUfitNotInstalledDialog
+from pyqdm.core.fit import CONSTRAINT_TYPES
+from pyqdm.core.qdm import QDM
+from pyqdm.exceptions import CantImportError
+
+colors = {
+    "Bright Gray": "#EAEFF9",
+    "Pale Cerulean": "#A1C4D8",
+    "Blue-Gray": "#5C9DC0",
+    "X11 Gray": "#BEBEBE",
+    "Taupe Gray": "#878787",
+    "near-white": "#F8F8F8",
+    "near-black": "#1E1E1E",
+}
+plt.style.use("fast")
+matplotlib.rcParams.update({"font.size": 8, "axes.labelsize": 8, "grid.linestyle": "-", "grid.alpha": 0.5})
 
 
 class PyQDMMainWindow(QMainWindow):
     _visible_if_QDMObj_present = []
+
+    def __init__(self, **kwargs):
+
+        super().__init__()
+        self.LOG = logging.getLogger("pyqdm." + self.__class__.__name__)
+        self.debug = kwargs.pop("debug", False)
+        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
+
+        if not pyqdm.pygpufit_present:
+            self.pygpufit_not_available_dialog()
+
+        screen = kwargs.pop("screen", None)
+        if screen is None:
+            self.screen_size = [1920, 1080]
+        else:
+            self.screen_size = screen.size().width(), screen.size().height()
+        self.screen_ratio = self.screen_size[1] / self.screen_size[0]
+        self.fluorescenceWindow = None
+        self.laserWindow = None
+        self.ledWindow = None
+        self.main_content_figure = None
+        self.qualityWindow = None
+
+        self.qdm = None
+        self.fitconstraints_widget = None
+        self.fitconstraints = {}
+
+        self._current_idx = None
+
+        self.setWindowTitle("pyqdm")
+        self.resize(
+            int(0.6 * self.screen_size[0]),
+            int(0.8 * self.screen_size[0] * self.screen_ratio),
+        )
+
+        self.get_menu()
+        self.get_toolbar()
+        self.get_statusbar()
+
+        self.init_main_content()
+        self.get_infotable_widget()
+
+        self._change_tool_visibility()
+
+        self._data_windows = []
+
+        if self.debug:
+            self.debug_call()
 
     # TOOLBAR
     def get_toolbar(self):
@@ -96,7 +164,7 @@ class PyQDMMainWindow(QMainWindow):
         self.infoButton.setShortcut(QKeySequence("Ctrl+I"))
         self._visible_if_QDMObj_present.append(self.infoButton)
         self.infoButton.setEnabled(False)
-        icon = QIcon('assets/icons/info.png')
+        icon = QIcon("assets/icons/info.png")
         self.infoButton.setIcon(icon)
         self.infoButton.setStatusTip("Show info")
         toolbar.addAction(self.infoButton)
@@ -119,8 +187,7 @@ class PyQDMMainWindow(QMainWindow):
         """
         self.fluorescencePlotButton = QAction("Fluo.", self)
         self.fluorescencePlotButton.setStatusTip("Open fluorescence plots")
-        self.fluorescencePlotButton.triggered.connect(
-            self.on_fluorescence_button_press)
+        self.fluorescencePlotButton.triggered.connect(self.on_fluorescence_button_press)
         self.fluorescencePlotButton.setShortcut(QKeySequence("Ctrl+F"))
         self._visible_if_QDMObj_present.append(self.fluorescencePlotButton)
         toolbar.addAction(self.fluorescencePlotButton)
@@ -161,18 +228,22 @@ class PyQDMMainWindow(QMainWindow):
         toolbar.addWidget(self.fit_button)
         self.fit_constraints_button = QPushButton("Constraints")
         self.fit_constraints_button.setStatusTip("Edit the fit constraints")
-        self.fit_constraints_button.clicked.connect(
-            self.on_set_fitconstraints_button_press)
+        self.fit_constraints_button.clicked.connect(self.on_set_fitconstraints_button_press)
         self._visible_if_QDMObj_present.append(self.fit_constraints_button)
         toolbar.addWidget(self.fit_constraints_button)
 
     def _add_pixelsize_toolbar(self, toolbar):
         pixel_widget = QWidget()
         pixel_size_box = QHBoxLayout()
-        pixel_size_label, self.pixel_size_select = self.get_label_box(label="Pixel Size [µm]:",
-                                                                      value=1, decimals=2,
-                                                                      step=1, vmin=1, vmax=99,
-                                                                      callback=self.on_pixel_size_changed)
+        pixel_size_label, self.pixel_size_select = self.get_label_box(
+            label="Pixel Size [µm]:",
+            value=1,
+            decimals=2,
+            step=1,
+            vmin=1,
+            vmax=99,
+            callback=self.on_pixel_size_changed,
+        )
         pixel_size_box.addWidget(pixel_size_label)
         pixel_size_box.addWidget(self.pixel_size_select)
         pixel_widget.setLayout(pixel_size_box)
@@ -181,10 +252,15 @@ class PyQDMMainWindow(QMainWindow):
     def _add_bin_toolbar(self, toolbar):
         bin_widget = QWidget()
         bin_box = QHBoxLayout()
-        bin_factor_label, self.binfactor_select = self.get_label_box(label="Bin Factor:",
-                                                                     value=1, decimals=0,
-                                                                     step=1, vmin=1, vmax=32,
-                                                                     callback=self.on_bin_factor_changed)
+        bin_factor_label, self.binfactor_select = self.get_label_box(
+            label="Bin Factor:",
+            value=1,
+            decimals=0,
+            step=1,
+            vmin=1,
+            vmax=32,
+            callback=self.on_bin_factor_changed,
+        )
         bin_box.addWidget(bin_factor_label)
         bin_box.addWidget(self.binfactor_select)
         self.bin_button = QPushButton("Bin")
@@ -199,8 +275,7 @@ class PyQDMMainWindow(QMainWindow):
     def _add_gf_toolbar(self, toolbar):
         global_widget = QWidget()
         global_box = QHBoxLayout()
-        gf_label, self.gf_select = self.get_label_box(
-            "Global Fluorescence", 0, 1, 0.1, 0, 1, self.on_gf_changed)
+        gf_label, self.gf_select = self.get_label_box("Global Fluorescence", 0, 1, 0.1, 0, 1, self.on_gf_changed)
         self.gf_detect_button = QPushButton("detect")
         self.gf_detect_button.setStatusTip("Detect global fluoresence")
         self.gf_detect_button.clicked.connect(self.on_gf_detect_button_press)
@@ -214,8 +289,7 @@ class PyQDMMainWindow(QMainWindow):
         global_box.addWidget(self.gf_select)
         global_box.addWidget(self.gf_apply_button)
         global_box.addWidget(self.gf_detect_button)
-        self._visible_if_QDMObj_present.extend(
-            [self.gf_detect_button, self.gf_apply_button])
+        self._visible_if_QDMObj_present.extend([self.gf_detect_button, self.gf_apply_button])
         global_widget.setLayout(global_box)
         toolbar.addWidget(global_widget)
 
@@ -258,8 +332,7 @@ class PyQDMMainWindow(QMainWindow):
         edit_menu = menu.addMenu("&Edit")
         set_fit_constraints_button = QAction("Set Fit Constraints", self)
         set_fit_constraints_button.setStatusTip("Set Fit Constraints")
-        set_fit_constraints_button.triggered.connect(
-            self.on_set_fitconstraints_button_press)
+        set_fit_constraints_button.triggered.connect(self.on_set_fitconstraints_button_press)
         edit_menu.addAction(set_fit_constraints_button)
 
         # view menu
@@ -310,7 +383,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def fill_fitconstraints_widget(self):
         self.get_fitconstraints_widget()
-        for i, (k, v) in enumerate(self.QDMObj.constraints.items()):
+        for i, (k, v) in enumerate(sefl.qdm.fit.constraints.items()):
             self.set_fitconstraints_widget_line(i, k, v[0], v[1], v[3], v[2])
 
     def set_fitconstraints_widget_line(self, row, text, vmin, vmax, unit, constraint):
@@ -321,19 +394,17 @@ class PyQDMMainWindow(QMainWindow):
             QLabel(unit),
             QComboBox(),
         ]
-        self.fitconstraints[text][-1].addItems(
-            ['FREE', 'LOWER', 'UPPER', 'LOWER_UPPER'])
-        self.fitconstraints[text][-1].setCurrentIndex(
-            self.QDMObj.CONSTRAINT_TYPES[constraint])
+        self.fitconstraints[text][-1].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
+        self.fitconstraints[text][-1].setCurrentIndex(CONSTRAINT_TYPES[constraint])
 
-        self.fitconstraints[text][1].returnPressed.connect(
-            self.on_fitconstraints_widget_item_changed)
-        self.fitconstraints[text][2].returnPressed.connect(
-            self.on_fitconstraints_widget_item_changed)
-        self.fitconstraints[text][-1].currentIndexChanged.connect(
-            self.on_fitconstraints_widget_item_changed)
-        self._set_constraint_visibility(self.QDMObj.CONSTRAINT_TYPES[constraint], self.fitconstraints[text][1],
-                                        self.fitconstraints[text][2])
+        self.fitconstraints[text][1].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
+        self.fitconstraints[text][2].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
+        self.fitconstraints[text][-1].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
+        self._set_constraint_visibility(
+            CONSTRAINT_TYPES[constraint],
+            self.fitconstraints[text][1],
+            self.fitconstraints[text][2],
+        )
 
         # add them to the layout
         for col, item in enumerate(self.fitconstraints[text]):
@@ -352,8 +423,7 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_fitconstraints_widget_item_changed(self):
         for k, v in self.fitconstraints.items():
-            self.QDMObj.set_constraints(
-                k, [float(v[1].text()), float(v[2].text())], v[-1].currentIndex())
+            self.qdm.set_constraints(k, [float(v[1].text()), float(v[2].text())], v[-1].currentIndex())
         self.fill_fitconstraints_widget()
 
     # info widget #todo make into txt
@@ -363,14 +433,15 @@ class PyQDMMainWindow(QMainWindow):
 
         self.info_table = QTableWidget(6, 2, self)  # todo rewrite info table
         # self.infoTable.setStyleSheet('font-size: 11px; alternate-background-color: #F8F8F8;')
-        self.info_table.setStyleSheet("*{"
-                                      "background-color: #F8F8F8;"
-                                      "border: 0px solid #F8F8F8;"
-                                      "color: #1E1E1E;"
-                                      "selection-background-color: #F8F8F8;"
-                                      "selection-color: #FFF;"
-                                      "}"
-                                      )
+        self.info_table.setStyleSheet(
+            "*{"
+            "background-color: #F8F8F8;"
+            "border: 0px solid #F8F8F8;"
+            "color: #1E1E1E;"
+            "selection-background-color: #F8F8F8;"
+            "selection-color: #FFF;"
+            "}"
+        )
         self.info_table.horizontalHeader().hide()
         self.info_table.verticalHeader().hide()
         self.info_table.setEnabled(False)
@@ -381,8 +452,7 @@ class PyQDMMainWindow(QMainWindow):
         self.infotableWidget.setWindowTitle("Measurement Information")
         self.infotableWidget.resize(180, 230)
 
-        self.infotableWidget.setSizePolicy(
-            QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.infotableWidget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         self.info_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.info_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -438,51 +508,11 @@ class PyQDMMainWindow(QMainWindow):
         self._visible_if_QDMObj_present.append(selector)
         return label, selector
 
-    def __init__(self, **kwargs):
-
-        super().__init__()
-        self.LOG = logging.getLogger('pyqdm.' + self.__class__.__name__)
-        self.debug = kwargs.pop('debug', False)
-        self.outlier_pd = pd.DataFrame(columns=['idx', 'x', 'y'])
-
-        if not pyqdm.pygpufit_present:
-            self.pygpufit_not_available_dialog()
-        self.fluorescenceWindow = None
-        self.laserWindow = None
-        self.ledWindow = None
-        self.main_content_figure = None
-        self.qualityWindow = None
-
-        self.QDMObj = None
-        self.fitconstraints_widget = None
-        self.fitconstraints = {}
-
-        self._current_idx = None
-
-        self.setWindowTitle("pyqdm")
-        self.resize(1200, 800)
-
-        self.get_menu()
-        self.get_toolbar()
-        self.get_statusbar()
-
-        self.init_main_content()
-        self.get_infotable_widget()
-
-        self._change_tool_visibility()
-
-        self._data_windows = []
-
-        if self.debug:
-            self.debug_call()
-
     # MAIN WINDOW
     def init_main_content(self):
         self.main_content_layout = QHBoxLayout()
-        self.main_label = QLabel(
-            "No QDM data loaded, yet.\nNo fitting possible.")
-        self.main_label.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.main_label = QLabel("No QDM data loaded, yet.\nNo fitting possible.")
+        self.main_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.main_label.setAlignment(Qt.AlignCenter)
         self.main_content_layout.addWidget(self.main_label)
         self.main_content_figure = None
@@ -493,24 +523,22 @@ class PyQDMMainWindow(QMainWindow):
 
     def update_main_content(self):
         self.LOG.debug("Updating main content")
-        if self.QDMObj is None:
+        if self.qdm is None:
             self.LOG.debug("No QDM data loaded, yet.\nNo fitting possible.")
             self.init_main_content()
-        elif not self.QDMObj.fitted:
+        elif not self.qdm.fit.fitted:
             self.LOG.debug("QDM data loaded, fitting possible.")
             self.main_label.setText("No fit calculated yet.")
         else:
             self.LOG.debug("QDM data fitted, plotting results.")
             if self.main_content_figure is None:
-                self._extracted_from_update_main_content_12()
+                self._replace_label_with_fit_window()
             else:
                 self.main_content_figure.redraw_all_plots()
 
-    # TODO Rename this here and in `update_main_content`
-    def _extracted_from_update_main_content_12(self):
+    def _replace_label_with_fit_window(self):
         self.main_content_layout.removeWidget(self.main_label)
-        self.main_content_figure = fit_window.FitWindow(
-            self, self.QDMObj, parent=self)
+        self.main_content_figure = fit_window.FitWindow(self, self.qdm, parent=self)
         self._data_windows.append(self.main_content_figure)
         self.main_content_layout.addWidget(self.main_content_figure)
         self.setCentralWidget(self.main_content_figure)
@@ -518,7 +546,12 @@ class PyQDMMainWindow(QMainWindow):
 
     @property
     def _need_marker_update(self):
-        return [self.laserWindow, self.ledWindow, self.main_content_figure, self.qualityWindow]
+        return [
+            self.laserWindow,
+            self.ledWindow,
+            self.main_content_figure,
+            self.qualityWindow,
+        ]
 
     @property
     def _need_pixel_update(self):
@@ -540,7 +573,7 @@ class PyQDMMainWindow(QMainWindow):
     # DATA RELATED
     def set_current_idx(self, x=None, y=None, idx=None):
         if x is not None and y is not None:
-            self._current_idx = self.QDMObj.odmr.rc2idx([y, x])
+            self._current_idx = self.qdm.odmr.rc2idx([y, x])
         elif idx is not None:
             self._current_idx = idx
 
@@ -550,13 +583,13 @@ class PyQDMMainWindow(QMainWindow):
         Returns the current xy-coordinates in data coordinates.
         :return:
         """
-        return self.QDMObj.odmr.idx2rc(self._current_idx)[::-1]
+        return self.qdm.odmr.idx2rc(self._current_idx)[::-1]
 
     # BUTTON ACTION
     # toolbar / menu
     def on_fluorescence_button_press(self):
         if self.fluorescenceWindow is None:
-            self.fluorescenceWindow = FluorescenceWindow(self.QDMObj)
+            self.fluorescenceWindow = FluorescenceWindow(self.qdm)
             self.fluorescenceWindow.show()
         elif self.fluorescenceWindow.isVisible():
             self.fluorescenceWindow.hide()
@@ -565,10 +598,14 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_laser_button_press(self):
         if self.laserWindow is None:
-            self.laserWindow = SimplePlotWindow(QDMObj=self.QDMObj, title="Laser Scan", caller=self, cmap='magma',
-                                                cbar=True)
-            self.laserWindow.add_laser_img(
-                self.laserWindow.ax, cax=self.laserWindow.cax)
+            self.laserWindow = SimplePlotWindow(
+                QDMObj=self.qdm,
+                title="Laser Scan",
+                caller=self,
+                cmap="magma",
+                cbar=True,
+            )
+            self.laserWindow.add_laser_img(self.laserWindow.ax, cax=self.laserWindow.cax)
             self.laserWindow.show()
         elif self.laserWindow.isVisible():
             self.laserWindow.hide()
@@ -577,8 +614,13 @@ class PyQDMMainWindow(QMainWindow):
 
     def on_led_button_press(self):
         if self.ledWindow is None:
-            self.ledWindow = SimplePlotWindow(QDMObj=self.QDMObj, title="Reflected Light Image", caller=self,
-                                              cmap='bone', cbar=False)
+            self.ledWindow = SimplePlotWindow(
+                QDMObj=self.qdm,
+                title="Reflected Light Image",
+                caller=self,
+                cmap="bone",
+                cbar=False,
+            )
             self.ledWindow.add_light_img(self.ledWindow.ax)
             self.ledWindow.show()
         elif self.ledWindow.isVisible():
@@ -593,29 +635,27 @@ class PyQDMMainWindow(QMainWindow):
             self.infotableWidget.show()
 
     def on_qdmio_button_press(self):
-        work_directory = QFileDialog.getExistingDirectory(
-            self, 'Open path', './')
-        self.import_file(work_directory, dialect='QDMio')
+        work_directory = QFileDialog.getExistingDirectory(self, "Open path", "./")
+        self.import_file(work_directory, dialect="QDMio")
 
     def on_detect_outlier_button_press(self):
         self.LOG.debug("Detecting outliers")
-        self.QDMObj.detect_outliers('width', method='IsolationForest')
+        self.qdm.detect_outliers("width", method="IsolationForest")
 
-        self.outlier_pd = pd.DataFrame(columns=['idx', 'x', 'y'])
-        self.outlier_pd['x'] = self.QDMObj.outliers_xy[:, 0]
-        self.outlier_pd['y'] = self.QDMObj.outliers_xy[:, 1]
-        self.outlier_pd['idx'] = self.QDMObj.outliers_idx
-        self.statusBar().showMessage(
-            f"{self.QDMObj.outliers_idx.size:8b} Outliers detected")
+        self.outlier_pd = pd.DataFrame(columns=["idx", "x", "y"])
+        self.outlier_pd["x"] = self.qdm.outliers_xy[:, 0]
+        self.outlier_pd["y"] = self.qdm.outliers_xy[:, 1]
+        self.outlier_pd["idx"] = self.qdm.outliers_idx
+        self.statusBar().showMessage(f"{self.qdm.outliers_idx.size:8b} Outliers detected")
 
     def on_mark_outlier_button_press(self, s):
         for w in self._data_windows:
             if s:
                 self.LOG.debug("Marking outliers")
-                w._add_outlier_mask()
+                w.add_outlier_mask()
             else:
                 self.LOG.debug("Removing outlier markers")
-                w._toggle_outlier_mask('off')
+                w.toggle_outlier_mask("off")
 
     def on_show_outlier_list_button_press(self):
         self.LOG.debug("Showing outliers list")
@@ -625,15 +665,15 @@ class PyQDMMainWindow(QMainWindow):
         self.outlierListWidget.show()
 
     def on_about_pyqdm_button_press(self):
-        about_message_box = QMessageBox.about(self,
-                                              'About pyqdm',
-                                              'pyqdm is written by Mike Volk during his hollidays in 2022...\n'
-                                              'What a dork... - Chrissi -',
-                                              )
+        about_message_box = QMessageBox.about(
+            self,
+            "About pyqdm",
+            "pyqdm is written by Mike Volk during his hollidays in 2022...\n" "What a dork... - Chrissi -",
+        )
         about_message_box.show()
 
     def on_quick_start_button_press(self):
-        if self.QDMObj.bin_factor == 1:
+        if self.qdm.bin_factor == 1:
             self.binfactor_select.setValue(4)
             self.on_bin_button_press()
         self.gf_select.setValue(0.2)
@@ -643,24 +683,22 @@ class PyQDMMainWindow(QMainWindow):
 
     # main content
     def on_pixel_size_changed(self):
-        self.LOG.debug(
-            f"Pixel Size changed to {self.pixel_size_select.value()}")
+        self.LOG.debug(f"Pixel Size changed to {self.pixel_size_select.value()}")
 
     def on_bin_factor_changed(self):
-        self.LOG.debug(
-            f"Bin Factor changed to {self.binfactor_select.value()}")
+        self.LOG.debug(f"Bin Factor changed to {self.binfactor_select.value()}")
 
     def on_bin_button_press(self):
         self.LOG.debug("Bin Button clicked")
-        self.QDMObj.bin_data(self.binfactor_select.value())
-        if self.QDMObj.fitted:
-            self.QDMObj.fit_ODMR()
-        self._current_idx = self.QDMObj.odmr.get_most_divergent_from_mean()[-1]
+        self.qdm.bin_data(self.binfactor_select.value())
+        if self.qdm.fitted:
+            self.qdm.fit_ODMR()
+        self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
         self.update_main_content()
         self.fill_fitconstraints_widget()
 
     def on_fit_button_press(self):
-        self.QDMObj.fit_ODMR()
+        self.qdm.fit_ODMR()
         self.update_main_content()
         self.update_marker()
         self.update_pixel()
@@ -668,12 +706,12 @@ class PyQDMMainWindow(QMainWindow):
         self.fill_fitconstraints_widget()
 
     def on_gf_detect_button_press(self):
-        self.gf_window = GlobalFluorescenceWindow(self, self.QDMObj)
+        self.gf_window = GlobalFluorescenceWindow(self, self.qdm)
         self.LOG.debug("GF Button clicked")
 
     def on_gf_apply_button_press(self):
         self.LOG.debug("GF Apply Button clicked")
-        self.QDMObj.correct_glob_fluorescence(self.gf_select.value())
+        self.qdm.correct_glob_fluorescence(self.gf_select.value())
         if not self.debug:
             gf_applied_window(self.gf_select.value())
 
@@ -685,26 +723,33 @@ class PyQDMMainWindow(QMainWindow):
 
     # additional functions
     def set_pixel_size_from_qdm_obj(self):
-        if self.QDMObj is not None:
+        if self.qdm is not None:
             with contextlib.suppress(AttributeError):
-                self.pixel_size_select.setValue(self.QDMObj.pixel_size)
+                self.pixel_size_select.setValue(self.qdm.pixel_size)
 
     def get_infos(self):
-        return [self.QDMObj.ODMRobj.scan_dimensions,
-                self.QDMObj.ODMRobj.n_pol,
-                self.QDMObj.ODMRobj.n_frange,
-                self.QDMObj.ODMRobj.data.size,
-                self.QDMObj.ODMRobj.n_freqs,
-                self.QDMObj.bin_factor,
-                ]
+        return [
+            self.qdm.odmr.scan_dimensions,
+            self.qdm.odmr.n_pol,
+            self.qdm.odmr.n_frange,
+            self.qdm.odmr.data.size,
+            self.qdm.odmr.n_freqs,
+            self.qdm.bin_factor,
+        ]
 
     def _change_tool_visibility(self):
         for action in self._visible_if_QDMObj_present:
-            action.setEnabled(self.QDMObj is not None)
+            action.setEnabled(self.qdm is not None)
 
     def _fill_info_table(self, infos=None):
-        entries = ["Image dimensions", "Field directions", "Frequency ranges", "# pixels", "# frequencies",
-                   'bin factor']
+        entries = [
+            "Image dimensions",
+            "Field directions",
+            "Frequency ranges",
+            "# pixels",
+            "# frequencies",
+            "bin factor",
+        ]
         for i, e in enumerate(entries):
             self.info_table.setItem(i, 0, QTableWidgetItem(e))
 
@@ -720,18 +765,19 @@ class PyQDMMainWindow(QMainWindow):
         self.info_table.resizeRowsToContents()
         self.info_table.resize(180, 230)
 
-    def import_file(self, work_directory, dialect='QDMio'):
-        loading_progress_dialog = self.get_loading_progress_dialog("Importing QDMio like files",
-                                                                   "Importing QDMio like files, please wait.")
+    def import_file(self, work_directory, dialect="QDMio"):
+        loading_progress_dialog = self.get_loading_progress_dialog(
+            "Importing QDMio like files", "Importing QDMio like files, please wait."
+        )
         self.work_directory = Path(work_directory)
         self.init_main_content()
 
         # time.sleep(1)
 
-        if dialect == 'QDMio':
-            self.QDMObj = self.import_qdmio(work_directory)
+        if dialect == "QDMio":
+            self.qdm = self.import_qdmio(work_directory)
 
-        if self.QDMObj is not None:
+        if self.qdm is not None:
             self._init_with_new_qdm_obj()
         else:
             QMessageBox.warning(self, "Import Error", "Could not import file.")
@@ -744,97 +790,44 @@ class PyQDMMainWindow(QMainWindow):
         self._change_tool_visibility()
         self._fill_info_table(self.get_infos())
         # in data coordinates
-        self.set_current_idx(idx=self.QDMObj.odmr.get_most_divergent_from_mean()[-1])
+        self.set_current_idx(idx=self.qdm.odmr.get_most_divergent_from_mean()[-1])
         self.file_imported()
         self.update_main_content()
 
     # IMPORT FUNCTIONS
     def import_qdmio(self, work_directory):
-        self.statusBar().showMessage(
-            f"Importing QDMio like files from {work_directory}")
+        self.statusBar().showMessage(f"Importing QDMio like files from {work_directory}")
 
         self.work_directory = Path(work_directory)
         try:
-            qdm_obj = QDM.from_QDMio(self.work_directory)
-            self.statusBar().showMessage(
-                f"Successfully imported QDMio like files from {self.work_directory}")
+            qdm_obj = QDM.from_qdmio(self.work_directory)
+            self.statusBar().showMessage(f"Successfully imported QDMio like files from {self.work_directory}")
 
             return qdm_obj
         except CantImportError:
-            self.statusBar().showMessage(
-                f"Cant import QDMio like files from {self.work_directory}")
+            self.statusBar().showMessage(f"Cant import QDMio like files from {self.work_directory}")
 
             return
 
     def file_imported(self):
-        self.statusBar().showMessage(
-            f"Successfully imported QDM files from {self.work_directory}")
+        self.statusBar().showMessage(f"Successfully imported QDM files from {self.work_directory}")
 
         self._change_tool_visibility()
         self._fill_info_table(self.get_infos())
         self.set_pixel_size_from_qdm_obj()
-        self.binfactor_select.setValue(self.QDMObj.bin_factor)
+        self.binfactor_select.setValue(self.qdm.bin_factor)
         self.main_label.setText("No fits calculated yet.")
 
     def debug_call(self):
-        self.import_file(r'C:\Users\micha\Desktop\diamond_testing\FOV18x')
+        self.import_file(r"C:\Users\micha\Desktop\synthetic_data")
         self.on_quick_start_button_press()
         self.on_fit_button_press()
 
 
-class PandasWidget(QGroupBox):
-    def __init__(self, caller, pdd, title='Outliers', parent=None):
-        super().__init__(parent)
-        v_layout = QVBoxLayout(self)
-        self.setTitle(title)
-        self.caller = caller
-        self.pandasTv = QTableView(self)
-
-        v_layout.addWidget(self.pandasTv)
-        self.pandasTv.setSortingEnabled(True)
-
-        model = PandasModel(pdd)
-        self.pandasTv.setModel(model)
-        self.pandasTv.resizeColumnsToContents()
-        self.pandasTv.setSelectionBehavior(QAbstractItemView.SelectRows)
-        selection = self.pandasTv.selectionModel()
-        selection.selectionChanged.connect(self.handle_selection_changed)
-        self.resize(150, 200)
-        self.setContentsMargins(0, 0, 0, 0)
-
-    def handle_selection_changed(self):
-        for index in self.pandasTv.selectionModel().selectedRows():
-            self.caller.set_current_idx(idx=int(index.data()))
-            self.caller.update_marker()
-            self.caller.update_pixel()
-
-
-class PandasModel(QAbstractTableModel):
-
-    def __init__(self, data):
-        QAbstractTableModel.__init__(self)
-        self._data = data
-
-    def rowCount(self, parent=None):
-        return self._data.shape[0]
-
-    def columnCount(self, parnet=None):
-        return self._data.shape[1]
-
-    def data(self, index, role=Qt.DisplayRole):
-        if index.isValid() and role == Qt.DisplayRole:
-            return str(self._data.iloc[index.row(), index.column()])
-        return None
-
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self._data.columns[col]
-        return None
-
-
 def main(**kwargs):
     app = QApplication(sys.argv)
-    mainwindow = PyQDMMainWindow(**kwargs)
+    screen = app.primaryScreen()
+    mainwindow = PyQDMMainWindow(screen=screen, **kwargs)
     mainwindow.show()
 
     center = QScreen.availableGeometry(QApplication.primaryScreen()).center()
@@ -845,5 +838,5 @@ def main(**kwargs):
     app.exec()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(debug=False)

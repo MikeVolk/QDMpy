@@ -78,3 +78,5 @@ venv.bak/
 
 # IDEs
 .idea/
+
+poetry.lock

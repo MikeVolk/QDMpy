@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from PySide6.QtWidgets import (
-    QWidget
-)
 from matplotlib import colors
+from PySide6.QtWidgets import QWidget
 
 from pyqdm.app.canvas import SimpleCanvas
 from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
@@ -12,7 +10,7 @@ from pyqdm.app.windows.pyqdm_plot_window import PyQdmWindow
 class SimplePlotWindow(PyQdmWindow):
     def __init__(self, title, cmap, cbar, caller, *args, **kwargs):
         canvas = SimpleCanvas(self, width=12, height=12, dpi=100, cax=cbar)
-        super(SimplePlotWindow, self).__init__(caller, canvas, *args, **kwargs)
+        super().__init__(caller, canvas, *args, **kwargs)
 
         self.cmap = cmap
         self.title = title
@@ -20,7 +18,7 @@ class SimplePlotWindow(PyQdmWindow):
         self.ax = self.canvas.ax
         self.cax = self.canvas.cax
 
-        self.setWindowTitle(f'{title}')
+        self.setWindowTitle(f"{title}")
 
         self._includes_fits = False
         self._pixel_ax = []
@@ -38,7 +36,7 @@ class SimplePlotWindow(PyQdmWindow):
         vmin, vmax = np.min(d), np.max(d)
 
         if self.fix_clim_check_box.isChecked():
-            vmin, vmax = np.percentile(d, [100 - self.cLimSelector.value(), self.cLimSelector.value()])
+            vmin, vmax = np.percentile(d, [100 - self.clims_selector.value(), self.clims_selector.value()])
 
         img.set(norm=colors.Normalize(vmin=vmin, vmax=vmax))
 
@@ -46,8 +44,11 @@ class SimplePlotWindow(PyQdmWindow):
             self.canvas.cax.clear()
             self.canvas.cax.set_axes_locator(self.canvas.original_cax_locator)
 
-            self.cbar = plt.colorbar(img, cax=self.canvas.cax,
-                                     extend='both' if self.fix_clim_check_box.isChecked() else 'neither',
-                                     label='B$_{111}$ [$\mu$T]')
+            self.cbar = plt.colorbar(
+                img,
+                cax=self.canvas.cax,
+                extend="both" if self.fix_clim_check_box.isChecked() else "neither",
+                label=r"B$_{111}$ [$\mu$T]",
+            )
 
         self.canvas.draw()
