@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 
 import QDMpy
 from QDMpy._core.models import guess_model
+import numba
 
 if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
     import pygpufit.gpufit as gf
@@ -474,7 +475,15 @@ class Fit:
         return np.squeeze(result)
 
 
-def guess_contrast(data: NDArray) -> NDArray:
+@numba.njit()
+def get_contrast_pixel(data):
+    mx = np.nanmax(data)
+    mn = np.nanmin(data)
+    return np.abs((mx - mn) / mx)
+
+
+@numba.njit(parallel=True)
+def guess_contrast(data):
     """
     Guess the contrast of a ODMR data.
 
@@ -483,9 +492,11 @@ def guess_contrast(data: NDArray) -> NDArray:
     :return: np.array
         contrast of the data
     """
-    mx = np.nanmax(data, axis=-1)
-    mn = np.nanmin(data, axis=-1)
-    amp = np.abs((mx - mn) / mx)
+    amp = np.zeros(data.shape[:-1])
+
+    for i, j in np.ndindex(data.shape[0], data.shape[1]):
+        for p in numba.prange(data.shape[2]):
+            amp[i, j, p] = get_contrast_pixel(data[i, j, p])
     return amp
 
 
