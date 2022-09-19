@@ -4,13 +4,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import List, Tuple, Union, Any, Dict, Optional
 
+import numba
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
 import QDMpy
 from QDMpy._core.models import guess_model
-import numba
 
 if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
     import pygpufit.gpufit as gf
@@ -38,11 +38,11 @@ class Fit:
     LOG = logging.getLogger(__name__)
 
     def __init__(
-            self,
-            data: NDArray,
-            frequencies: NDArray,
-            model_name: str = "auto",
-            constraints: Optional[Dict[str, Any]] = None,
+        self,
+        data: NDArray,
+        frequencies: NDArray,
+        model_name: str = "auto",
+        constraints: Optional[Dict[str, Any]] = None,
     ):
         """
         Fit the data to a model.
@@ -187,12 +187,12 @@ class Fit:
         return defaults
 
     def set_constraints(
-            self,
-            param: str,
-            vmin: Union[float, None] = None,
-            vmax: Union[float, None] = None,
-            constraint_type: Union[str, None] = None,
-            reset_fit: bool = True,
+        self,
+        param: str,
+        vmin: Union[float, None] = None,
+        vmax: Union[float, None] = None,
+        constraint_type: Union[str, None] = None,
+        reset_fit: bool = True,
     ):
         """
         Set the constraints for the fit.
@@ -500,7 +500,8 @@ def guess_contrast(data):
     return amp
 
 
-def guess_center(data: NDArray, freq: NDArray) -> NDArray:
+@numba.njit(parallel=True, fastmath=True)
+def guess_center(data, freq):
     """
     Guess the center frequency of ODMR data.
 
@@ -513,12 +514,29 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
         center frequency of the data
     """
     # center frequency
-    center_lf = guess_center_freq_single(data[:, 0], freq[0])
-    center_rf = guess_center_freq_single(data[:, 1], freq[1])
-    center = np.stack([center_lf, center_rf], axis=0)
-    center = np.swapaxes(center, 0, 1)
+    center = zeros(data.shape[:-1])
+    for p, f in np.ndindex(data.shape[0], data.shape[1]):
+        for px in numba.prange(data.shape[2]):
+            center[p, f, px] = guess_center_pixel(data[p, f, px], freq[f])
 
     return center
+
+
+@numba.njit(fastmath=True)
+def guess_center_pixel(pixel, freq):
+    """
+    Guess the center frequency of a single frequency range.
+
+    :param data: np.array
+        data to guess the center frequency from
+    :param freq: np.array
+        frequency range of the data
+    :return: np.array
+        center frequency of the data
+    """
+    pixel = normalized_cumsum(pixel)
+    idx = np.argmin(np.abs(pixel - 0.5))
+    return freq[idx]
 
 
 def guess_width(data: NDArray, f_GHz: NDArray, n_peaks: Optional[int]) -> NDArray:
@@ -572,7 +590,8 @@ def guess_width_single(data: NDArray, freq: NDArray, n_peaks: Optional[int]) -> 
     return (freq[lidx] - freq[ridx]) + correct
 
 
-def normalized_cumsum(data: NDArray) -> NDArray:
+@numba.njit
+def normalized_cumsum(pixel):
     """Calculate the normalized cumulative sum of the data.
 
     Parameters
@@ -586,10 +605,10 @@ def normalized_cumsum(data: NDArray) -> NDArray:
     NDArray
         Normalized cumulative sum of the data.
     """
-    data = np.cumsum(data - 1, axis=-1)
-    data -= np.expand_dims(np.min(data, axis=-1), axis=2)
-    data /= np.expand_dims(np.max(data, axis=-1), axis=2)
-    return data
+    pixel = np.cumsum(pixel - 1)
+    pixel -= np.min(pixel)
+    pixel /= np.max(pixel)
+    return pixel
 
 
 def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
@@ -609,11 +628,11 @@ def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
 
 
 def make_dummy_data(
-        model: str = "esr14n",
-        n_freqs: int = 50,
-        scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
-        shift: float = 0,
-        noise: float = 0,
+    model: str = "esr14n",
+    n_freqs: int = 50,
+    scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
+    shift: float = 0,
+    noise: float = 0,
 ) -> Tuple[NDArray, NDArray, NDArray]:
     model = model.upper()
 
