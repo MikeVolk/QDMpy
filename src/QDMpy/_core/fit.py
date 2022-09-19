@@ -62,7 +62,9 @@ class Fit:
 
         if model_name == "auto":
             model_name = self.guess_model_name()
-        self.model_name = model_name.upper()
+
+        #setting model name resets the fit parameters
+        self._model = models.IMPLEMENTED[model_name.upper()]
         self._initial_parameter = None
 
         # fit results
