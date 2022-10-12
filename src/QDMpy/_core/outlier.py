@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
 
@@ -10,14 +11,15 @@ import QDMpy.utils
 
 
 @dataclass
-class Outlier:
-    data_shape: Tuple[int, int]
+class Outlier(ABC):
     LOG = logging.getLogger(f"QDMpy.{__name__}")
 
-    def __post_init__(self) -> None:
-        self.outlier: np.ndarray = np.zeros(self.b111.shape, dtype=bool)
+    def __init__(self, data_shape = Tuple[int, ...]) -> None:
+        self.data_shape = data_shape
+        self.outlier: NDArray = np.zeros(data_shape, dtype=bool)
         self.settings = None
 
+    @abstractmethod
     def detect_outlier(self, **kwargs) -> None:
         pass
 
