@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
 def test_data_location():
     if sys.platform == "linux":
-        return Path("/media/mike/OS/Users/micha/Dropbox/FOV18x")
+        return Path("/media/data/Dropbox/FOV18x")
     elif sys.platform == "darwin":
         return Path("/Users/mike/Dropbox/FOV18x")
     elif sys.platform == "win32":

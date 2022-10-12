@@ -47,10 +47,8 @@ class ODMR:
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,
+            None,
             self._apply_outlier_mask,
-            None,
-            None,
-            None,
         ]
 
         self._apply_edit_stack()
@@ -93,9 +91,6 @@ class ODMR:
         >>> odmr['+', '<'] -> pos. polarization + low frequency range
 
         """
-        # todo implement slicing
-        # if isinstance(item, slice):
-        #     return self.data[item]
 
         if isinstance(item, int) or all(isinstance(i, int) for i in item):
             raise NotImplementedError("Indexing with only integers is not implemented yet.")
@@ -198,6 +193,57 @@ class ODMR:
         return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)  # type: ignore[return-value]
 
     # from methods
+    # FROM / IMPORT
+    @classmethod
+    def from_qdmio(cls, data_folder: Union[str, os.PathLike], **kwargs: Any) -> "ODMR":
+        """Loads QDM data from a Matlab file.
+
+        Args:
+          data_folder:
+
+        Returns:
+
+        """
+
+        files = os.listdir(data_folder)
+        run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
+
+        if not run_files:
+            raise WrongFileNumber("No run files found in folder.")
+
+        cls.LOG.info(f"Reading {len(run_files)} run_* files.")
+
+        data = None
+
+        for mfile in run_files:
+            cls.LOG.debug(f"Reading file {mfile}")
+
+            try:
+                raw_data = loadmat(os.path.join(data_folder, mfile))
+            except NotImplementedError:
+                raw_data = mat73.loadmat(os.path.join(data_folder, mfile))
+
+            d = cls._qdmio_stack_data(raw_data)
+            data = d if data is None else np.stack((data, d), axis=0)
+
+        # fix dimensions if only one run file was found -> only one polarity
+        if len(run_files) == 1:
+            data = data[np.newaxis, :, :, :]
+
+        img_shape = np.array(
+            [
+                np.squeeze(raw_data["imgNumRows"]),
+                np.squeeze(raw_data["imgNumCols"]),
+            ],
+            dtype=int,
+        )
+
+        n_freqs = int(np.squeeze(raw_data["numFreqs"]))
+        frequencies = np.squeeze(raw_data["freqList"]).astype(np.float32)
+
+        if n_freqs != len(frequencies):
+            frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
+        return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)  # type: ignore[arg-type]
 
     @classmethod
     def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
@@ -224,58 +270,6 @@ class ODMR:
             img_stack1 = np.concatenate([mat_dict["imgStack1"].T, mat_dict["imgStack2"].T])
             img_stack2 = np.concatenate([mat_dict["imgStack3"].T, mat_dict["imgStack4"].T])
         return np.stack((img_stack1, img_stack2), axis=0)
-
-    @classmethod
-    def from_qdmio(cls, data_folder: Union[str, os.PathLike]) -> "ODMR":
-        """Loads QDM data from a Matlab file.
-
-        Args:
-          data_folder:
-
-        Returns:
-
-        """
-
-        files = os.listdir(data_folder)
-        run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
-
-        if not run_files:
-            raise WrongFileNumber("No run files found in folder.")
-
-        cls.LOG.info(f"Reading {len(run_files)} run_* files.")
-
-        try:
-            raw_data = [loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
-        except NotImplementedError:
-            raw_data = [mat73.loadmat(os.path.join(data_folder, mfile)) for mfile in run_files]
-
-        cls.LOG.info(f">> done reading run_* files.")
-
-        data = None
-
-        for mfile in raw_data:
-            d = cls._qdmio_stack_data(mfile)
-            data = d if data is None else np.stack((data, d), axis=0)
-
-        if data.ndim == 3:  # type: ignore[union-attr]
-            data = data[np.newaxis, :, :, :]  # type: ignore[index]
-        scan_dimensions = np.array(
-            [np.squeeze(raw_data[0]["imgNumRows"]), np.squeeze(raw_data[0]["imgNumCols"])], dtype=int
-        )
-
-        scan_dimensions = np.array(
-            [
-                np.squeeze(raw_data[0]["imgNumRows"]),
-                np.squeeze(raw_data[0]["imgNumCols"]),
-            ],
-            dtype=int,
-        )
-
-        n_freqs = int(np.squeeze(raw_data[0]["numFreqs"]))
-        frequencies = np.squeeze(raw_data[0]["freqList"]).astype(np.float32)
-        if n_freqs != len(frequencies):
-            frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
-        return cls(data=data, scan_dimensions=scan_dimensions, frequencies=frequencies)  # type: ignore[arg-type]
 
     @classmethod
     def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
@@ -307,7 +301,7 @@ class ODMR:
     @property
     def data_shape(self) -> NDArray:
         """ """
-        return (self.img_shape / self.bin_factor).astype(np.uint32)
+        return (self.img_shape / self._bin_factor).astype(np.uint32)
 
     @property
     def img_shape(self) -> NDArray:
@@ -504,6 +498,7 @@ class ODMR:
             return
         self.LOG.debug("Applying outlier mask")
         self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
+        self.LOG.debug(f"Outlier mask applied, set {np.isnan(self._data_edited[0,0,:,0]).sum()} to NaN.")
 
     def bin_data(self, bin_factor: int, **kwargs: Any) -> None:
         """Bin the data.
@@ -515,7 +510,7 @@ class ODMR:
         Returns:
 
         """
-        self._edit_stack[3] = self._bin_data
+        self._edit_stack[2] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
     def _bin_data(self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any) -> None:
@@ -528,17 +523,21 @@ class ODMR:
         Returns:
 
         """
-        if bin_factor is not None and self._pre_bin_factor:
+        if bin_factor != 1 and self._pre_bin_factor != 1:
             bin_factor /= self._pre_bin_factor
+            self.LOG.debug(f"Pre binned data with factor {self._pre_bin_factor} reducing bin factor to {bin_factor}")
 
         if bin_factor is None:
             bin_factor = self._bin_factor
+
+        self.LOG.debug(f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
 
         # reshape into image size
         reshape_data = self.data.reshape(
             self.n_pol,
             self.n_frange,
-            *(self._img_shape / self._pre_bin_factor).astype(int),
+            int(self.img_shape[0] / self._pre_bin_factor),
+            int(self.img_shape[1] / self._pre_bin_factor),
             self.n_freqs,
         )  # reshapes the data to the scan dimensions
         _odmr_binned = block_reduce(
@@ -670,11 +669,10 @@ class ODMR:
 
 
 def main() -> None:
-    odmr = ODMR.from_qdmio(QDMpy.test_data_location())
-    print(odmr[">"].shape)
-    print(odmr["+"].shape)
-    print(odmr["+>"].shape)
-
+    QDMpy.LOG.setLevel(logging.DEBUG)
+    odmr = ODMR.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
+    for i in [4,6,8,16]:
+        odmr.bin_data(i)
 
 if __name__ == "__main__":
     main()

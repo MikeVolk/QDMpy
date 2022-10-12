@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Union, Tuple, Optional, Any
+from copy import deepcopy
 
 import numpy as np
 from numpy.typing import NDArray
@@ -83,14 +84,17 @@ class QDM:
 
         self._B111 = None
 
-        self._fit = Fit(data=self.odmr.data,
-                        frequencies=self.odmr.f_ghz,
-                        model_name=model_name)
+        self._fit = self.new_fit(model_name=model_name)
 
         self.pixel_size = pixel_size  # 4 um
 
         self._check_bin_factor()
 
+    def new_fit(self, model_name: str = 'auto') -> Fit:
+        self.LOG.debug(f"Creating new fit instance with model {model_name}")
+        return Fit(data=self.odmr.data,
+                frequencies=self.odmr.f_ghz,
+                model_name=model_name)
     @property
     def outliers(self) -> NDArray:
         """
@@ -230,6 +234,7 @@ class QDM:
 
         self.LOG.debug(f"Applying outlier mask of shape {outlier.shape}")
         self.odmr.apply_outlier_mask(outlier)
+        self._fit.data = self.odmr.data
 
     # binning
     @property
@@ -268,7 +273,7 @@ class QDM:
             )
             # set the true bin factor
             self.odmr._pre_bin_factor = bin_factors[0]
-            self.odmr._img_shape = np.array(self.light.shape)
+            # self.odmr._img_shape = np.array(self.light.shape)
 
     # global fluorescence related functions
     def correct_glob_fluorescence(self, glob_fluo: float) -> None:
@@ -490,6 +495,35 @@ class QDM:
         path_to_file = Path(path_to_file)
         savemat(path_to_file, self._save_data(dialect="QDMpy"))
 
+    def export_MMT(self, path_to_file: Union[os.PathLike, str]) -> None:
+        """
+
+        Args:
+          path_to_file:
+
+        Returns:
+
+        """
+        path_to_file = Path(path_to_file)
+
+        data_struct = {1: {},2: {},4: {},8:{},16: {}}
+
+        for bin_factor in data_struct:
+            self.LOG.debug(f"Exporting data for bin factor {bin_factor}")
+            if bin_factor < self.odmr._pre_bin_factor:
+                self.LOG.warning(f"Cannot export data with bin factor {bin_factor} as it is smaller than the pre bin factor {self.odmr._pre_bin_factor}")
+                continue
+            if not self.bin_factor == bin_factor:
+                self.bin_data(bin_factor)
+            if not self.fitted:
+                self.fit_odmr()
+            data_struct[bin_factor]['b111'] = deepcopy(self.b111)
+            data_struct[bin_factor]['chi2'] = self.fit.get_param('chi2').copy()
+            data_struct[bin_factor]['fit'] = self.fit._fit_results.copy()
+        print(data_struct)
+        savemat(path_to_file, data_struct)
+
+
     # CALCULATIONS ###
     @property
     def delta_resonance(self) -> NDArray:
@@ -641,5 +675,23 @@ class QDM:
             )
             return out
 
+        elif dialect == "MMT":
+            raise NotImplementedError("MMT dialect not implemented yet.")
         else:
             raise ValueError(f"Dialect {dialect} not supported.")
+
+
+def main():
+    """ """
+    from QDMpy._core import outlier
+    d = QDM.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
+    # d = QDM.from_qdmio(QDMpy.test_data_location())
+    #
+    # d.fit_odmr()
+    # outl = outlier.StatisticsPercentile(d.b111[0], d.get_param('chi2'), d.get_param('width'),
+    #                                     d.get_param('mean_contrast'))
+    # d.bin_data(16)
+    d.export_MMT("/home/mike/Desktop/test.mmt")
+
+if __name__ == "__main__":
+    main()

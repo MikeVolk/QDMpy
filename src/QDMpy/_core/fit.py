@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import List, Tuple, Union, Any, Dict, Optional
 
+import numba
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
@@ -26,8 +27,8 @@ ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 def main():
     from QDMpy._core.qdm import QDM
 
-    q = QDM.from_qdmio("/home/mike/Desktop/test_data/FOV1")
-
+    q = QDM.from_qdmio(QDMpy.test_data_location())
+    q.fit_odmr()
 
 if __name__ == "__main__":
     main()
@@ -61,7 +62,9 @@ class Fit:
 
         if model_name == "auto":
             model_name = self.guess_model_name()
-        self.model_name = model_name.upper()
+
+        #setting model name resets the fit parameters
+        self._model = models.IMPLEMENTED[model_name.upper()]
         self._initial_parameter = None
 
         # fit results
@@ -81,6 +84,7 @@ class Fit:
 
     @data.setter
     def data(self, data: NDArray) -> None:
+        self.LOG.info("Data changed, fits need to be recalculated!")
         if np.all(self._data == data):
             return
         self._data = data
@@ -88,8 +92,7 @@ class Fit:
         self._reset_fit()
 
     ### MODEL RELATED METHODS ###
-    @property
-    def guess_model_name(self, n_spectra=100, *args, **kwargs) -> str:
+    def guess_model_name(self) -> str:
         """Guess the model name from the data."""
         data = np.median(self.data, axis=2)
         n_peaks, doubt, peaks = guess_model(data)
@@ -100,7 +103,7 @@ class Fit:
             )
 
         model = [mdict for m, mdict in models.IMPLEMENTED.items() if mdict["n_peaks"] == n_peaks][0]
-        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {model}")
+        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})")
         return model["func_name"]
 
     @property
@@ -322,7 +325,20 @@ class Fit:
         """
         Guess the width of the ODMR spectra.
         """
-        width = guess_width(self.data, self.f_ghz, self._model["n_peaks"])
+        correct = 0
+
+        # detection thresholds
+        if self._model["n_peaks"] == 1:
+            vmin, vmax = 0.3, 0.7
+        elif self._model["n_peaks"] == 2:
+            vmin, vmax = 0.4, 0.6
+            correct = -0.001
+        elif self._model["n_peaks"] == 3:
+            vmin, vmax = 0.35, 0.65
+        else:
+            raise ValueError("n_peaks must be 1, 2 or 3")
+
+        width = guess_width(self.data, self.f_ghz, vmin, vmax)
         self.LOG.debug(f"Guessing width of ODMR spectra {width.shape}.")
         return width
 
@@ -474,7 +490,8 @@ class Fit:
         return np.squeeze(result)
 
 
-def guess_contrast(data: NDArray) -> NDArray:
+@numba.njit(parallel=True)
+def guess_contrast(data):
     """
     Guess the contrast of a ODMR data.
 
@@ -483,13 +500,23 @@ def guess_contrast(data: NDArray) -> NDArray:
     :return: np.array
         contrast of the data
     """
-    mx = np.nanmax(data, axis=-1)
-    mn = np.nanmin(data, axis=-1)
-    amp = np.abs((mx - mn) / mx)
+    amp = np.zeros(data.shape[:-1])
+
+    for i, j in np.ndindex(data.shape[0], data.shape[1]):
+        for p in numba.prange(data.shape[2]):
+            amp[i, j, p] = guess_contrast_pixel(data[i, j, p])
     return amp
 
 
-def guess_center(data: NDArray, freq: NDArray) -> NDArray:
+@numba.njit()
+def guess_contrast_pixel(data):
+    mx = np.nanmax(data)
+    mn = np.nanmin(data)
+    return np.abs((mx - mn) / mx)
+
+
+@numba.njit(parallel=True, fastmath=True)
+def guess_center(data, freq):
     """
     Guess the center frequency of ODMR data.
 
@@ -502,15 +529,32 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
         center frequency of the data
     """
     # center frequency
-    center_lf = guess_center_freq_single(data[:, 0], freq[0])
-    center_rf = guess_center_freq_single(data[:, 1], freq[1])
-    center = np.stack([center_lf, center_rf], axis=0)
-    center = np.swapaxes(center, 0, 1)
-
+    center = np.zeros(data.shape[:-1])
+    for p, f in np.ndindex(data.shape[0], data.shape[1]):
+        for px in numba.prange(data.shape[2]):
+            center[p, f, px] = guess_center_pixel(data[p, f, px], freq[f])
     return center
 
 
-def guess_width(data: NDArray, f_GHz: NDArray, n_peaks: Optional[int]) -> NDArray:
+@numba.njit(fastmath=True)
+def guess_center_pixel(pixel, freq):
+    """
+    Guess the center frequency of a single frequency range.
+
+    :param data: np.array
+        data to guess the center frequency from
+    :param freq: np.array
+        frequency range of the data
+    :return: np.array
+        center frequency of the data
+    """
+    pixel = normalized_cumsum_pixel(pixel)
+    idx = np.argmin(np.abs(pixel - 0.5))
+    return freq[idx]
+
+
+@numba.njit(parallel=True, fastmath=True)
+def guess_width(data: NDArray, f_GHz: NDArray, vmin: float, vmax: float) -> NDArray:
     """
     Guess the width of a ODMR resonance peaks.
 
@@ -518,19 +562,26 @@ def guess_width(data: NDArray, f_GHz: NDArray, n_peaks: Optional[int]) -> NDArra
         data to guess the width from
     :param f_GHz: np.array
         frequency range of the data
+    :param vmin: float
+        minimum value of normalized cumsum to be considered
+    :param vmax: float
+        maximum value of normalized cumsum to be considered
 
     :return: np.array
         width of the data
     """
-    # center frequency
-    width_lf = guess_width_single(data[:, 0], f_GHz[0], n_peaks=n_peaks)
-    width_rf = guess_width_single(data[:, 1], f_GHz[1], n_peaks=n_peaks)
-    width = np.stack([width_lf, width_rf], axis=1)
+    # width
+    width = np.zeros(data.shape[:-1])
+    for p, f in np.ndindex(data.shape[0], data.shape[1]):
+        freq = f_GHz[f]
+        for px in numba.prange(data.shape[2]):
+            width[p, f, px] = guess_width_pixel(data[p, f, px], freq, vmin, vmax)
 
     return width
 
 
-def guess_width_single(data: NDArray, freq: NDArray, n_peaks: Optional[int]) -> NDArray:
+@numba.njit(fastmath=True)
+def guess_width_pixel(pixel: NDArray, freq: NDArray, vmin: float, vmax: float) -> NDArray:
     """
     Guess the width of a single frequency range.
 
@@ -544,24 +595,36 @@ def guess_width_single(data: NDArray, freq: NDArray, n_peaks: Optional[int]) -> 
 
     Raises ValueError if the number of peaks is not 1, 2 or 3.
     """
-    data = normalized_cumsum(data)
-    correct = 0
-    if n_peaks == 1:
-        vmin, vmax = 0.3, 0.7
-    elif n_peaks == 2:
-        vmin, vmax = 0.4, 0.6
-        correct = -0.001
-    elif n_peaks == 3:
-        vmin, vmax = 0.35, 0.65
-    else:
-        raise ValueError("n_peaks must be 1, 2 or 3")
-
-    lidx = np.argmin(np.abs(data - vmin), axis=-1)
-    ridx = np.argmin(np.abs(data - vmax), axis=-1)
-    return (freq[lidx] - freq[ridx]) + correct
+    pixel = normalized_cumsum_pixel(pixel)
+    lidx = np.argmin(np.abs(pixel - vmin))
+    ridx = np.argmin(np.abs(pixel - vmax))
+    return freq[lidx] - freq[ridx]
 
 
+@numba.njit(parallel=True, fastmath=True)
 def normalized_cumsum(data: NDArray) -> NDArray:
+    """
+    Guess the width of a ODMR resonance peaks.
+
+    :param data: np.array
+        data to guess the width from
+    :param f_GHz: np.array
+        frequency range of the data
+
+    :return: np.array
+        width of the data
+    """
+    # width
+    width = np.zeros(data.shape)
+    for p, f in np.ndindex(data.shape[0], data.shape[1]):
+        for px in numba.prange(data.shape[2]):
+            width[p, f, px, :] = normalized_cumsum_pixel(data[p, f, px])
+
+    return width
+
+
+@numba.njit
+def normalized_cumsum_pixel(pixel):
     """Calculate the normalized cumulative sum of the data.
 
     Parameters
@@ -575,26 +638,10 @@ def normalized_cumsum(data: NDArray) -> NDArray:
     NDArray
         Normalized cumulative sum of the data.
     """
-    data = np.cumsum(data - 1, axis=-1)
-    data -= np.expand_dims(np.min(data, axis=-1), axis=2)
-    data /= np.expand_dims(np.max(data, axis=-1), axis=2)
-    return data
-
-
-def guess_center_freq_single(data: NDArray, freq: NDArray) -> NDArray:
-    """
-    Guess the center frequency of a single frequency range.
-
-    :param data: np.array
-        data to guess the center frequency from
-    :param freq: np.array
-        frequency range of the data
-    :return: np.array
-        center frequency of the data
-    """
-    data = normalized_cumsum(data)
-    idx = np.argmin(np.abs(data - 0.5), axis=-1)
-    return freq[idx]
+    pixel = np.cumsum(pixel - 1)
+    pixel -= np.min(pixel)
+    pixel /= np.max(pixel)
+    return pixel
 
 
 def make_dummy_data(

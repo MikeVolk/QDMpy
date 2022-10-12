@@ -13,14 +13,27 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from matplotlib.backend_bases import MouseButton
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backend_bases import MouseButton, Event
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbarQT
+from numpy.typing import NDArray
 
+from QDMpy._core import models
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.app.models import Pix
-from QDMpy._core import models
+from QDMpy.utils import rms
+
+MUT = "µT"
 
 B111 = "B$_{111}$"
+
+
+class NavigationToolbar(NavigationToolbarQT):
+    def home(self, *args, **kwargs):
+        s = "home_event"
+        event = Event(s, self)
+        event.foo = 100
+        self.canvas.callbacks.process(s, event)
+        super().home(*args, **kwargs)
 
 
 class QDMWidget(QMainWindow):
@@ -58,12 +71,12 @@ class QDMWidget(QMainWindow):
         return self.parent().qdm
 
     def __init__(
-            self,
-            canvas,
-            clim_select=True,
-            pixel_select=True,
-            *args,
-            **kwargs,
+        self,
+        canvas,
+        clim_select=True,
+        pixel_select=True,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.caller = self.parent()
@@ -112,7 +125,7 @@ class QDMWidget(QMainWindow):
         """
         Update the data in the data canvases.
         """
-        if not hasattr(self, 'b111_select'):
+        if not hasattr(self, "b111_select"):
             self.LOG.error("No b111_select QCombobox found")
             return
 
@@ -120,11 +133,11 @@ class QDMWidget(QMainWindow):
         d = self.qdm.b111[self.b111_select.currentIndex()].copy()
 
         # apply the men / quad background subtraction
-        if hasattr(self, 'subtract_median') and self.subtract_median.isChecked():
+        if hasattr(self, "subtract_median") and self.subtract_median.isChecked():
             self.LOG.debug("Subtracting median")
             d -= np.median(d)
 
-        if hasattr(self, 'subtract_quad') and self.subtract_quad.isChecked():
+        if hasattr(self, "subtract_quad") and self.subtract_quad.isChecked():
             self.LOG.debug("Subtracting Quad")
             d -= self.quad_background[self.b111_select.currentIndex()]
 
@@ -172,27 +185,36 @@ class QDMWidget(QMainWindow):
         bottom_info_layout = QHBoxLayout()
         xy_txt_label = QLabel("dimensions: ")
         xy_label = QLabel()
-        xy_unit = QLabel("[mum]")
+        xy_unit = QLabel("µm")
         mean_txt_label = QLabel("mean: ")
         mean_label = QLabel("nan")
+        mean_unit = QLabel(MUT)
         min_txt_label = QLabel("min: ")
         min_label = QLabel("nan")
+        min_unit = QLabel(MUT)
         max_txt_label = QLabel("max: ")
         max_label = QLabel("nan")
+        max_unit = QLabel(MUT)
         rms_txt_label = QLabel("RMS: ")
         rms_label = QLabel("nan")
-
+        rms_unit = QLabel(MUT)
+        filler = QLabel(" " * 300)
         bottom_info_layout.addWidget(xy_txt_label)
         bottom_info_layout.addWidget(xy_label)
         bottom_info_layout.addWidget(xy_unit)
         bottom_info_layout.addWidget(mean_txt_label)
         bottom_info_layout.addWidget(mean_label)
+        bottom_info_layout.addWidget(mean_unit)
         bottom_info_layout.addWidget(min_txt_label)
         bottom_info_layout.addWidget(min_label)
+        bottom_info_layout.addWidget(min_unit)
         bottom_info_layout.addWidget(max_txt_label)
         bottom_info_layout.addWidget(max_label)
+        bottom_info_layout.addWidget(max_unit)
         bottom_info_layout.addWidget(rms_txt_label)
         bottom_info_layout.addWidget(rms_label)
+        bottom_info_layout.addWidget(rms_unit)
+        bottom_info_layout.addWidget(filler)
         self.mainVerticalLayout.addLayout(bottom_info_layout)
 
         self.infobar_labels = {
@@ -202,12 +224,44 @@ class QDMWidget(QMainWindow):
             "rms": rms_label,
             "dimensions": xy_label,
         }
+        self.fill_infobar(self.qdm.b111[self.b111_select.currentIndex()], 0, self.data_shape[1], 0, self.data_shape[0])
 
     def update_bottom_info(self):
-        np.sort(self._xy_box[0][0], self._xy_box[1][0])
-        np.sort(self._xy_box[0][1], self._xy_box[1][1])
+        x0, x1 = np.sort([self._xy_box[0][0], self._xy_box[1][0]]).astype(int)
+        y0, y1 = np.sort([self._xy_box[0][1], self._xy_box[1][1]]).astype(int)
 
-        self.data_img
+        if hasattr(self, "infobar_labels") and hasattr(self, "b111_select"):
+            d = self.qdm.b111[self.b111_select.currentIndex()][y0:y1, x0:x1]
+            self.fill_infobar(d, x0, x1, y0, y1)
+
+    def init_info_bar(self, *args):
+        """
+        Initialize the info bar with the data from the whole b111 image.
+
+        Args:
+            *args: not used
+        """
+        self.fill_infobar(self.qdm.b111[self.b111_select.currentIndex()], 0, self.data_shape[1], 0, self.data_shape[0])
+
+    def fill_infobar(self, d: NDArray, x0: int, x1: int, y0: int, y1: int) -> None:
+        """Fill the infobar with the statistical data in d.
+
+        Args:
+            d: data to fill the infobar with
+            x0: x0 coordinate
+            x1: x1 coordinate
+            y0: y0 coordinate
+            y1: y1 coordinate
+        """
+        x_size = (x1 - x0) * self.pixel_size * 1e6
+        y_size = (y1 - y0) * self.pixel_size * 1e6
+        self.infobar_labels["dimensions"].setText(
+            f"{x_size:.2f} x {y_size:.2f}"
+        )
+        self.infobar_labels["min"].setText(f"{np.nanmin(d):.2f}")
+        self.infobar_labels["max"].setText(f"{np.nanmax(d):.2f}")
+        self.infobar_labels["mean"].setText(f"{np.nanmean(d):.2f}")
+        self.infobar_labels["rms"].setText(f"{rms(d):.2f}")
 
     def _add_cLim_select(self, toolbar):
         clim_widget = QWidget()
@@ -234,6 +288,7 @@ class QDMWidget(QMainWindow):
 
     def _add_plt_toolbar(self):
         self.toolbar = NavigationToolbar(self.canvas, self)
+        self.canvas.mpl_connect("home_event", self.init_info_bar)
         self.toolbar.setIconSize(QSize(20, 20))
         self.toolbar.setMinimumWidth(380)
         self.toolbar.addSeparator()
@@ -327,6 +382,7 @@ class QDMWidget(QMainWindow):
         if self.toolbar.mode:
             self._xy_box[1] = [event.xdata, event.ydata]
             self.LOG.debug(f"zoom box: at {self._xy_box}")
+            self.update_bottom_info()
 
     def on_press(self, event):
         if event.inaxes in self._is_spectra:
