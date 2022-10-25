@@ -15,7 +15,10 @@ CONTRAST_LABEL = "c [%]"
 
 
 def plot_light_img(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
     """
 
@@ -43,7 +46,10 @@ def plot_light_img(
 
 
 def plot_fluorescence(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
     """
 
@@ -71,7 +77,10 @@ def plot_fluorescence(
 
 
 def plot_laser_img(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -99,8 +108,11 @@ def plot_laser_img(
 
 
 def update_line(
-        ax: plt.Axes, x: np.ndarray, y: Optional[Union[np.ndarray, None]] = None, line: plt.Line2D = None,
-        **plt_props: Any
+    ax: plt.Axes,
+    x: np.ndarray,
+    y: Optional[Union[np.ndarray, None]] = None,
+    line: plt.Line2D = None,
+    **plt_props: Any,
 ) -> plt.Line2D:
     """
 
@@ -125,7 +137,13 @@ def update_line(
     return line
 
 
-def update_marker(ax: plt.Axes, x: np.ndarray, y: np.ndarray, line: plt.Line2D = None, **plt_props: Any) -> plt.Line2D:
+def update_marker(
+    ax: plt.Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    line: plt.Line2D = None,
+    **plt_props: Any,
+) -> plt.Line2D:
     """
 
     Args:
@@ -147,7 +165,10 @@ def update_marker(ax: plt.Axes, x: np.ndarray, y: np.ndarray, line: plt.Line2D =
 
 
 def plot_quality_data(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -168,7 +189,10 @@ def plot_quality_data(
 
 
 def plot_data(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -189,7 +213,9 @@ def plot_data(
     return img
 
 
-def get_vmin_vmax(img: mpl.image.AxesImage, percentile: float, use_percentile: bool) -> Tuple[float, float]:
+def get_vmin_vmax(
+    img: mpl.image.AxesImage, percentile: float, use_percentile: bool
+) -> Tuple[float, float]:
     """Get the vmin and vmax for the colorbar of the image
 
     Args:
@@ -233,11 +259,11 @@ def get_color_norm(vmin: float, vmax: float) -> colors.Normalize:
 
 
 def plot_overlay(
-        ax: plt.Axes,
-        data: np.ndarray,
-        img: Optional[Union[mpl.image.AxesImage, None]] = None,
-        normtype: str = "simple",
-        **plt_props: Any,
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[Union[mpl.image.AxesImage, None]] = None,
+    normtype: str = "simple",
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -260,7 +286,10 @@ def plot_overlay(
 
 
 def plot_outlier(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[mpl.image.AxesImage] = None,
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -281,7 +310,9 @@ def plot_outlier(
     return img
 
 
-def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image.AxesImage:
+def update_clim(
+    img: mpl.image.AxesImage, vmin: float, vmax: float
+) -> mpl.image.AxesImage:
     """Update the colorbar limits of the image
 
     Args:
@@ -296,12 +327,12 @@ def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image
 
 
 def update_cbar(
-        img: mpl.image.AxesImage,
-        cax: plt.Axes,
-        vmin: float,
-        vmax: float,
-        original_cax_locator: plt.Locator,
-        **plt_props: dict,
+    img: mpl.image.AxesImage,
+    cax: plt.Axes,
+    vmin: float,
+    vmax: float,
+    original_cax_locator: plt.Locator,
+    **plt_props: dict,
 ) -> None:
     """
 
@@ -315,7 +346,9 @@ def update_cbar(
     Returns:
 
     """
-    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
+    extent = detect_extent(
+        vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max()
+    )
 
     label = cax.get_ylabel()
     cax.clear()
@@ -344,7 +377,9 @@ def detect_extent(vmin: float, vmax: float, mn: float, mx: float) -> str:
         return "max"
 
 
-def update_img(ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any) -> mpl.image.AxesImage:
+def update_img(
+    ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any
+) -> mpl.image.AxesImage:
     """
 
     Args:
@@ -404,7 +439,9 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     print(f"{header}")
     print("-" * 100)
 
-    for p, f in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
+    for p, f in itertools.product(
+        range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)
+    ):
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.fit.initial_parameter[p, f, [idx]], x=f_new)
@@ -439,7 +476,9 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     return f, ax
 
 
-def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> plt.Figure:
+def plot_fit_params(
+    qdm_obj: QDM, param: str, save: Optional[bool] = False
+) -> plt.Figure:
     """
 
     Args:
@@ -503,6 +542,7 @@ def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> p
     if save:
         f.savefig(save)
     return f
+
 
 # def plot_fluorescence(qdm_obj, f_idx):
 #     # noinspection PyTypeChecker

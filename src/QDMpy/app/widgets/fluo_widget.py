@@ -75,11 +75,17 @@ class FluoWidget(QDMWidget):
             )
         )
 
-        self.lowF_line = self.update_line(self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line)
-        self.highF_line = self.update_line(self.canvas.high_f_mean_odmr_ax, 1, self.highF_line)
+        self.lowF_line = self.update_line(
+            self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line
+        )
+        self.highF_line = self.update_line(
+            self.canvas.high_f_mean_odmr_ax, 1, self.highF_line
+        )
 
         self.index_label.setText(f"Freq. index ({value}): ")
-        self.freq_label.setText(f"| {self.qdm.odmr.f_ghz[0,value]:5.4f}, {self.qdm.odmr.f_ghz[1,value]:5.4f} [GHz]")
+        self.freq_label.setText(
+            f"| {self.qdm.odmr.f_ghz[0,value]:5.4f}, {self.qdm.odmr.f_ghz[1,value]:5.4f} [GHz]"
+        )
 
         self.update_clims()
         self.canvas.draw()
@@ -96,4 +102,3 @@ class FluoWidget(QDMWidget):
         else:
             line.set_xdata(self.qdm.odmr.f_ghz[frange, self.index_slider.value()])
         return line
-

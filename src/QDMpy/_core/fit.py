@@ -30,6 +30,7 @@ def main():
     q = QDM.from_qdmio(QDMpy.test_data_location())
     q.fit_odmr()
 
+
 if __name__ == "__main__":
     main()
 
@@ -58,12 +59,14 @@ class Fit:
 
         self._data = data
         self.f_ghz = frequencies
-        self.LOG.debug(f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies.")
+        self.LOG.debug(
+            f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies."
+        )
 
         if model_name == "auto":
             model_name = self.guess_model_name()
 
-        #setting model name resets the fit parameters
+        # setting model name resets the fit parameters
         self._model = models.IMPLEMENTED[model_name.upper()]
         self._initial_parameter = None
 
@@ -73,7 +76,9 @@ class Fit:
             self._set_initial_constraints()
         )  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
 
-        self.estimator_id = ESTIMATOR_ID[QDMpy.SETTINGS["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
+        self.estimator_id = ESTIMATOR_ID[
+            QDMpy.SETTINGS["fit"]["estimator"]
+        ]  # 0 for LSE, 1 for MLE
 
     def __repr__(self) -> str:
         return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model_name})"
@@ -99,11 +104,18 @@ class Fit:
 
         if doubt:
             self.LOG.warning(
-                "Doubt on the diamond type. Check using `guess_diamond_type('debug')` " "and set manually if incorrect."
+                "Doubt on the diamond type. Check using `guess_diamond_type('debug')` and set manually if incorrect."
             )
 
-        model = [mdict for m, mdict in models.IMPLEMENTED.items() if mdict["n_peaks"] == n_peaks][0]
-        self.LOG.info(f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})")
+        model = [
+            mdict
+            for m, mdict in models.IMPLEMENTED.items()
+            if mdict["n_peaks"] == n_peaks
+        ][0]
+        
+        self.LOG.info(
+            f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})"
+        )
         return model["func_name"]
 
     @property
@@ -131,12 +143,16 @@ class Fit:
     @model_name.setter
     def model_name(self, model_name: str) -> None:
         if model_name.upper() not in models.IMPLEMENTED:
-            raise ValueError(f"Unknown model: {model_name} choose from {list(models.IMPLEMENTED.keys())}")
+            raise ValueError(
+                f"Unknown model: {model_name} choose from {list(models.IMPLEMENTED.keys())}"
+            )
 
         self._model = models.IMPLEMENTED[model_name]
         self._constraints = self._set_initial_constraints()
 
-        self.LOG.debug(f"Setting model to {model_name}, resetting all fit results and initial parameters.")
+        self.LOG.debug(
+            f"Setting model to {model_name}, resetting all fit results and initial parameters."
+        )
         self._reset_fit()
         self._initial_parameter = self.get_initial_parameter()
 
@@ -185,7 +201,12 @@ class Fit:
         defaults = {}
         for value in self.model_params_unique:
             v = value.split("_")[0]
-            defaults[value] = [constraints[f"{v}_min"], constraints[f"{v}_max"], constraints[f"{v}_type"], UNITS[v]]
+            defaults[value] = [
+                constraints[f"{v}_min"],
+                constraints[f"{v}_max"],
+                constraints[f"{v}_type"],
+                UNITS[v],
+            ]
         return defaults
 
     def set_constraints(
@@ -214,13 +235,19 @@ class Fit:
             constraint_type = CONSTRAINT_TYPES[constraint_type]
 
         if constraint_type is not None and constraint_type not in CONSTRAINT_TYPES:
-            raise ValueError(f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}")
+            raise ValueError(
+                f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}"
+            )
 
         if param == "contrast" and self.model_params_unique != self.model_params:
             for contrast in [v for v in self.model_params_unique if "contrast" in v]:
-                self.set_constraints(contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type)
+                self.set_constraints(
+                    contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type
+                )
         else:
-            self.LOG.debug(f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}")
+            self.LOG.debug(
+                f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}"
+            )
             self._constraints[param] = [
                 vmin,
                 vmax,
@@ -243,11 +270,16 @@ class Fit:
         return self._constraints
 
     # todo not used
-    def constraints_changed(self, constraints: List[float], constraint_types: List[str]) -> bool:
+    def constraints_changed(
+        self, constraints: List[float], constraint_types: List[str]
+    ) -> bool:
         """
         Check if the constraints have changed.
         """
-        return list(self._constraints.keys()) != constraints or self._constraint_types != constraint_types
+        return (
+            list(self._constraints.keys()) != constraints
+            or self._constraint_types != constraint_types
+        )
 
     def get_constraints_array(self, n_pixel: int) -> NDArray:
         """
@@ -265,7 +297,10 @@ class Fit:
         Return the constraint types.
         :return: np.array
         """
-        fit_bounds = [CONSTRAINT_TYPES.index(self._constraints[k][2]) for k in self.model_params_unique]
+        fit_bounds = [
+            CONSTRAINT_TYPES.index(self._constraints[k][2])
+            for k in self.model_params_unique
+        ]
         return np.array(fit_bounds).astype(np.int32)
 
     # parameters
@@ -309,7 +344,9 @@ class Fit:
         Guess the center of the ODMR spectra.
         """
         center = guess_center(self.data, self.f_ghz)
-        self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
+        self.LOG.debug(
+            f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
+        )
         return center
 
     def _guess_contrast(self) -> NDArray:
@@ -408,14 +445,18 @@ class Fit:
                 self._fit_results = np.stack((self._fit_results, results[0]))
                 self._states = np.stack((self._states, results[1]))
                 self._chi_squares = np.stack((self._chi_squares, results[2]))
-                self._number_iterations = np.stack((self._number_iterations, results[3]))
+                self._number_iterations = np.stack(
+                    (self._number_iterations, results[3])
+                )
                 self._execution_time = np.stack((self._execution_time, results[4]))
 
             self.LOG.info(f"fit finished in {results[4]:.2f} seconds")
         self._fit_results = np.swapaxes(self._fit_results, 0, 1)  # type: ignore[call-overload]
         self._fitted = True
 
-    def fit_frange(self, data: NDArray, freq: NDArray, initial_parameters: NDArray) -> List[NDArray]:
+    def fit_frange(
+        self, data: NDArray, freq: NDArray, initial_parameters: NDArray
+    ) -> List[NDArray]:
         """
         Wrapper for the fit_constrained function.
 
@@ -446,7 +487,9 @@ class Fit:
             user_info=np.ascontiguousarray(freq, dtype=np.float32),
             constraints=np.ascontiguousarray(constraints, dtype=np.float32),
             constraint_types=constraint_types,
-            initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
+            initial_parameters=np.ascontiguousarray(
+                initial_parameters, dtype=np.float32
+            ),
             weights=None,
             model_id=self.model_id,
             max_number_iterations=QDMpy.SETTINGS["fit"]["max_number_iterations"],
@@ -581,7 +624,9 @@ def guess_width(data: NDArray, f_GHz: NDArray, vmin: float, vmax: float) -> NDAr
 
 
 @numba.njit(fastmath=True)
-def guess_width_pixel(pixel: NDArray, freq: NDArray, vmin: float, vmax: float) -> NDArray:
+def guess_width_pixel(
+    pixel: NDArray, freq: NDArray, vmin: float, vmax: float
+) -> NDArray:
     """
     Guess the width of a single frequency range.
 
@@ -693,7 +738,9 @@ def make_dummy_data(
     return mall, f_ghz, pall
 
 
-def make_parameter_array(c0: float, n_params: int, p: NDArray, params: Dict[int, List[float]]) -> np.ndarray:
+def make_parameter_array(
+    c0: float, n_params: int, p: NDArray, params: Dict[int, List[float]]
+) -> np.ndarray:
     """Make a parameter array for a given center frequency.
 
     :param c0: float

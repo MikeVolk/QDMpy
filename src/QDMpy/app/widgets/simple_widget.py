@@ -10,7 +10,9 @@ class SimpleWidget(QDMWidget):
 
         if dtype == "laser":
             self.canvas.add_laser(self.qdm.laser, self.qdm.data_shape)
-            self.canvas.fig.subplots_adjust(top=0.97, bottom=0.124, left=0.049, right=0.951, hspace=0.2, wspace=0.2)
+            self.canvas.fig.subplots_adjust(
+                top=0.97, bottom=0.124, left=0.049, right=0.951, hspace=0.2, wspace=0.2
+            )
             self.setWindowTitle("Laser scan")
         elif dtype == "light":
             self.canvas.add_light(self.qdm.light, self.qdm.data_shape)
@@ -26,5 +28,3 @@ class SimpleWidget(QDMWidget):
         self.update_clims()
         self.add_scalebars()
         self.canvas.draw_idle()
-
-

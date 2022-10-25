@@ -41,8 +41,20 @@ class StatisticsWidget(QDMWidget):
         vlayout = QVBoxLayout()
         self.grid_layout = QGridLayout()
 
-        self.chi_checkbox, self.chi_min, self.chi_max, self.chi_rmin, self.chi_rmax = self.add_box("Χ²", 0)
-        self.width_checkbox, self.width_min, self.width_max, self.width_rmin, self.width_rmax = self.add_box("width", 1, "[MHz]")
+        (
+            self.chi_checkbox,
+            self.chi_min,
+            self.chi_max,
+            self.chi_rmin,
+            self.chi_rmax,
+        ) = self.add_box("Χ²", 0)
+        (
+            self.width_checkbox,
+            self.width_min,
+            self.width_max,
+            self.width_rmin,
+            self.width_rmax,
+        ) = self.add_box("width", 1, "[MHz]")
         (
             self.contrast_checkbox,
             self.contrast_min,
@@ -66,16 +78,28 @@ class StatisticsWidget(QDMWidget):
         self.update_outlier_select()
         self.canvas.draw()
 
-    def add_box(self, dtype, row, unit=''):
+    def add_box(self, dtype, row, unit=""):
         # contrast BOX
         checkbox = QtWidgets.QCheckBox(f"  {dtype:>10}: ")
         checkbox.setChecked(True)
         checkbox.stateChanged.connect(self.update_outlier_select)
         label_min, min = LabeledDoubleSpinBox(
-            "min", value=0, decimals=2, step=0.1, vmin=0, vmax=100, callback=self.update_outlier_select
+            "min",
+            value=0,
+            decimals=2,
+            step=0.1,
+            vmin=0,
+            vmax=100,
+            callback=self.update_outlier_select,
         )
         label_max, max = LabeledDoubleSpinBox(
-            "max", value=100, decimals=2, step=0.1, vmin=0, vmax=100, callback=self.update_outlier_select
+            "max",
+            value=100,
+            decimals=2,
+            step=0.1,
+            vmin=0,
+            vmax=100,
+            callback=self.update_outlier_select,
         )
         label2 = QLabel(f"{dtype:>10} range {unit}: ")
         label_min.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
@@ -100,7 +124,9 @@ class StatisticsWidget(QDMWidget):
             self.grid_layout.addWidget(w, row, i)
         return checkbox, min, max, rmin, rmax
 
-    def update_range_spans(self, chi_min, chi_max, width_min, width_max, contrast_min, contrast_max):
+    def update_range_spans(
+        self, chi_min, chi_max, width_min, width_max, contrast_min, contrast_max
+    ):
         axes = [
             self.canvas.chi_ax,
             self.canvas.chi_ax,
@@ -169,9 +195,13 @@ class StatisticsWidget(QDMWidget):
             contrast_percentile[1],
         )
 
-        self.LOG.debug(f"Percentiles have changed {chi_square_percentile} {width_percentile} {contrast_percentile}")
+        self.LOG.debug(
+            f"Percentiles have changed {chi_square_percentile} {width_percentile} {contrast_percentile}"
+        )
 
-        self.set_range_labels(chi_square_percentile, contrast_percentile, width_percentile)
+        self.set_range_labels(
+            chi_square_percentile, contrast_percentile, width_percentile
+        )
 
         smaller_chi_square = self.chi2 < chi_square_percentile[0]
         larger_chi_square = self.chi2 > chi_square_percentile[1]
@@ -180,7 +210,10 @@ class StatisticsWidget(QDMWidget):
         smaller_contrast = self.contrast < contrast_percentile[0]
         larger_contrast = self.contrast > contrast_percentile[1]
         outliers = (
-            (np.any(smaller_chi_square, axis=(0, 1)) | np.any(larger_chi_square, axis=(0, 1)))
+            (
+                np.any(smaller_chi_square, axis=(0, 1))
+                | np.any(larger_chi_square, axis=(0, 1))
+            )
             | np.any(smaller_width, axis=(0, 1))
             | np.any(larger_width, axis=(0, 1))
             | np.any(smaller_contrast, axis=(0, 1))
@@ -188,9 +221,13 @@ class StatisticsWidget(QDMWidget):
         )
 
         self.canvas.update_outlier(outliers.reshape(*self.qdm.data_shape))
-        self.outlier_count.setText(f"{np.sum(outliers)} ({(np.sum(outliers)/outliers.size)*100:.1f} %)")
+        self.outlier_count.setText(
+            f"{np.sum(outliers)} ({(np.sum(outliers)/outliers.size)*100:.1f} %)"
+        )
 
-    def set_range_labels(self, chi_square_percentile, contrast_percentile, width_percentile):
+    def set_range_labels(
+        self, chi_square_percentile, contrast_percentile, width_percentile
+    ):
         self.chi_rmin.setText(f"{chi_square_percentile[0]:5.2e} -")
         self.chi_rmax.setText(f"{chi_square_percentile[1]:5.2e}")
         self.width_rmin.setText(f"{width_percentile[0] :5.2f} -")
@@ -200,7 +237,10 @@ class StatisticsWidget(QDMWidget):
 
     def get_contrast_percentile(self):
         if self.contrast_checkbox.isChecked():
-            contrast_min, contrast_max = self.contrast_min.value(), self.contrast_max.value()
+            contrast_min, contrast_max = (
+                self.contrast_min.value(),
+                self.contrast_max.value(),
+            )
 
         else:
             contrast_min, contrast_max = 0, 100

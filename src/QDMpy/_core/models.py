@@ -22,7 +22,7 @@ class Model(ABC):
 
     @property
     def parameter(self):
-        return [i.split('_')[0] for i in self.parameters_unique]
+        return [i.split("_")[0] for i in self.parameters_unique]
 
     @abstractmethod
     def func(self):
@@ -59,12 +59,16 @@ class Model(ABC):
 
 
 class ESR14N(Model):
-    """ESR14N model
-    """
+    """ESR14N model"""
+
     AHYP = 0.002158
 
     def __init__(self):
-        super().__init__("ESR14N", 3, ["contrast", "center", "width_0", "width_1", "width_2", "offset"])
+        super().__init__(
+            "ESR14N",
+            3,
+            ["contrast", "center", "width_0", "width_1", "width_2", "offset"],
+        )
 
     def func(self):
         """Model function.
@@ -76,9 +80,10 @@ class ESR14N(Model):
 
 
 class ESR15N(Model):
-
     def __init__(self):
-        super().__init__("ESR15N", 2, ["contrast", "center", "width_0", "width_1", "offset"])
+        super().__init__(
+            "ESR15N", 2, ["contrast", "center", "width_0", "width_1", "offset"]
+        )
 
     def func(self):
         """Model function.
@@ -90,7 +95,6 @@ class ESR15N(Model):
 
 
 class ESRSINGLE(Model):
-
     def __init__(self):
         super().__init__("ESRSINGLE", 1, ["contrast", "center", "width_0", "offset"])
 
@@ -254,12 +258,19 @@ def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
 
     # Find the indices of the peaks
     for p, f in np.ndindex(*data.shape[:2]):
-        peaks = find_peaks(-data[p, f], prominence=QDMpy.SETTINGS['model']['find_peaks']['prominence'])
+        peaks = find_peaks(
+            -data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
+        )
         indices.append(peaks[0])
         if check:
-            l, = plt.plot(data[p, f])
-            plt.plot(peaks[0], data[p, f][peaks[0]], "x", color=l.get_color(),
-                     label=f"({p},{f}): {len(indices[n])}")
+            (l,) = plt.plot(data[p, f])
+            plt.plot(
+                peaks[0],
+                data[p, f][peaks[0]],
+                "x",
+                color=l.get_color(),
+                label=f"({p},{f}): {len(indices[n])}",
+            )
 
     n_peaks = int(np.round(np.mean([len(idx) for idx in indices])))
 

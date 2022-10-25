@@ -47,9 +47,10 @@ class QualityWidget(QDMWidget):
 
     def update_data(self):
         data = self.qdm.get_param(self.data_select.currentText())
-        for p,f in np.ndindex(data.shape[0], data.shape[1]):
-            self.canvas.add_data(data[p][f], data_dimensions=self.qdm.data_shape,
-                                 p=p, f=f)
+        for p, f in np.ndindex(data.shape[0], data.shape[1]):
+            self.canvas.add_data(
+                data[p][f], data_dimensions=self.qdm.data_shape, p=p, f=f
+            )
 
         self.canvas.fig.suptitle(self.TITLES[self.data_select.currentText()])
         self.update_clims()
@@ -59,7 +60,9 @@ class QualityWidget(QDMWidget):
         parameter_box = QHBoxLayout()
         parameter_label = QLabel("param: ")
         self.data_select = QComboBox()
-        self.data_select.addItems(self.qdm.fit.model_params_unique + ["mean_contrast", "chi_squared"])
+        self.data_select.addItems(
+            self.qdm.fit.model_params_unique + ["mean_contrast", "chi_squared"]
+        )
         self.data_select.setCurrentText("chi_squared")
         self.data_select.currentTextChanged.connect(self.update_data)
         parameter_box.addWidget(parameter_label)
@@ -86,13 +89,16 @@ class QualityWidget(QDMWidget):
                 plt.colorbar(img, cax=self.canvas.caxes[p][f])
         self.canvas.fig.suptitle(r"$\chi^2$")
         self.update_marker()
+
     #
     def update_clims(self):
         super().update_clims()
         for ax, axdict in self.canvas.data.items():
             cax = axdict["cax"]
-            cax.set_ylabel(f"{self.TITLES[self.data_select.currentText()]} "
-                           f"{self.UNITS[self.data_select.currentText()]}")
+            cax.set_ylabel(
+                f"{self.TITLES[self.data_select.currentText()]} "
+                f"{self.UNITS[self.data_select.currentText()]}"
+            )
 
     def closeEvent(self, event):
         self.LOG.debug("closeEvent")

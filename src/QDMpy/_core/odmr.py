@@ -23,7 +23,13 @@ class ODMR:
 
     LOG = logging.getLogger(__name__)
 
-    def __init__(self, data: NDArray, scan_dimensions: NDArray, frequencies: NDArray, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        data: NDArray,
+        scan_dimensions: NDArray,
+        frequencies: NDArray,
+        **kwargs: Any,
+    ) -> None:
         self.LOG.info("ODMR data object initialized")
         self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
         self.LOG.debug(f"read parameter shape: data: {data.shape}")
@@ -93,7 +99,9 @@ class ODMR:
         """
 
         if isinstance(item, int) or all(isinstance(i, int) for i in item):
-            raise NotImplementedError("Indexing with only integers is not implemented yet.")
+            raise NotImplementedError(
+                "Indexing with only integers is not implemented yet."
+            )
 
         idx, linear_idx = None, None
 
@@ -108,7 +116,13 @@ class ODMR:
             d = d[:, :, linear_idx]
         elif reshape:
             self.LOG.debug("ODMR: reshaping data")
-            d = d.reshape(self.n_pol, self.n_frange, self.data_shape[0], self.data_shape[1], self.n_freqs)
+            d = d.reshape(
+                self.n_pol,
+                self.n_frange,
+                self.data_shape[0],
+                self.data_shape[1],
+                self.n_freqs,
+            )
 
         # catch case where only indices are provided
         if len(item) == 0:
@@ -143,7 +157,9 @@ class ODMR:
         return np.squeeze(d)
 
     # index related
-    def get_binned_pixel_indices(self, x: int, y: int) -> Tuple[Sequence[int], Sequence[int]]:
+    def get_binned_pixel_indices(
+        self, x: int, y: int
+    ) -> Tuple[Sequence[int], Sequence[int]]:
         """
 
         Args:
@@ -206,7 +222,11 @@ class ODMR:
         """
 
         files = os.listdir(data_folder)
-        run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
+        run_files = [
+            f
+            for f in files
+            if f.endswith(".mat") and "run_" in f and not f.startswith("#")
+        ]
 
         if not run_files:
             raise WrongFileNumber("No run files found in folder.")
@@ -261,14 +281,22 @@ class ODMR:
         if n_img_stacks == 2:
             # IF ONLY 2 IMG-STACKS, THEN WE ARE IN LOW freq. MODE (50 freq.)
             # imgStack1: [n_freqs, n_pixels] -> transpose to [n_pixels, n_freqs]
-            cls.LOG.debug("Two ImgStacks found: Stacking data from imgStack1 and imgStack2.")
+            cls.LOG.debug(
+                "Two ImgStacks found: Stacking data from imgStack1 and imgStack2."
+            )
             img_stack1 = mat_dict["imgStack1"].T
             img_stack2 = mat_dict["imgStack2"].T
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
-            cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-            img_stack1 = np.concatenate([mat_dict["imgStack1"].T, mat_dict["imgStack2"].T])
-            img_stack2 = np.concatenate([mat_dict["imgStack3"].T, mat_dict["imgStack4"].T])
+            cls.LOG.debug(
+                "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4."
+            )
+            img_stack1 = np.concatenate(
+                [mat_dict["imgStack1"].T, mat_dict["imgStack2"].T]
+            )
+            img_stack2 = np.concatenate(
+                [mat_dict["imgStack3"].T, mat_dict["imgStack4"].T]
+            )
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
@@ -373,7 +401,9 @@ class ODMR:
     @property
     def delta_mean(self) -> NDArray:
         """ """
-        return np.sum(np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1)
+        return np.sum(
+            np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1
+        )
 
     @property
     def mean_odmr(self) -> NDArray:
@@ -395,7 +425,9 @@ class ODMR:
         """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-        baseline_mean = np.mean(np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1)
+        baseline_mean = np.mean(
+            np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1
+        )
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
     @property
@@ -468,7 +500,9 @@ class ODMR:
         self.is_normalized = True
         self._data_edited /= self._norm_factors  # type: ignore[arg-type]
 
-    def apply_outlier_mask(self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any) -> None:  # todo get to work
+    def apply_outlier_mask(
+        self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any
+    ) -> None:  # todo get to work
         """Apply the outlier mask.
 
         Args:
@@ -498,7 +532,9 @@ class ODMR:
             return
         self.LOG.debug("Applying outlier mask")
         self._data_edited[:, :, self.outlier_mask.reshape(-1), :] = np.nan
-        self.LOG.debug(f"Outlier mask applied, set {np.isnan(self._data_edited[0,0,:,0]).sum()} to NaN.")
+        self.LOG.debug(
+            f"Outlier mask applied, set {np.isnan(self._data_edited[0,0,:,0]).sum()} to NaN."
+        )
 
     def bin_data(self, bin_factor: int, **kwargs: Any) -> None:
         """Bin the data.
@@ -513,7 +549,9 @@ class ODMR:
         self._edit_stack[2] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
 
-    def _bin_data(self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any) -> None:
+    def _bin_data(
+        self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any
+    ) -> None:
         """Bin the data from the raw data.
 
         Args:
@@ -525,12 +563,16 @@ class ODMR:
         """
         if bin_factor != 1 and self._pre_bin_factor != 1:
             bin_factor /= self._pre_bin_factor
-            self.LOG.debug(f"Pre binned data with factor {self._pre_bin_factor} reducing bin factor to {bin_factor}")
+            self.LOG.debug(
+                f"Pre binned data with factor {self._pre_bin_factor} reducing bin factor to {bin_factor}"
+            )
 
         if bin_factor is None:
             bin_factor = self._bin_factor
 
-        self.LOG.debug(f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
+        self.LOG.debug(
+            f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})"
+        )
 
         # reshape into image size
         reshape_data = self.data.reshape(
@@ -570,11 +612,17 @@ class ODMR:
         if self._data_edited is None:
             return self.LOG.warning("No data to remove overexposed pixels from.")
 
-        self._overexposed = np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
+        self._overexposed = (
+            np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
+        )
 
         if np.sum(self._overexposed) > 0:
-            self.LOG.warning(f"ODMR: {np.sum(self._overexposed)} pixels are overexposed")
-            self._data_edited = ma.masked_where(self._data_edited == 1, self._data_edited)
+            self.LOG.warning(
+                f"ODMR: {np.sum(self._overexposed)} pixels are overexposed"
+            )
+            self._data_edited = ma.masked_where(
+                self._data_edited == 1, self._data_edited
+            )
 
     ### CORRECTION METHODS ###
     def calc_gf_correction(self, gf: float) -> NDArray:
@@ -602,7 +650,9 @@ class ODMR:
         self._gf_factor = gf_factor
         self._apply_edit_stack(glob_fluorescence=gf_factor, **kwargs)
 
-    def _correct_glob_fluorescence(self, gf_factor: Union[float, None] = None, **kwargs: Any) -> None:
+    def _correct_glob_fluorescence(
+        self, gf_factor: Union[float, None] = None, **kwargs: Any
+    ) -> None:
         """Correct the data for the global fluorescence.
 
         Args:
@@ -620,7 +670,9 @@ class ODMR:
         self._gf_factor = gf_factor  # sets the gf factor
 
     # noinspection PyTypeChecker
-    def check_glob_fluorescence(self, gf_factor: Union[float, None] = None, idx: Union[int, None] = None) -> None:
+    def check_glob_fluorescence(
+        self, gf_factor: Union[float, None] = None, idx: Union[int, None] = None
+    ) -> None:
         """
 
         Args:
@@ -645,7 +697,9 @@ class ODMR:
 
                 old_correct = self.calc_gf_correction(gf=self._gf_factor)
                 if self._gf_factor != 0:
-                    ax[p, f].plot(self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}")
+                    ax[p, f].plot(
+                        self.f_ghz[f], d, "k:", label=f"current: GF={self._gf_factor}"
+                    )
 
                 (l,) = ax[p, f].plot(
                     self.f_ghz[f],
@@ -661,7 +715,9 @@ class ODMR:
                     label="corrected",
                     color=l.get_color(),
                 )
-                ax[p, f].plot(self.f_ghz[f], 1 + new_correct[p, f], "r--", label="correction")
+                ax[p, f].plot(
+                    self.f_ghz[f], 1 + new_correct[p, f], "r--", label="correction"
+                )
                 ax[p, f].set_title(f"{['+', '-'][p]},{['<', '>'][f]}")
                 ax[p, f].legend()
                 # , ylim=(0, 1.5))
@@ -670,9 +726,10 @@ class ODMR:
 
 def main() -> None:
     QDMpy.LOG.setLevel(logging.DEBUG)
-    odmr = ODMR.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
-    for i in [4,6,8,16]:
+    odmr = ODMR.from_qdmio("/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2")
+    for i in [4, 6, 8, 16]:
         odmr.bin_data(i)
+
 
 if __name__ == "__main__":
     main()

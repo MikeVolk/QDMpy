@@ -8,6 +8,7 @@ import QDMpy
 from QDMpy._core.qdm import QDM
 from argdoc import generate_doc
 
+
 @generate_doc
 def main(argv):
     """
@@ -37,7 +38,7 @@ def main(argv):
         "--model",
         type=str,
         help="Type of model used in the experiment. Default: 'auto'",
-        default='auto',
+        default="auto",
         required=False,
     )
     parser.add_argument(

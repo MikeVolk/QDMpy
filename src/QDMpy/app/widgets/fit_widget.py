@@ -76,6 +76,7 @@ class FitWidget(QDMWidget):
             fit=self.get_current_fit(),
         )
         self.set_ylim()
+
     def on_quality_clicked(self):
         if self.quality_widget is None:
             self.LOG.debug("Creating Quality Widget")
@@ -95,6 +96,7 @@ class FitWidget(QDMWidget):
             self.stat_widget.hide()
         else:
             self.stat_widget.show()
+
     def on_subtract_median_clicked(self):
         if self.subtract_median.isChecked() and self.subtract_quad.isChecked():
             self.subtract_quad.setChecked(False)

@@ -17,16 +17,22 @@ class Outlier(ABC):
     def settings(self) -> dict:
         if self._settings is None:
             if self.__class__.__name__ in QDMpy.SETTINGS["outlier_detection"]:
-                self._settings = QDMpy.SETTINGS["outlier_detection"][self.__class__.__name__]
+                self._settings = QDMpy.SETTINGS["outlier_detection"][
+                    self.__class__.__name__
+                ]
             else:
-                self.LOG.warning(f"Settings for {self.__class__.__name__} not found in QDMpy.SETTINGS")
+                self.LOG.warning(
+                    f"Settings for {self.__class__.__name__} not found in QDMpy.SETTINGS"
+                )
                 self._settings = {}
         return self._settings
 
     def __init__(self, data_shape: Tuple[int, ...]) -> None:
         self.data_shape = data_shape
         self.outliers: NDArray = np.zeros(self.data_shape, dtype=bool)
-        self.LOG.debug(f"{self.__class__.__name__} initialized with data of shape {self.data_shape}")
+        self.LOG.debug(
+            f"{self.__class__.__name__} initialized with data of shape {self.data_shape}"
+        )
         self._settings = None
 
     @abstractmethod
@@ -48,7 +54,14 @@ class StatisticsPercentile(Outlier):
             f"width={self.width.shape}, mean_contrast={self.mean_contrast.shape})"
         )
 
-    def __init__(self, b111: NDArray, chi2: NDArray, width: NDArray, mean_contrast: NDArray, **kwargs):
+    def __init__(
+        self,
+        b111: NDArray,
+        chi2: NDArray,
+        width: NDArray,
+        mean_contrast: NDArray,
+        **kwargs,
+    ):
         """
         Initialize the outlier detection using the fit statistics.
 
@@ -72,16 +85,24 @@ class StatisticsPercentile(Outlier):
 
         self.data_shape = self.b111.shape
         self.detected = False
-        self._chi2_percentile = kwargs.pop("chi2_percentile", self.settings["chi2_percentile"])
-        self._width_percentile = kwargs.pop("width_percentile", self.settings["width_percentile"])
-        self._contrast_percentile = kwargs.pop("contrast_percentile", self.settings["contrast_percentile"])
+        self._chi2_percentile = kwargs.pop(
+            "chi2_percentile", self.settings["chi2_percentile"]
+        )
+        self._width_percentile = kwargs.pop(
+            "width_percentile", self.settings["width_percentile"]
+        )
+        self._contrast_percentile = kwargs.pop(
+            "contrast_percentile", self.settings["contrast_percentile"]
+        )
         self._chi2_range = [self.chi2.min(), self.chi2.max()]
         self._width_range = [self.width.min(), self.width.max()]
         self._contrast_range = [self.mean_contrast.min(), self.mean_contrast.max()]
         self.chi2_outlier = np.zeros(self.b111.shape, dtype=bool)
         self.width_outlier = np.zeros(self.b111.shape, dtype=bool)
         self.contrast_outlier = np.zeros(self.b111.shape, dtype=bool)
-        self.detect_outlier(self._chi2_percentile, self._width_percentile, self._contrast_percentile)
+        self.detect_outlier(
+            self._chi2_percentile, self._width_percentile, self._contrast_percentile
+        )
 
     # PROPERTIES AND SETTERS
     @property
@@ -130,7 +151,9 @@ class StatisticsPercentile(Outlier):
         self.set_range("contrast", self.mean_contrast, contrast_percentile)
         self.set_range("width", self.width, width_percentile)
 
-    def detect_outlier(self, chi2_percentile=None, width_percentile=None, contrast_percentile=None):
+    def detect_outlier(
+        self, chi2_percentile=None, width_percentile=None, contrast_percentile=None
+    ):
         """
         Detect outliers in the statistics.
 
@@ -146,12 +169,20 @@ class StatisticsPercentile(Outlier):
 
         # if all are None it uses the internal values
         # so that the outliers can be recalculated
-        if not all([chi2_percentile is None, width_percentile is None, contrast_percentile is None]):
+        if not all(
+            [
+                chi2_percentile is None,
+                width_percentile is None,
+                contrast_percentile is None,
+            ]
+        ):
             self.set_ranges(chi2_percentile, contrast_percentile, width_percentile)
 
         self.chi2_outlier = self.get_outlier_from(self.chi2, self.chi2_range)
         self.width_outlier = self.get_outlier_from(self.width, self.width_range)
-        self.contrast_outlier = self.get_outlier_from(self.mean_contrast, self.contrast_range)
+        self.contrast_outlier = self.get_outlier_from(
+            self.mean_contrast, self.contrast_range
+        )
 
         self.outliers = self.chi2_outlier | self.width_outlier | self.contrast_outlier
         self.detected = True
@@ -164,10 +195,14 @@ class StatisticsPercentile(Outlier):
 
     def set_range(self, dtype, data, percentile):
         data_range = np.percentile(data, percentile)
-        self.LOG.debug(f"setting {dtype} range to {data_range} out of {[data.min(), data.max()]} ({percentile})")
+        self.LOG.debug(
+            f"setting {dtype} range to {data_range} out of {[data.min(), data.max()]} ({percentile})"
+        )
         setattr(self, f"_{dtype}_range", data_range)
         if self.detected:
-            self.LOG.warning(f"parameter range for {dtype} changed, outlier detection needs to be rerun")
+            self.LOG.warning(
+                f"parameter range for {dtype} changed, outlier detection needs to be rerun"
+            )
             self.detected = False
         return data_range
 
@@ -215,7 +250,9 @@ class LocalOutlierFactor(Outlier):
         self.outliers = lof.fit_predict(data)
         self.outliers = self.outliers.reshape(initial_shape[:-1])
         self.outliers = np.any(self.outliers == -1, axis=(0, 1))
-        self.LOG.info(f"detected {self.outliers.sum()} outliers ({self.outliers.shape})")
+        self.LOG.info(
+            f"detected {self.outliers.sum()} outliers ({self.outliers.shape})"
+        )
         self.outliers = self.outliers.reshape(self.data_shape)
         return self.outliers
 
@@ -224,7 +261,9 @@ def main():
     from scipy.io import loadmat
 
     d = loadmat("/home/mike/Desktop/b111test.b111")
-    out = StatisticsPercentile(d["remanent"], d["chi_squares"], d["width"], np.mean(d["contrast"], axis=2))
+    out = StatisticsPercentile(
+        d["remanent"], d["chi_squares"], d["width"], np.mean(d["contrast"], axis=2)
+    )
 
 
 if __name__ == "__main__":

@@ -14,7 +14,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from matplotlib.backend_bases import MouseButton, Event
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbarQT
+from matplotlib.backends.backend_qtagg import (
+    NavigationToolbar2QT as NavigationToolbarQT,
+)
 from numpy.typing import NDArray
 
 from QDMpy._core import models
@@ -224,7 +226,13 @@ class QDMWidget(QMainWindow):
             "rms": rms_label,
             "dimensions": xy_label,
         }
-        self.fill_infobar(self.qdm.b111[self.b111_select.currentIndex()], 0, self.data_shape[1], 0, self.data_shape[0])
+        self.fill_infobar(
+            self.qdm.b111[self.b111_select.currentIndex()],
+            0,
+            self.data_shape[1],
+            0,
+            self.data_shape[0],
+        )
 
     def update_bottom_info(self):
         x0, x1 = np.sort([self._xy_box[0][0], self._xy_box[1][0]]).astype(int)
@@ -241,7 +249,13 @@ class QDMWidget(QMainWindow):
         Args:
             *args: not used
         """
-        self.fill_infobar(self.qdm.b111[self.b111_select.currentIndex()], 0, self.data_shape[1], 0, self.data_shape[0])
+        self.fill_infobar(
+            self.qdm.b111[self.b111_select.currentIndex()],
+            0,
+            self.data_shape[1],
+            0,
+            self.data_shape[0],
+        )
 
     def fill_infobar(self, d: NDArray, x0: int, x1: int, y0: int, y1: int) -> None:
         """Fill the infobar with the statistical data in d.
@@ -255,9 +269,7 @@ class QDMWidget(QMainWindow):
         """
         x_size = (x1 - x0) * self.pixel_size * 1e6
         y_size = (y1 - y0) * self.pixel_size * 1e6
-        self.infobar_labels["dimensions"].setText(
-            f"{x_size:.2f} x {y_size:.2f}"
-        )
+        self.infobar_labels["dimensions"].setText(f"{x_size:.2f} x {y_size:.2f}")
         self.infobar_labels["min"].setText(f"{np.nanmin(d):.2f}")
         self.infobar_labels["max"].setText(f"{np.nanmax(d):.2f}")
         self.infobar_labels["mean"].setText(f"{np.nanmean(d):.2f}")
@@ -410,7 +422,9 @@ class QDMWidget(QMainWindow):
 
             self.set_current_idx(x, y)
             self.indexLabel.setText(f"[{self._current_idx}]")
-            self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
+            self.LOG.debug(
+                f"clicked in {event.inaxes} with new index: {self._current_idx}"
+            )
 
             self.on_xy_value_change()
 
@@ -444,7 +458,9 @@ class QDMWidget(QMainWindow):
         freqs = np.empty((parameter.shape[1], 200))
         models = np.empty((parameter.shape[0], parameter.shape[1], 200))
         for f in np.arange(parameter.shape[1]):
-            freqs[f] = np.linspace(self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200)
+            freqs[f] = np.linspace(
+                self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200
+            )
             for p in np.arange(parameter.shape[0]):
                 models[p, f, :] = model_func(freqs[f], parameter[p, f])
         return models
@@ -463,7 +479,9 @@ class QDMWidget(QMainWindow):
 
         # get current correction
         if self.qdm.odmr.global_factor > 0:
-            current_correct = self.qdm.odmr.calc_gf_correction(gf=self.qdm.odmr.global_factor)
+            current_correct = self.qdm.odmr.calc_gf_correction(
+                gf=self.qdm.odmr.global_factor
+            )
             # make uncorrected
             current_data += current_correct
         return current_data
@@ -506,7 +524,9 @@ class QDMWidget(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.canvas.update_odmr(freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr())
+        self.canvas.update_odmr(
+            freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr()
+        )
         self.set_ylim()
 
     def set_ylim(self):
@@ -533,7 +553,9 @@ class QDMWidget(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.esrsingle, models.esr15n, models.esr14n][self.qdm._diamond_type]
+        return [None, models.esrsingle, models.esr15n, models.esr14n][
+            self.qdm._diamond_type
+        ]
 
     @property
     def pixel_size(self):

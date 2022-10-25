@@ -35,7 +35,9 @@ def millify(n: float, sign: int = 1) -> str:
       human readable string
 
     """
-    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
+    millidx = max(
+        0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3)))
+    )
 
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
@@ -80,12 +82,12 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-        x: np.ndarray,
-        y: np.ndarray,
-        z: np.ndarray,
-        kx: Optional[int] = 3,
-        ky: Optional[int] = 3,
-        order: Optional[Union[None, int]] = None,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    kx: Optional[int] = 3,
+    ky: Optional[int] = 3,
+    order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
@@ -123,7 +125,7 @@ def polyfit2d(
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x ** i * y ** j
+            arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
@@ -146,6 +148,7 @@ def load_config(file=CONFIG_FILE) -> dict:
     with open(file, "rb") as fileObj:
         return tomli.load(fileObj)
 
+
 def rms(data):
     """Calculate the root mean square of a data set.
 
@@ -157,6 +160,7 @@ def rms(data):
 
     """
     return np.sqrt(np.mean(np.square(data)))
+
 
 def make_configfile(reset: bool = False) -> None:
     """Creates the config file if it does not exist.
@@ -206,7 +210,10 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
     return str(lst[0])
 
 
-def get_image(folder: Union[str, bytes, os.PathLike], lst: Sequence[Union[str, bytes, os.PathLike]]) -> np.ndarray:
+def get_image(
+    folder: Union[str, bytes, os.PathLike],
+    lst: Sequence[Union[str, bytes, os.PathLike]],
+) -> np.ndarray:
     """Loads an image from a list of files.
 
     Args:
@@ -224,7 +231,9 @@ def get_image(folder: Union[str, bytes, os.PathLike], lst: Sequence[Union[str, b
     return np.array(img)
 
 
-def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
+def double_norm(
+    data: np.ndarray, axis: Optional[Union[int, None]] = None
+) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:
