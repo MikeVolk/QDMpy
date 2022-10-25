@@ -26,5 +26,3 @@ class SimpleWidget(QDMWidget):
         self.update_clims()
         self.add_scalebars()
         self.canvas.draw_idle()
-
-

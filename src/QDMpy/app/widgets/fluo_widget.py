@@ -96,4 +96,3 @@ class FluoWidget(QDMWidget):
         else:
             line.set_xdata(self.qdm.odmr.f_ghz[frange, self.index_slider.value()])
         return line
-

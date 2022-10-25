@@ -29,7 +29,7 @@ from scipy.io import savemat
 
 
 class QDM:
-    """ The QDM class is a container for all data related to a single QDM measurement.
+    """The QDM class is a container for all data related to a single QDM measurement.
 
     The QDM class contains the light and laser images as well as an ODMR and Fit instances.
 
@@ -43,13 +43,13 @@ class QDM:
 
     # outliers
     def __init__(
-            self,
-            odmr_instance: ODMR,
-            light: np.ndarray,
-            laser: np.ndarray,
-            working_directory: Union[str, os.PathLike],
-            pixel_size: float = 4e-6,
-            model_name: str = 'auto',
+        self,
+        odmr_instance: ODMR,
+        light: np.ndarray,
+        laser: np.ndarray,
+        working_directory: Union[str, os.PathLike],
+        pixel_size: float = 4e-6,
+        model_name: str = "auto",
     ) -> None:
         """Initialize the QDM object.
 
@@ -90,11 +90,10 @@ class QDM:
 
         self._check_bin_factor()
 
-    def new_fit(self, model_name: str = 'auto') -> Fit:
+    def new_fit(self, model_name: str = "auto") -> Fit:
         self.LOG.debug(f"Creating new fit instance with model {model_name}")
-        return Fit(data=self.odmr.data,
-                frequencies=self.odmr.f_ghz,
-                model_name=model_name)
+        return Fit(data=self.odmr.data, frequencies=self.odmr.f_ghz, model_name=model_name)
+
     @property
     def outliers(self) -> NDArray:
         """
@@ -152,8 +151,9 @@ class QDM:
         outlier_pdf["idx"] = self.outliers_idx
         return outlier_pdf
 
-    def detect_outliers(self, dtype: str = "width", method: str = "LocalOutlierFactor",
-                        **outlier_props: Any) -> np.ndarray:
+    def detect_outliers(
+        self, dtype: str = "width", method: str = "LocalOutlierFactor", **outlier_props: Any
+    ) -> np.ndarray:
         """Detect outliers in the ODMR data.
 
         The outliers are detected using 'method'. The method can be either 'LocalOutlierFactor' or 'IsolationForest'.
@@ -192,15 +192,15 @@ class QDM:
                 k: v
                 for k, v in outlier_props.items()
                 if k
-                   in [
-                       "n_estimators",
-                       "max_samples",
-                       "contamination",
-                       "max_features",
-                       "bootstrap",
-                       "n_jobs",
-                       "random_state",
-                   ]
+                in [
+                    "n_estimators",
+                    "max_samples",
+                    "contamination",
+                    "max_features",
+                    "bootstrap",
+                    "n_jobs",
+                    "random_state",
+                ]
             }
             clf = IsolationForest(**outlier_props)
         else:
@@ -295,7 +295,7 @@ class QDM:
     @property
     def model_names(self) -> str:
         """List of available models"""
-        return self.fit.model['func_name']
+        return self.fit.model["func_name"]
 
     def set_model_name(self, model_name: Union[str, int]) -> None:
         """Set the diamond type.
@@ -309,12 +309,12 @@ class QDM:
             model_name = models.PEAK_TO_TYPE[model_name]
 
         if model_name not in models.IMPLEMENTED:
-            raise NotImplementedError('diamond type has not been implemented, yet')
+            raise NotImplementedError("diamond type has not been implemented, yet")
 
         self.LOG.debug(f'Setting model to "{model_name}"')
 
         if hasattr(self, "_fit") and self._fit is not None:
-            self._fit.model_name = models.IMPLEMENTED[self._model_name]['func_name']
+            self._fit.model_name = models.IMPLEMENTED[self._model_name]["func_name"]
 
     @property
     def data_shape(self) -> NDArray:
@@ -333,11 +333,11 @@ class QDM:
         return self._fit.fitted
 
     def set_constraints(
-            self,
-            param: str,
-            vmin: Optional[Union[str, None]] = None,
-            vmax: Optional[Union[str, None]] = None,
-            bound_type: Optional[Union[str, None]] = None,
+        self,
+        param: str,
+        vmin: Optional[Union[str, None]] = None,
+        vmax: Optional[Union[str, None]] = None,
+        bound_type: Optional[Union[str, None]] = None,
     ) -> None:
         """Set the constraints for the fit.
 
@@ -387,10 +387,10 @@ class QDM:
         return np.squeeze(out)
 
     def _reshape_parameter(
-            self,
-            data: NDArray,
-            n_pol: int,
-            n_frange: int,
+        self,
+        data: NDArray,
+        n_pol: int,
+        n_frange: int,
     ) -> NDArray:
         """Reshape data so that all data for a frange are in series (i.e. [low_freq(B+), low_freq(B-)]).
         Input data must have format: [polarity, frange, n_pixel, n_freqs]
@@ -506,23 +506,24 @@ class QDM:
         """
         path_to_file = Path(path_to_file)
 
-        data_struct = {1: {},2: {},4: {},8:{},16: {}}
+        data_struct = {1: {}, 2: {}, 4: {}, 8: {}, 16: {}}
 
         for bin_factor in data_struct:
             self.LOG.debug(f"Exporting data for bin factor {bin_factor}")
             if bin_factor < self.odmr._pre_bin_factor:
-                self.LOG.warning(f"Cannot export data with bin factor {bin_factor} as it is smaller than the pre bin factor {self.odmr._pre_bin_factor}")
+                self.LOG.warning(
+                    f"Cannot export data with bin factor {bin_factor} as it is smaller than the pre bin factor {self.odmr._pre_bin_factor}"
+                )
                 continue
             if not self.bin_factor == bin_factor:
                 self.bin_data(bin_factor)
             if not self.fitted:
                 self.fit_odmr()
-            data_struct[bin_factor]['b111'] = deepcopy(self.b111)
-            data_struct[bin_factor]['chi2'] = self.fit.get_param('chi2').copy()
-            data_struct[bin_factor]['fit'] = self.fit._fit_results.copy()
+            data_struct[bin_factor]["b111"] = deepcopy(self.b111)
+            data_struct[bin_factor]["chi2"] = self.fit.get_param("chi2").copy()
+            data_struct[bin_factor]["fit"] = self.fit._fit_results.copy()
         print(data_struct)
         savemat(path_to_file, data_struct)
-
 
     # CALCULATIONS ###
     @property
@@ -596,7 +597,7 @@ class QDM:
         return rc2idx(rc, shape)  # type: ignore[arg-type]
 
     def idx2rc(
-            self, idx: Union[int, np.ndarray], ref: str = "data"
+        self, idx: Union[int, np.ndarray], ref: str = "data"
     ) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
         """Convert an index to a rc coordinate of the reference.
 
@@ -684,7 +685,8 @@ class QDM:
 def main():
     """ """
     from QDMpy._core import outlier
-    d = QDM.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
+
+    d = QDM.from_qdmio("/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2")
     # d = QDM.from_qdmio(QDMpy.test_data_location())
     #
     # d.fit_odmr()
@@ -692,6 +694,7 @@ def main():
     #                                     d.get_param('mean_contrast'))
     # d.bin_data(16)
     d.export_MMT("/home/mike/Desktop/test.mmt")
+
 
 if __name__ == "__main__":
     main()

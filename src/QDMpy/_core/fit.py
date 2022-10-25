@@ -30,6 +30,7 @@ def main():
     q = QDM.from_qdmio(QDMpy.test_data_location())
     q.fit_odmr()
 
+
 if __name__ == "__main__":
     main()
 
@@ -63,7 +64,7 @@ class Fit:
         if model_name == "auto":
             model_name = self.guess_model_name()
 
-        #setting model name resets the fit parameters
+        # setting model name resets the fit parameters
         self._model = models.IMPLEMENTED[model_name.upper()]
         self._initial_parameter = None
 

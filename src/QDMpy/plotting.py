@@ -15,7 +15,7 @@ CONTRAST_LABEL = "c [%]"
 
 
 def plot_light_img(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
 ) -> mpl.image.AxesImage:
     """
 
@@ -43,7 +43,7 @@ def plot_light_img(
 
 
 def plot_fluorescence(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Optional[Any]
 ) -> mpl.image.AxesImage:
     """
 
@@ -71,7 +71,7 @@ def plot_fluorescence(
 
 
 def plot_laser_img(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -99,8 +99,7 @@ def plot_laser_img(
 
 
 def update_line(
-        ax: plt.Axes, x: np.ndarray, y: Optional[Union[np.ndarray, None]] = None, line: plt.Line2D = None,
-        **plt_props: Any
+    ax: plt.Axes, x: np.ndarray, y: Optional[Union[np.ndarray, None]] = None, line: plt.Line2D = None, **plt_props: Any
 ) -> plt.Line2D:
     """
 
@@ -147,7 +146,7 @@ def update_marker(ax: plt.Axes, x: np.ndarray, y: np.ndarray, line: plt.Line2D =
 
 
 def plot_quality_data(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -168,7 +167,7 @@ def plot_quality_data(
 
 
 def plot_data(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -233,11 +232,11 @@ def get_color_norm(vmin: float, vmax: float) -> colors.Normalize:
 
 
 def plot_overlay(
-        ax: plt.Axes,
-        data: np.ndarray,
-        img: Optional[Union[mpl.image.AxesImage, None]] = None,
-        normtype: str = "simple",
-        **plt_props: Any,
+    ax: plt.Axes,
+    data: np.ndarray,
+    img: Optional[Union[mpl.image.AxesImage, None]] = None,
+    normtype: str = "simple",
+    **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
 
@@ -260,7 +259,7 @@ def plot_overlay(
 
 
 def plot_outlier(
-        ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
+    ax: plt.Axes, data: np.ndarray, img: Optional[mpl.image.AxesImage] = None, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -296,12 +295,12 @@ def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image
 
 
 def update_cbar(
-        img: mpl.image.AxesImage,
-        cax: plt.Axes,
-        vmin: float,
-        vmax: float,
-        original_cax_locator: plt.Locator,
-        **plt_props: dict,
+    img: mpl.image.AxesImage,
+    cax: plt.Axes,
+    vmin: float,
+    vmax: float,
+    original_cax_locator: plt.Locator,
+    **plt_props: dict,
 ) -> None:
     """
 
@@ -503,6 +502,7 @@ def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> p
     if save:
         f.savefig(save)
     return f
+
 
 # def plot_fluorescence(qdm_obj, f_idx):
 #     # noinspection PyTypeChecker

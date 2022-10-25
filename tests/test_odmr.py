@@ -1,5 +1,6 @@
 import unittest
 
+
 class test_odmr(unittest.TestCase):
     def test_get_binned_pixel_indices(self):
         assert False

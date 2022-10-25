@@ -407,42 +407,39 @@ class QDMpyApp(QMainWindow):
 
         for row, (text, (vmin, vmax, constraint, unit)) in enumerate(self.qdm.fit.constraints.items()):
             self.fitconstraints[text] = {
-                'label': QLabel(text),
-                'vmin' : QLineEdit(f"{vmin}"),
-                'vmax' : QLineEdit(f"{vmax}"),
-                'unit' :QLabel(f"{unit}"),
-                "box" : QComboBox(),
+                "label": QLabel(text),
+                "vmin": QLineEdit(f"{vmin}"),
+                "vmax": QLineEdit(f"{vmax}"),
+                "unit": QLabel(f"{unit}"),
+                "box": QComboBox(),
             }
-            self.fitconstraints[text]['vmin'].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
-            self.fitconstraints[text]['vmax'].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
+            self.fitconstraints[text]["vmin"].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
+            self.fitconstraints[text]["vmax"].returnPressed.connect(self.on_fitconstraints_widget_item_changed)
 
-            self.fitconstraints[text]['box'].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
-            self.fitconstraints[text]['box'].setCurrentText(constraint)
-            self.fitconstraints[text]['box'].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
+            self.fitconstraints[text]["box"].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
+            self.fitconstraints[text]["box"].setCurrentText(constraint)
+            self.fitconstraints[text]["box"].currentIndexChanged.connect(self.on_fitconstraints_widget_item_changed)
 
             # add them to the layout
             for col, item in enumerate(self.fitconstraints[text].values()):
                 self.fitconstraints_gridlayout.addWidget(item, row, col)
         self.fitconstraints_widget.setLayout(self.fitconstraints_gridlayout)
 
-
     def _fill_fitconstraints_widget(self):
         for text, (vmin, vmax, constraint, unit) in self.qdm.fit.constraints.items():
-            self.fitconstraints[text]['box'].setCurrentText(constraint)
-            self.fitconstraints[text]['vmin'].setText(str(vmin))
-            self.fitconstraints[text]['vmax'].setText(str(vmax))
-            self.fitconstraints[text]['unit'].setText(str(unit))
+            self.fitconstraints[text]["box"].setCurrentText(constraint)
+            self.fitconstraints[text]["vmin"].setText(str(vmin))
+            self.fitconstraints[text]["vmax"].setText(str(vmax))
+            self.fitconstraints[text]["unit"].setText(str(unit))
 
             self._set_constraint_visibility(
                 constraint,
-                self.fitconstraints[text]['vmin'],
-                self.fitconstraints[text]['vmax'],
+                self.fitconstraints[text]["vmin"],
+                self.fitconstraints[text]["vmax"],
             )
 
-
-
     @staticmethod
-    def _set_constraint_visibility(tpe:str, vmax_item:QLabel, vmin_item:QLabel):
+    def _set_constraint_visibility(tpe: str, vmax_item: QLabel, vmin_item: QLabel):
         """
         Set the visibility of the min and max values depending on the constraint type
 
@@ -454,18 +451,18 @@ class QDMpyApp(QMainWindow):
         Returns:
 
         """
-        if tpe in ['LOWER', 'FREE']:
+        if tpe in ["LOWER", "FREE"]:
             vmin_item.setEnabled(False)
         else:
             vmin_item.setEnabled(True)
-        if tpe in ['UPPER', 'FREE']:
+        if tpe in ["UPPER", "FREE"]:
             vmax_item.setEnabled(False)
         else:
             vmax_item.setEnabled(True)
 
     def on_fitconstraints_widget_item_changed(self):
         for k, v in self.fitconstraints.items():
-            self.qdm.set_constraints(k, float(v['vmin'].text()), float(v['vmax'].text()), v['box'].currentText())
+            self.qdm.set_constraints(k, float(v["vmin"].text()), float(v["vmax"].text()), v["box"].currentText())
         self._fill_fitconstraints_widget()
 
     ### INFO TABLE ###

@@ -525,8 +525,6 @@ class QualityCanvas(QDMCanvas):
             self.add_cax(ax, self.data)
 
 
-
-
 if __name__ == "__main__":
     c = GlobalFluorescenceCanvas()
     print("c:", c.data_axes)

@@ -42,7 +42,9 @@ class StatisticsWidget(QDMWidget):
         self.grid_layout = QGridLayout()
 
         self.chi_checkbox, self.chi_min, self.chi_max, self.chi_rmin, self.chi_rmax = self.add_box("Χ²", 0)
-        self.width_checkbox, self.width_min, self.width_max, self.width_rmin, self.width_rmax = self.add_box("width", 1, "[MHz]")
+        self.width_checkbox, self.width_min, self.width_max, self.width_rmin, self.width_rmax = self.add_box(
+            "width", 1, "[MHz]"
+        )
         (
             self.contrast_checkbox,
             self.contrast_min,
@@ -66,7 +68,7 @@ class StatisticsWidget(QDMWidget):
         self.update_outlier_select()
         self.canvas.draw()
 
-    def add_box(self, dtype, row, unit=''):
+    def add_box(self, dtype, row, unit=""):
         # contrast BOX
         checkbox = QtWidgets.QCheckBox(f"  {dtype:>10}: ")
         checkbox.setChecked(True)

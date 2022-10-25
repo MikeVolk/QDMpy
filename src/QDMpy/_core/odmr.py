@@ -530,7 +530,9 @@ class ODMR:
         if bin_factor is None:
             bin_factor = self._bin_factor
 
-        self.LOG.debug(f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})")
+        self.LOG.debug(
+            f"Binning data {self.img_shape} with factor {bin_factor} (pre bin factor: {self._pre_bin_factor})"
+        )
 
         # reshape into image size
         reshape_data = self.data.reshape(
@@ -670,9 +672,10 @@ class ODMR:
 
 def main() -> None:
     QDMpy.LOG.setLevel(logging.DEBUG)
-    odmr = ODMR.from_qdmio('/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2')
-    for i in [4,6,8,16]:
+    odmr = ODMR.from_qdmio("/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2")
+    for i in [4, 6, 8, 16]:
         odmr.bin_data(i)
+
 
 if __name__ == "__main__":
     main()

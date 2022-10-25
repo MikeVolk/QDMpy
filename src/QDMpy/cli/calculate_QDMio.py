@@ -8,6 +8,7 @@ import QDMpy
 from QDMpy._core.qdm import QDM
 from argdoc import generate_doc
 
+
 @generate_doc
 def main(argv):
     """
@@ -15,9 +16,7 @@ def main(argv):
     """
     tstart = time.process_time()
 
-    parser = argparse.ArgumentParser(
-        description="Calculate the B111 field from ODMR data recorded with QDMio made QDM"
-    )
+    parser = argparse.ArgumentParser(description="Calculate the B111 field from ODMR data recorded with QDMio made QDM")
     parser.add_argument(
         "-i",
         "--input",
@@ -37,7 +36,7 @@ def main(argv):
         "--model",
         type=str,
         help="Type of model used in the experiment. Default: 'auto'",
-        default='auto',
+        default="auto",
         required=False,
     )
     parser.add_argument(

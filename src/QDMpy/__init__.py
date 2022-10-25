@@ -54,8 +54,9 @@ desktop = os.path.join(os.path.expanduser("~"), "Desktop")
 import importlib.util
 
 package = "pygpufit"
-PYGPUFIT_PRESENT = True if importlib.util.find_spec(
-    package) is not None else False  # find_spec will look for the package
+PYGPUFIT_PRESENT = (
+    True if importlib.util.find_spec(package) is not None else False
+)  # find_spec will look for the package
 
 if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     LOG.error(
@@ -68,6 +69,7 @@ if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     )
 else:
     import pygpufit.gpufit as gf
+
     LOG.info(f"CUDA available: {gf.cuda_available()}")
     LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
 

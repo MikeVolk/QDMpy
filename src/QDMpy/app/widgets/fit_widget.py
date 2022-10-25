@@ -44,12 +44,8 @@ class FitWidget(QDMWidget):
 
     def _calculate_quad_background(self):
         for i in range(2):
-            if self.quad_background[i] is None or any(
-                self.quad_background[i].shape != self.qdm.odmr.data_shape
-            ):
-                self.LOG.debug(
-                    f'Calculating quad background for {["remanent", "induced"][i]} component'
-                )
+            if self.quad_background[i] is None or any(self.quad_background[i].shape != self.qdm.odmr.data_shape):
+                self.LOG.debug(f'Calculating quad background for {["remanent", "induced"][i]} component')
                 x = np.arange(self.qdm.odmr.data_shape[0])
                 y = np.arange(self.qdm.odmr.data_shape[1])
                 kx = ky = 2
@@ -76,6 +72,7 @@ class FitWidget(QDMWidget):
             fit=self.get_current_fit(),
         )
         self.set_ylim()
+
     def on_quality_clicked(self):
         if self.quality_widget is None:
             self.LOG.debug("Creating Quality Widget")
@@ -95,6 +92,7 @@ class FitWidget(QDMWidget):
             self.stat_widget.hide()
         else:
             self.stat_widget.show()
+
     def on_subtract_median_clicked(self):
         if self.subtract_median.isChecked() and self.subtract_quad.isChecked():
             self.subtract_quad.setChecked(False)

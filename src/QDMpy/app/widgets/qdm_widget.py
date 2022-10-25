@@ -255,9 +255,7 @@ class QDMWidget(QMainWindow):
         """
         x_size = (x1 - x0) * self.pixel_size * 1e6
         y_size = (y1 - y0) * self.pixel_size * 1e6
-        self.infobar_labels["dimensions"].setText(
-            f"{x_size:.2f} x {y_size:.2f}"
-        )
+        self.infobar_labels["dimensions"].setText(f"{x_size:.2f} x {y_size:.2f}")
         self.infobar_labels["min"].setText(f"{np.nanmin(d):.2f}")
         self.infobar_labels["max"].setText(f"{np.nanmax(d):.2f}")
         self.infobar_labels["mean"].setText(f"{np.nanmean(d):.2f}")

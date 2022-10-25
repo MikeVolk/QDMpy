@@ -80,12 +80,12 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-        x: np.ndarray,
-        y: np.ndarray,
-        z: np.ndarray,
-        kx: Optional[int] = 3,
-        ky: Optional[int] = 3,
-        order: Optional[Union[None, int]] = None,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    kx: Optional[int] = 3,
+    ky: Optional[int] = 3,
+    order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
@@ -123,7 +123,7 @@ def polyfit2d(
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x ** i * y ** j
+            arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
@@ -146,6 +146,7 @@ def load_config(file=CONFIG_FILE) -> dict:
     with open(file, "rb") as fileObj:
         return tomli.load(fileObj)
 
+
 def rms(data):
     """Calculate the root mean square of a data set.
 
@@ -157,6 +158,7 @@ def rms(data):
 
     """
     return np.sqrt(np.mean(np.square(data)))
+
 
 def make_configfile(reset: bool = False) -> None:
     """Creates the config file if it does not exist.
