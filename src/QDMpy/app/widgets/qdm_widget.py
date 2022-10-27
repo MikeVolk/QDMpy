@@ -300,7 +300,7 @@ class QDMWidget(QMainWindow):
 
     def _add_plt_toolbar(self):
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.canvas.mpl_connect("home_event", self.init_info_bar)
+        # self.canvas.mpl_connect("home_event", self.init_info_bar)
         self.toolbar.setIconSize(QSize(20, 20))
         self.toolbar.setMinimumWidth(380)
         self.toolbar.addSeparator()
