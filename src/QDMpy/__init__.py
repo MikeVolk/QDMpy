@@ -3,6 +3,8 @@ __version__ = "0.1.0a"
 import logging
 import os
 import sys
+import tomli
+import shutil
 from pathlib import Path
 
 import matplotlib as mpl
@@ -13,6 +15,7 @@ PROJECT_PATH = Path(os.path.abspath(__file__)).parent
 CONFIG_PATH = Path().home() / ".config" / "QDMpy"
 CONFIG_FILE = CONFIG_PATH / "config.ini"
 CONFIG_INI = PROJECT_PATH / "config.ini"
+DESKTOP = Path().home() / "Desktop"
 
 SRC_PATH = PROJECT_PATH.parent
 sys.path.append(SRC_PATH)
@@ -43,14 +46,47 @@ LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
 
-from QDMpy.utils import load_config, make_configfile
+############################### configfile stuff ######################################
+def make_configfile(reset: bool = False) -> None:
+    """Creates the config file if it does not exist.
+
+    Args:
+      reset: bool:  (Default value = False)
+
+    """
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    if not CONFIG_FILE.exists() or reset:
+        LOG.info(f"Copying default QDMpy 'config.ini' file to {CONFIG_FILE}")
+        shutil.copy2(CONFIG_INI, CONFIG_FILE)
+
+
+def load_config(file=CONFIG_FILE) -> dict:
+    """Loads the config file.
+
+    Args:
+        file:  (Default value = CONFIG_FILE)
+
+    Returns:
+        dict: Dictionary with the config file contents.
+    """
+    LOG.info(f"Loading config file: {file}")
+    with open(file, "rb") as fileObj:
+        return tomli.load(fileObj)
+
+
+def reset_config():
+    """
+    Resets the config file.
+    """
+    make_configfile(reset=True)
+    LOG.info("Config file reset")
+
+
 
 make_configfile()
 SETTINGS = load_config()
 
-desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-
-### CHECK IF pygpufit IS INSTALLED ###
+############################### CHECK IF pygpufit IS INSTALLED ###############################
 import importlib.util
 
 package = "pygpufit"
@@ -73,18 +109,6 @@ else:
     LOG.info(f"CUDA available: {gf.cuda_available()}")
     LOG.info("CUDA versions runtime: {}, driver: {}".format(*gf.get_cuda_version()))
 
-from QDMpy._core.fit import Fit
-from QDMpy._core.odmr import ODMR
-from QDMpy._core.qdm import QDM
-
-
-def reset_config():
-    """
-    Resets the config file.
-    """
-    make_configfile(reset=True)
-    LOG.info("Config file reset")
-
 
 if __name__ == "__main__":
     LOG.info("This is a module. It is not meant to be run as a script.")
@@ -97,6 +121,6 @@ def test_data_location():
     elif sys.platform == "darwin":
         return Path("/Users/mike/Dropbox/FOV18x")
     elif sys.platform == "win32":
-        return Path(r"C:\Users\VolkMichael\Dropbox\PC\Desktop\FOV18x")
+        return Path(r"D:\Dropbox\FOV18x")
     else:
         raise NotImplementedError

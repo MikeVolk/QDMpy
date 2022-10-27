@@ -10,7 +10,8 @@ import tomli
 from numpy.typing import ArrayLike, NDArray
 
 import QDMpy
-from QDMpy import CONFIG_FILE, CONFIG_INI, CONFIG_PATH
+
+# from QDMpy import QDMpy.CONFIG_FILE, QDMpy.CONFIG_INI, QDMpy.CONFIG_PATH
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -133,22 +134,6 @@ def polyfit2d(
     return solution, res, rank, s
 
 
-def load_config(file=CONFIG_FILE) -> dict:
-    """Loads the config file.
-
-    :return: dict
-        config file
-
-    Args:
-
-    Returns:
-
-    """
-    QDMpy.LOG.info(f"Loading config file: {file}")
-    with open(file, "rb") as fileObj:
-        return tomli.load(fileObj)
-
-
 def rms(data):
     """Calculate the root mean square of a data set.
 
@@ -160,21 +145,6 @@ def rms(data):
 
     """
     return np.sqrt(np.mean(np.square(data)))
-
-
-def make_configfile(reset: bool = False) -> None:
-    """Creates the config file if it does not exist.
-
-    Args:
-      reset: bool:  (Default value = False)
-
-    Returns:
-
-    """
-    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    if not CONFIG_FILE.exists() or reset:
-        LOG.info(f"Copying default QDMpy 'config.ini' file to {CONFIG_FILE}")
-        shutil.copy2(CONFIG_INI, CONFIG_FILE)
 
 
 def has_csv(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> bool:
