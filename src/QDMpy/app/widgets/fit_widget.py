@@ -27,7 +27,7 @@ class FitWidget(QDMWidget):
         self._add_subtract_box(self.main_toolbar)
         self._add_quality_button(self.main_toolbar)
         self._add_statistsics_button(self.main_toolbar)
-
+        self.main_toolbar.addSeparator()
         self.update_data()
         self.add_light()
         self.add_laser()

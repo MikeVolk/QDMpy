@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 from matplotlib.backend_bases import MouseButton, Event
 from matplotlib.backends.backend_qtagg import (
-    NavigationToolbar2QT as NavigationToolbarQT,
+    NavigationToolbar2QT as NavigationToolbar,
 )
 from numpy.typing import NDArray
 
@@ -27,16 +27,6 @@ from QDMpy.utils import rms
 MUT = "µT"
 
 B111 = "B$_{111}$"
-
-
-class NavigationToolbar(NavigationToolbarQT):
-    def home(self, *args, **kwargs):
-        s = "home_event"
-        event = Event(s, self)
-        event.foo = 100
-        self.canvas.callbacks.process(s, event)
-        super().home(*args, **kwargs)
-
 
 class QDMWidget(QMainWindow):
     """
@@ -102,10 +92,12 @@ class QDMWidget(QMainWindow):
         self.main_toolbar = QToolBar("Toolbar")
         self.main_toolbar.setStyleSheet("QToolBar{spacing:0px;padding:0px;}")
         self.addToolBar(self.main_toolbar)
+        self.main_toolbar.addSeparator()
         self._add_plt_toolbar()
         self.mainVerticalLayout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.main_toolbar.addSeparator()
+
         if clim_select:
             self._add_cLim_select(self.main_toolbar)
             self.main_toolbar.addSeparator()
@@ -298,11 +290,10 @@ class QDMWidget(QMainWindow):
         clim_widget.setLayout(clim_selection_layout)
         toolbar.addWidget(clim_widget)
 
-    def _add_plt_toolbar(self):
-        self.toolbar = NavigationToolbar(self.canvas, self)
-        # self.canvas.mpl_connect("home_event", self.init_info_bar)
-        self.toolbar.setIconSize(QSize(20, 20))
-        self.toolbar.setMinimumWidth(380)
+    def _add_plt_toolbar(self, coordinates=True):
+        self.toolbar = NavigationToolbar(self.canvas, self, coordinates=coordinates)
+        self.toolbar.setIconSize(QSize(15, 15))
+        # self.toolbar.setMinimumWidth(310)
         self.toolbar.addSeparator()
         self.addToolBar(self.toolbar)
 
@@ -353,6 +344,7 @@ class QDMWidget(QMainWindow):
         coord_box.addWidget(self.yselect)
         coord_box.addWidget(self.indexLabel)
         pixel_box_widget.setLayout(coord_box)
+        pixel_box_widget.setMinimumWidth(200)
         toolbar.addWidget(pixel_box_widget)
 
     # def toggle_outlier_mask(self, onoff="on"):
