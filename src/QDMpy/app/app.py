@@ -446,6 +446,8 @@ class QDMpyApp(QMainWindow):
         self.fitconstraints_widget.setLayout(self.fitconstraints_gridlayout)
 
     def _fill_fitconstraints_widget(self):
+        if not self.fitconstraints:
+            self.get_fitconstraints_widget()
         for text, (vmin, vmax, constraint, unit) in self.qdm.fit.constraints.items():
             self.fitconstraints[text]["box"].setCurrentText(constraint)
             self.fitconstraints[text]["vmin"].setText(str(vmin))
@@ -925,6 +927,7 @@ def main(**kwargs):
     mainwindow.move(geo.topLeft())
 
     app.exec()
+    pass
 
 
 if __name__ == "__main__":
