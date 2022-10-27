@@ -13,13 +13,13 @@ homepage = "https://mikevolk.github.io/QDMpy"
 repository = "https://github.com/mikevolk/QDMpy"
 
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Typing :: Typed",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
 packages = [
@@ -36,15 +36,16 @@ wheel = "^0.37.1"
 mat73 = "^0.59"
 jupyterlab = "^3.4.5"
 numpy = "^1.22"
-PySide6 = "^6.3.1"
+PySide6 = "=6.2.0"
 numba = "^0.56.0"
 scipy = "^1.9.1"
 matplotlib = "^3.5.3"
 matplotlib-scalebar = "^0.8.1"
 coloredlogs = "^15.0.1"
 superqt = "^0.3.5"
-pygpufit = [{ file = "src/pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'windows'" },
-            { file = "src/pyGpufit/linux/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'linux'" }]
+pygpufit = [{ path = "src/pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'win32'" },
+    { path = "src/pyGpufit/linux/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'linux'" },
+]
 
 [tool.poetry.dev-dependencies]
 autoflake = "*"
