@@ -148,7 +148,7 @@ class QDMWidget(QMainWindow):
         # set the colorbar label
         for ax in self.canvas.data:
             cax = self.canvas.data[ax]["cax"]
-            cax.set_ylabel(f"{B111}({self.b111_select.currentText()[:3]}.)")
+            cax.set_ylabel(f"{B111}({self.b111_select.currentText()[:3]}.) [{MUT}]")
         self.update_clims()
 
     def toggle_outlier(self, visible):
