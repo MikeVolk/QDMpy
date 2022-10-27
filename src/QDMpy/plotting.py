@@ -130,9 +130,9 @@ def update_line(
         return
     if line is None:
         (line,) = ax.plot(x, y, **plt_props)
+    elif all(y == line.get_ydata()):
+        return line
     else:
-        if all(y == line.get_ydata()):
-            return line
         line.set_ydata(y)
     return line
 

@@ -98,7 +98,12 @@ class Fit:
 
     ### MODEL RELATED METHODS ###
     def guess_model_name(self) -> str:
-        """Guess the model name from the data."""
+        """Guess the model name from the data.
+
+        Returns:
+            str: Name of the model.
+        """
+
         data = np.median(self.data, axis=2)
         n_peaks, doubt, peaks = guess_model(data)
 
@@ -112,7 +117,7 @@ class Fit:
             for m, mdict in models.IMPLEMENTED.items()
             if mdict["n_peaks"] == n_peaks
         ][0]
-        
+
         self.LOG.info(
             f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})"
         )
@@ -289,8 +294,7 @@ class Fit:
         constraints_list: List[float] = []
         for k in self.model_params_unique:
             constraints_list.extend((self._constraints[k][0], self._constraints[k][1]))
-        constraints = np.tile(constraints_list, (n_pixel, 1))
-        return constraints
+        return np.tile(constraints_list, (n_pixel, 1))
 
     def get_constraint_types(self) -> NDArray:
         """
@@ -314,7 +318,7 @@ class Fit:
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
-        if param in ("chi2", "chi_squares", "chi_squared"):
+        if param in {"chi2", "chi_squares", "chi_squared"}:
             return self._chi_squares
         idx = self._param_idx(param)
         if param == "mean_contrast":
@@ -383,8 +387,8 @@ class Fit:
         """
         Guess the offset from 0 of the ODMR spectra. Usually this is 1
         """
-        n_pol, nfrange, n_pixel, _ = self.data.shape
-        offset = np.zeros((n_pol, nfrange, n_pixel))
+        n_pol, n_frange, n_pixel, _ = self.data.shape
+        offset = np.zeros((n_pol, n_frange, n_pixel))
         self.LOG.debug(f"Guessing offset {offset.shape}")
         return offset
 
@@ -597,13 +601,13 @@ def guess_center_pixel(pixel, freq):
 
 
 @numba.njit(parallel=True, fastmath=True)
-def guess_width(data: NDArray, f_GHz: NDArray, vmin: float, vmax: float) -> NDArray:
+def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDArray:
     """
     Guess the width of a ODMR resonance peaks.
 
     :param data: np.array
         data to guess the width from
-    :param f_GHz: np.array
+    :param f_ghz: np.array
         frequency range of the data
     :param vmin: float
         minimum value of normalized cumsum to be considered
@@ -616,7 +620,7 @@ def guess_width(data: NDArray, f_GHz: NDArray, vmin: float, vmax: float) -> NDAr
     # width
     width = np.zeros(data.shape[:-1])
     for p, f in np.ndindex(data.shape[0], data.shape[1]):
-        freq = f_GHz[f]
+        freq = f_ghz[f]
         for px in numba.prange(data.shape[2]):
             width[p, f, px] = guess_width_pixel(data[p, f, px], freq, vmin, vmax)
 
