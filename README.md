@@ -1,18 +1,18 @@
-# pyQDM
+# QDMpy
 
-[![PyPI](https://img.shields.io/pypi/v/pyqdm?style=flat-square)](https://pypi.python.org/pypi/pyqdm/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyqdm?style=flat-square)](https://pypi.python.org/pypi/pyqdm/)
-[![PyPI - License](https://img.shields.io/pypi/l/pyqdm?style=flat-square)](https://pypi.python.org/pypi/pyqdm/)
+[![PyPI](https://img.shields.io/pypi/v/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
+[![PyPI - License](https://img.shields.io/pypi/l/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
 [![Coookiecutter - Wolt](https://img.shields.io/badge/cookiecutter-Wolt-00c2e8?style=flat-square&logo=cookiecutter&logoColor=D4AA00&link=https://github.com/woltapp/wolt-python-package-cookiecutter)](https://github.com/woltapp/wolt-python-package-cookiecutter)
 
 
 ---
 
-**Documentation**: [https://mikevolk.github.io/pyqdm](https://mikevolk.github.io/pyqdm)
+**Documentation**: [https://mikevolk.github.io/QDMpy](https://mikevolk.github.io/QDMpy)
 
-**Source Code**: [https://github.com/mikevolk/pyqdm](https://github.com/mikevolk/pyqdm)
+**Source Code**: [https://github.com/mikevolk/QDMpy](https://github.com/mikevolk/QDMpy)
 
-**PyPI**: [https://pypi.org/project/pyqdm/](https://pypi.org/project/pyqdm/)
+**PyPI**: [https://pypi.org/project/QDMpy/](https://pypi.org/project/QDMpy/)
 
 ---
 
@@ -56,12 +56,12 @@ The documentation is automatically generated from the content of the [docs direc
 
 ### Releasing
 
-Trigger the [Draft release workflow](https://github.com/mikevolk/pyqdm/actions/workflows/draft_release.yml)
+Trigger the [Draft release workflow](https://github.com/mikevolk/QDMpy/actions/workflows/draft_release.yml)
 (press _Run workflow_). This will update the changelog & version and create a GitHub release which is in _Draft_ state.
 
 Find the draft release from the
-[GitHub releases](https://github.com/mikevolk/pyqdm/releases) and publish it. When
- a release is published, it'll trigger [release](https://github.com/mikevolk/pyqdm/blob/master/.github/workflows/release.yml) workflow which creates PyPI
+[GitHub releases](https://github.com/mikevolk/QDMpy/releases) and publish it. When
+ a release is published, it'll trigger [release](https://github.com/mikevolk/QDMpy/blob/master/.github/workflows/release.yml) workflow which creates PyPI
  release and deploys updated documentation.
 
 ### Pre-commit

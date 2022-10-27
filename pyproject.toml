@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pyqdm"
+name = "QDMpy"
 version = "0.0.1"
 description = "A python package for calculating magnetic maps from ODMR spectra measured on a quantum diamond microscope"
 authors = [
@@ -8,22 +8,22 @@ authors = [
 license = "MIT"
 readme = "README.md"
 
-documentation = "https://mikevolk.github.io/pyqdm"
-homepage = "https://mikevolk.github.io/pyqdm"
-repository = "https://github.com/mikevolk/pyqdm"
+documentation = "https://mikevolk.github.io/QDMpy"
+homepage = "https://mikevolk.github.io/QDMpy"
+repository = "https://github.com/mikevolk/QDMpy"
 
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Typing :: Typed",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
 packages = [
-    { include = "pyqdm", from = "src" }
+    { include = "QDMpy", from = "src" }
 ]
 
 [tool.poetry.dependencies]
@@ -34,6 +34,18 @@ scikit-image = "^0.19.3"
 tomli = "^2.0.1"
 wheel = "^0.37.1"
 mat73 = "^0.59"
+jupyterlab = "^3.4.5"
+numpy = "^1.22"
+PySide6 = "=6.2.0"
+numba = "^0.56.0"
+scipy = "^1.9.1"
+matplotlib = "^3.5.3"
+matplotlib-scalebar = "^0.8.1"
+coloredlogs = "^15.0.1"
+superqt = "^0.3.5"
+pygpufit = [{ path = "src/pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'win32'" },
+    { path = "src/pyGpufit/linux/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'linux'" },
+]
 
 [tool.poetry.dev-dependencies]
 autoflake = "*"
@@ -48,6 +60,8 @@ flake8-logging-format = "*"
 isort = "*"
 mkdocstrings = "*"
 mkdocs-material = "*"
+mkdocstrings-python = "*"
+argparse = "^1.4.0"
 mypy = "*"
 pep8-naming = "*"
 pre-commit = "*"
@@ -58,14 +72,6 @@ pytest-cov = "*"
 python-kacl = "*"
 pyupgrade = "*"
 tryceratops = "*"
-numba = "*"
-numpy = "<=1.22"
-scipy = "*"
-matplotlib = "*"
-matplotlib-scalebar = "*"
-jupyterlab = "*"
-pyside6 = "*"
-
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -81,7 +87,7 @@ include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 addopts = """\
-    --cov pyqdm \
+    --cov QDMpy \
     --cov tests \
     --cov-report term-missing \
     --no-cov-on-fail \
@@ -95,12 +101,13 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-disallow_any_unimported = true
+#disallow_any_unimported = true
 disallow_untyped_defs = true
 no_implicit_optional = true
 strict_equality = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-warn_return_any = true
+#warn_return_any = true
 check_untyped_defs = true
 show_error_codes = true
+ignore_missing_imports = true
