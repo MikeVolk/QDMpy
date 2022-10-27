@@ -84,3 +84,5 @@ poetry.lock
 .DS_Store
 
 src/tst.py
+
+src/QDMpy/app/cache/
