@@ -44,12 +44,8 @@ class FitWidget(QDMWidget):
 
     def _calculate_quad_background(self):
         for i in range(2):
-            if self.quad_background[i] is None or any(
-                self.quad_background[i].shape != self.qdm.odmr.data_shape
-            ):
-                self.LOG.debug(
-                    f'Calculating quad background for {["remanent", "induced"][i]} component'
-                )
+            if self.quad_background[i] is None or any(self.quad_background[i].shape != self.qdm.odmr.data_shape):
+                self.LOG.debug(f'Calculating quad background for {["remanent", "induced"][i]} component')
                 x = np.arange(self.qdm.odmr.data_shape[0])
                 y = np.arange(self.qdm.odmr.data_shape[1])
                 kx = ky = 2
