@@ -412,6 +412,7 @@ class QDMpyApp(QMainWindow):
 
     def get_fitconstraints_widget(self):
         self.fitconstraints_widget = QGroupBox("Fit Constraints")
+        self.fitconstraints_widget.setWindowFlag(Qt.WindowStaysOnTopHint)
         self.fitconstraints_gridlayout = QGridLayout()
         self.fitconstraints_widget.setTitle("Fit Constraints")
 
