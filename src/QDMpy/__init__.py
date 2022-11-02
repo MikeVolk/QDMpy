@@ -82,7 +82,6 @@ def reset_config():
     LOG.info("Config file reset")
 
 
-
 make_configfile()
 SETTINGS = load_config()
 

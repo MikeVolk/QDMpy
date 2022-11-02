@@ -28,6 +28,7 @@ MUT = "µT"
 
 B111 = "B$_{111}$"
 
+
 class QDMWidget(QMainWindow):
     """
     Window for checking the global fluorescence correction.

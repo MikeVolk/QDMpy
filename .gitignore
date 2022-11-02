@@ -86,3 +86,5 @@ poetry.lock
 src/tst.py
 
 src/QDMpy/app/cache/
+
+src/QDMpy/tst.py

@@ -69,16 +69,6 @@ class QDM:
         self.LOG.info(f'Working directory: "{working_directory}"')
         self.working_directory = Path(working_directory)
 
-        self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
-        self.LOG.debug(f"read parameter shape: data: {odmr_instance.data.shape}")
-        self.LOG.debug(
-            f"                      scan_dimensions: {odmr_instance.data_shape}"
-        )
-        self.LOG.debug(
-            f"                      frequencies: {odmr_instance.f_ghz.shape}"
-        )
-        self.LOG.debug(f"                      n_freqs: {odmr_instance.n_freqs}")
-
         self.odmr = odmr_instance
 
         self._outliers = np.ones(self.odmr.data_shape, dtype=bool)
@@ -512,7 +502,7 @@ class QDM:
         path_to_file = Path(path_to_file)
         savemat(path_to_file, self._save_data(dialect="QDMpy"))
 
-    def export_MMT(self, path_to_file: Union[os.PathLike, str]) -> None:
+    def export_mmt(self, path_to_file: Union[os.PathLike, str]) -> None:
         """
 
         Args:
@@ -712,7 +702,7 @@ def main():
     # outl = outlier.StatisticsPercentile(d.b111[0], d.get_param('chi2'), d.get_param('width'),
     #                                     d.get_param('mean_contrast'))
     # d.bin_data(16)
-    d.export_MMT("/home/mike/Desktop/test.mmt")
+    d.export_mmt("/home/mike/Desktop/test.mmt")
 
 
 if __name__ == "__main__":

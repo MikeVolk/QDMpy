@@ -49,13 +49,19 @@ class Pix_test(unittest.TestCase):
             self.assertEqual(img_x, p0.x)
             self.assertEqual(img_y, p0.y)
 
-        for y, x in itertools.product(np.arange(self.data_array.shape[0], self.data_array.shape[1])):
+        for y, x in itertools.product(
+            np.arange(self.data_array.shape[0], self.data_array.shape[1])
+        ):
             p0.set_idx(x=x, y=y, ref="data")
             self.assertEqual(x, p0.data_x)
             self.assertEqual(y, p0.data_y)
-            self.assertEqual(np.ravel_multi_index((y, x), self.data_array.shape), p0.data_idx)
+            self.assertEqual(
+                np.ravel_multi_index((y, x), self.data_array.shape), p0.data_idx
+            )
 
-        for y, x in itertools.product(np.arange(self.img_array.shape[0], self.img_array.shape[1])):
+        for y, x in itertools.product(
+            np.arange(self.img_array.shape[0], self.img_array.shape[1])
+        ):
             p0.set_idx(x=x, y=y, ref="img")
             self.assertEqual(x, p0.x)
             self.assertEqual(y, p0.y)

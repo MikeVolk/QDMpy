@@ -160,14 +160,13 @@ class ODMR:
     def get_binned_pixel_indices(
         self, x: int, y: int
     ) -> Tuple[Sequence[int], Sequence[int]]:
-        """
+        """ determines the indices of the pixels that are binned into the pixel at (x,y)
 
         Args:
-          x:
-          y:
+          x: x index
+          y: y index
 
         Returns:
-          :return: numpy.ndarray
 
         """
         idx = list(
