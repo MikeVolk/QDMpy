@@ -125,7 +125,16 @@ class QDMWidget(QMainWindow):
             return
 
         # get a copy of the data
-        d = self.qdm.b111[self.b111_select.currentIndex()].copy()
+        if self.b111_select.currentIndex() == 0: # B111 data
+            d = self.qdm.b111[self.induced_select.currentIndex()].copy()
+        elif self.b111_select.currentIndex() == 1: # Bz data
+            if self.induced_select.currentIndex() == 0:
+                d = self.qdm.get_bz_remanent()
+            elif self.induced_select.currentIndex() == 1:
+                d = self.qdm.get_bz_induced()
+            else:
+                self.LOG.error("Invalid induced_select index")
+                return
 
         # apply the men / quad background subtraction
         if hasattr(self, "subtract_median") and self.subtract_median.isChecked():
@@ -301,12 +310,16 @@ class QDMWidget(QMainWindow):
     def _add_b111_select_box(self, toolbar):
         b111_widget = QWidget()
         b111select_box = QHBoxLayout()
-        b111label = QLabel("B111: ")
+        # b111label = QLabel("B: ")
         self.b111_select = QComboBox()
-        self.b111_select.addItems(["remanent", "induced"])
+        self.b111_select.addItems(["B(111)", "B(z)"])
         self.b111_select.currentIndexChanged.connect(self.update_data)
-        b111select_box.addWidget(b111label)
+        self.induced_select = QComboBox()
+        self.induced_select.addItems(["remanent", "induced"])
+        self.induced_select.currentIndexChanged.connect(self.update_data)
+
         b111select_box.addWidget(self.b111_select)
+        b111select_box.addWidget(self.induced_select)
         b111_widget.setLayout(b111select_box)
         toolbar.addWidget(b111_widget)
 

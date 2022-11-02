@@ -910,7 +910,7 @@ class QDMpyApp(QMainWindow):
 
     def debug_call(self):
         self.import_file(test_data_location())
-        # self.on_quick_start_button_press()
+        self.on_quick_start_button_press()
         #
         # if not sys.platform == "darwin":
         #     self.on_fit_button_press()

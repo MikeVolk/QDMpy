@@ -93,8 +93,10 @@ class ODMR:
         Returns: data of the desired return value
 
         Examples:
-        >>> odmr['+'] -> pos. polarization
-        >>> odmr['+', '<'] -> pos. polarization + low frequency range
+        ``` py
+        >>> odmr['+'] #-> pos. polarization
+        >>> odmr['+', '<'] #-> pos. polarization + low frequency range
+        ```
 
         """
 
