@@ -13,6 +13,7 @@ import QDMpy._core.fit
 from QDMpy._core import models
 from QDMpy._core.fit import Fit
 from QDMpy._core.odmr import ODMR
+from QDMpy._core.convert import toBxyz
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
@@ -220,10 +221,16 @@ class QDM:
         return self._outliers
 
     def apply_outlier_mask(self, outlier: Union[NDArray, None] = None) -> None:
-        """
+        """Apply the outlier mask to the ODMR data.
+
+        apply_outlier_mask applies a given outlier mask to the ODMR data.
+        If no outlier mask is given, the currently detected (may be empty) outlier mask is applied.
+        After this, the data can be binned and fitted again.
+
+        This helps with cleaning extremely hot pixels, before fitting the data.
 
         Args:
-          outlier:  (Default value = None)
+          outlier: A array of type bool with shape data_shape (Default value = None)
 
         Returns:
 
@@ -268,7 +275,8 @@ class QDM:
 
         if np.all(self.odmr._img_shape != self.light.shape):
             self.LOG.warning(
-                f"Scan dimensions of ODMR ({self.odmr._img_shape}) and LED ({self.light.shape}) are not equal. Setting pre_binfactor to {bin_factors[0]}."
+                f"Scan dimensions of ODMR ({self.odmr._img_shape}) and LED ({self.light.shape}) are not equal. "
+                f"Setting pre_binfactor to {bin_factors[0]}."
             )
             # set the true bin factor
             self.odmr._pre_bin_factor = bin_factors[0]
@@ -395,14 +403,15 @@ class QDM:
         Input data must have format: [polarity, frange, n_pixel, n_freqs]
 
         Args:
-          data:
-          n_pol:
-          n_frange:
+          data: data to reshape
+          n_pol: number of field polarities
+          n_frange: number of field ranges
 
-        Returns:
-
+        Returns: reshaped data
         """
         out = np.array(data)
+        # reshaping is necessary because the fits are calculated for each frange
+        # separately but all polarities in one -> (frange, pol, ...)
         out = np.reshape(out, (n_frange, n_pol, -1, data.shape[-1]))
         out = np.swapaxes(out, 0, 1)  # swap polarity and frange
         return out
@@ -537,8 +546,6 @@ class QDM:
     def delta_resonance(self) -> NDArray:
         """Return the difference between low and high freq. resonance of the fit.
 
-        Args:
-
         Returns:
           numpy.ndarray: negative difference
           numpy.ndarray: positive difference
@@ -546,39 +553,72 @@ class QDM:
         """
         d = np.expand_dims(np.array([-1, 1]), axis=[1, 2])
         resonance = self.get_param("resonance")
-        return (resonance[:, 1] - resonance[:, 0]) / 2 / GAMMA * d
+        half_distance = (resonance[:, 1] - resonance[:, 0]) / 2
+        return half_distance / GAMMA
 
     @property
     def b111(self) -> Tuple[np.ndarray, np.ndarray]:
-        """ """
-        neg_difference, pos_difference = self.delta_resonance
-        return (neg_difference + pos_difference) / 2, (
-            neg_difference - pos_difference
-        ) / 2
+        """Calculates the B111 parameter from the fit results.
+        The first index is the remanent component, the second the induced component.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: B111 for the remanent and induced component
+        """
+        return self.b111_remanent, self.b111_induced
 
     @property
     def b111_remanent(self) -> np.ndarray:
-        """
+        """Calculates the B111 remanent map from the fit results.
 
-        Args:
+        The remanent component is defined as the mean resonance frequency.
 
         Returns:
-          :return: numpy.ndarray
-
+            np.ndarray: B111 remanent map
         """
-        return self.b111[0]
+        neg_difference, pos_difference = self.delta_resonance
+        return (pos_difference - neg_difference) / 2
+
+    def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
+        """Calculates the Bz remanent map from the fit results.
+
+        The remanent component is defined as the mean resonance frequency.
+
+        Returns:
+            np.ndarray: Bz remanent map
+        """
+        return toBxyz(
+            self.b111_remanent,
+            self.pixel_size,
+            rotation_angle=rotation_angle,
+            direction_vector=direction_vector,
+        )[2]
+
+    def get_bz_induced(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
+        """Calculates the Bz remanent map from the fit results.
+
+        The remanent component is defined as the mean resonance frequency.
+
+        Returns:
+            np.ndarray: Bz remanent map
+        """
+        return toBxyz(
+            self.b111_induced,
+            self.pixel_size,
+            rotation_angle=rotation_angle,
+            direction_vector=direction_vector,
+        )[2]
 
     @property
     def b111_induced(self) -> np.ndarray:
-        """
+        """Calculates the B111 remanent map from the fit results.
 
-        Args:
+        The induced component is defined as the mean distance between the high and low frequency resonance.
 
         Returns:
-          :return: numpy.ndarray
-
+            np.ndarray: B111 induced map
         """
-        return self.b111[1]
+        neg_difference, pos_difference = self.delta_resonance
+        return (pos_difference + neg_difference) / 2
 
     # PLOTTING
     def rc2idx(self, rc: np.ndarray, ref: str = "data") -> NDArray:
@@ -695,14 +735,16 @@ def main():
     """ """
     from QDMpy._core import outlier
 
-    d = QDM.from_qdmio("/media/mike/OS/Users/micha/Desktop/diamond_testing/FOV2")
+    d = QDM.from_qdmio("D:\Dropbox\FOV18x")
+    d.fit_odmr()
+    d.delta_resonance
     # d = QDM.from_qdmio(QDMpy.test_data_location())
     #
     # d.fit_odmr()
     # outl = outlier.StatisticsPercentile(d.b111[0], d.get_param('chi2'), d.get_param('width'),
     #                                     d.get_param('mean_contrast'))
     # d.bin_data(16)
-    d.export_mmt("/home/mike/Desktop/test.mmt")
+    # d.export_mmt("/home/mike/Desktop/test.mmt")
 
 
 if __name__ == "__main__":
