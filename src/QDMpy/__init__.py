@@ -89,9 +89,7 @@ SETTINGS = load_config()
 import importlib.util
 
 package = "pygpufit"
-PYGPUFIT_PRESENT = (
-    True if importlib.util.find_spec(package) is not None else False
-)  # find_spec will look for the package
+PYGPUFIT_PRESENT = importlib.util.find_spec(package) is not None
 
 if PYGPUFIT_PRESENT is None or sys.platform == "darwin":
     LOG.error(
