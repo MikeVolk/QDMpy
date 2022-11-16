@@ -276,7 +276,7 @@ class ODMR:
         Returns:
 
         """
-        n_img_stacks = len([k for k in mat_dict.keys() if "imgStack" in k])
+        n_img_stacks = len([k for k in mat_dict if "imgStack" in k])
         img_stack1, img_stack2 = [], []
 
         if n_img_stacks == 2:
