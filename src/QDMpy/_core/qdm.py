@@ -173,14 +173,14 @@ class QDM:
         """
         outlier_props["n_jobs"] = -1
         d1 = self.get_param("chi2", reshape=False)
-        d1 = np.sum(d1, axis=tuple(range(0, d1.ndim - 1)))
+        d1 = np.sum(d1, axis=tuple(range(d1.ndim - 1)))
 
         if dtype in self.fit.model_params + self.fit.model_params_unique:
             d2 = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 
-        d2 = np.sum(d2, axis=tuple(range(0, d2.ndim - 1)))
+        d2 = np.sum(d2, axis=tuple(range(d2.ndim - 1)))
         data = np.stack([d1, d2], axis=0)
 
         outlier_props["contamination"] = outlier_props.pop("contamination", 0.05)
