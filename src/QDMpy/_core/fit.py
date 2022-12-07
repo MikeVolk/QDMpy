@@ -272,6 +272,11 @@ class Fit:
 
     @property
     def constraints(self) -> Dict[str, List[Union[float, str]]]:
+        """
+        Return the constraints dictionary.
+
+
+        """
         return self._constraints
 
     # todo not used
@@ -366,14 +371,12 @@ class Fit:
         """
         Guess the width of the ODMR spectra.
         """
-        correct = 0
 
         # detection thresholds
         if self._model["n_peaks"] == 1:
             vmin, vmax = 0.3, 0.7
         elif self._model["n_peaks"] == 2:
             vmin, vmax = 0.4, 0.6
-            correct = -0.001
         elif self._model["n_peaks"] == 3:
             vmin, vmax = 0.35, 0.65
         else:
