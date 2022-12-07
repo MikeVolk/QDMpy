@@ -41,6 +41,7 @@ class ODMR:
 
         self.n_pol = data.shape[0]
         self.n_frange = data.shape[1]
+
         self._frequencies = frequencies
         self._frequencies_cropped = None
 
@@ -271,12 +272,13 @@ class ODMR:
         """Stack the data in the ODMR object.
 
         Args:
-          mat_dict:
+          mat_dict: dictionary containing the data from the QDMio matlab file
 
         Returns:
+            a numpy array containing the data for both frequency ranges
 
         """
-        n_img_stacks = len([k for k in mat_dict.keys() if "imgStack" in k])
+        n_img_stacks = len([k for k in mat_dict if "imgStack" in k])
         img_stack1, img_stack2 = [], []
 
         if n_img_stacks == 2:
