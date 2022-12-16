@@ -1,7 +1,7 @@
 import numpy as np
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 from matplotlib import colors
 from matplotlib import pyplot as plt
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
 
 from QDMpy.app.canvas import QualityCanvas
 from QDMpy.app.widgets.qdm_widget import QDMWidget

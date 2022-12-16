@@ -1,10 +1,12 @@
 import logging
 
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 import numpy as np
 from matplotlib.backend_bases import Event, MouseButton
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from numpy.typing import NDArray
+from pypole.convert import dim2xyz, xyz2dim
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
 from PySide6.QtWidgets import (
@@ -30,9 +32,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import matplotlib.transforms as transforms
-from pypole.convert import dim2xyz, xyz2dim
-
 from QDMpy._core import models
 from QDMpy._core.convert import b2shift, freq2b
 from QDMpy._core.models import esr14n, esr15n
@@ -57,7 +56,9 @@ class FrequencySelectWidget(QMainWindow):
 
     def get_label_slider(self, value, min, max, callback, decimals=0, step=1):
         hlayout = QHBoxLayout()
-        label, spinbox = LabeledDoubleSpinBox(f"{MUT}", value, decimals, step, min, max, callback)
+        label, spinbox = LabeledDoubleSpinBox(
+            f"{MUT}", value, decimals, step, min, max, callback
+        )
         slider = QSlider()
         slider.setOrientation(Qt.Horizontal)
         slider.setRange(min, max)
@@ -151,16 +152,36 @@ class FrequencySelectWidget(QMainWindow):
         f = np.linspace(ZFS - 0.1, ZFS + 0.1, 1000)
         self.frequencies = [f, f]
 
-        self.nv_lines = {1: [None, None], 2: [None, None], 3: [None, None], 4: [None, None]}
+        self.nv_lines = {
+            1: [None, None],
+            2: [None, None],
+            3: [None, None],
+            4: [None, None],
+        }
         self.nv_settings = {
             1: [[ZFS, 0.002, 0.02, 0.02, 0], [ZFS, 0.002, 0.02, 0.02, 0]],
             2: [[ZFS, 0.002, 0.02, 0.02, 0], [ZFS, 0.002, 0.02, 0.02, 0]],
             3: [[ZFS, 0.002, 0.02, 0.02, 0], [ZFS, 0.002, 0.02, 0.02, 0]],
             4: [[ZFS, 0.002, 0.02, 0.02, 0], [ZFS, 0.002, 0.02, 0.02, 0]],
         }
-        self.nv_data = {1: [None, None], 2: [None, None], 3: [None, None], 4: [None, None]}
-        self.nv_text = {1: [None, None], 2: [None, None], 3: [None, None], 4: [None, None]}
-        self.nv_directions = {1: [1, 1, 1], 2: [1, -1, -1], 3: [-1, 1, -1], 4: [-1, -1, 1]}
+        self.nv_data = {
+            1: [None, None],
+            2: [None, None],
+            3: [None, None],
+            4: [None, None],
+        }
+        self.nv_text = {
+            1: [None, None],
+            2: [None, None],
+            3: [None, None],
+            4: [None, None],
+        }
+        self.nv_directions = {
+            1: [1, 1, 1],
+            2: [1, -1, -1],
+            3: [-1, 1, -1],
+            4: [-1, -1, 1],
+        }
         self.nv_span = [None, None]
         self.nv_span_text = [None, None]
 
@@ -185,8 +206,12 @@ class FrequencySelectWidget(QMainWindow):
         bias_field_label, self.bias_field_box = LabeledDoubleSpinBox(
             f"Strength [{MUT}]:", 900, 0, 10, 0, 10000, self.update_plot
         )
-        bias_dec_label, self.bias_dec_box = LabeledDoubleSpinBox(f"Dec: ", 0, 1, 1, 0, 360, self.update_plot)
-        bias_inc_label, self.bias_inc_box = LabeledDoubleSpinBox(f"Inc: ", 35.3, 1, 1, -90, 90, self.update_plot)
+        bias_dec_label, self.bias_dec_box = LabeledDoubleSpinBox(
+            f"Dec: ", 0, 1, 1, 0, 360, self.update_plot
+        )
+        bias_inc_label, self.bias_inc_box = LabeledDoubleSpinBox(
+            f"Inc: ", 35.3, 1, 1, -90, 90, self.update_plot
+        )
         top_layout.addWidget(QLabel("Bias field: "))
         top_layout.addWidget(bias_dec_label)
         top_layout.addWidget(self.bias_dec_box)
@@ -214,7 +239,8 @@ class FrequencySelectWidget(QMainWindow):
         xmax = np.max(self.frequencies[0])
         self.canvas.ax.set_xlim(xmin, xmax)
         self.canvas.axb.set_xlim(
-            freq2b(xmin, in_unit="GHz", out_unit="milliT"), freq2b(xmax, in_unit="GHz", out_unit="milliT")
+            freq2b(xmin, in_unit="GHz", out_unit="milliT"),
+            freq2b(xmax, in_unit="GHz", out_unit="milliT"),
         )
 
     def update_ylim(self):
@@ -257,7 +283,9 @@ class FrequencySelectWidget(QMainWindow):
     def update_sum_line(self):
         self.LOG.debug("Updating sum line")
         if self.nv_sum_line is None:
-            l = self.canvas.ax.plot(self.frequencies[0], self.nv_sum, label="Sum", color="k", lw=1)
+            l = self.canvas.ax.plot(
+                self.frequencies[0], self.nv_sum, label="Sum", color="k", lw=1
+            )
             self.nv_sum_line = l[0]
         else:
             self.nv_sum_line.set_data(self.frequencies[0], self.nv_sum)
@@ -267,14 +295,26 @@ class FrequencySelectWidget(QMainWindow):
             f"Updating data to:\n {self.nv_settings[1]} \n {self.nv_settings[2]} \n {self.nv_settings[3]} \n {self.nv_settings[4]}"
         )
         self.nv_data = {
-            nv: [esr15n(self.frequencies[i], self.nv_settings[nv][i])[0] for i in range(2)] for nv in self.nv_settings
+            nv: [
+                esr15n(self.frequencies[i], self.nv_settings[nv][i])[0]
+                for i in range(2)
+            ]
+            for nv in self.nv_settings
         }
-        self.nv_sum = np.sum([self.nv_data[nv][i] for nv in self.nv_data for i in range(2)], axis=0)
+        self.nv_sum = np.sum(
+            [self.nv_data[nv][i] for nv in self.nv_data for i in range(2)], axis=0
+        )
         self.nv_sum -= 7
 
     def update_parameter(self):
         self.LOG.debug("updating parameters")
-        b_bias = dim2xyz([self.bias_dec_box.value(), self.bias_inc_box.value(), self.bias_field_box.value()])
+        b_bias = dim2xyz(
+            [
+                self.bias_dec_box.value(),
+                self.bias_inc_box.value(),
+                self.bias_field_box.value(),
+            ]
+        )
 
         for nv in self.nv_settings:
             if nv == 1:
@@ -286,14 +326,18 @@ class FrequencySelectWidget(QMainWindow):
                 self.nv_settings[nv][i][0] = ZFS + [1, -1][i] * (
                     b2shift(self.b111[nv - 1][1].value(), in_unit="microT") + bias
                 )
-                self.nv_settings[nv][i][1] = self.widths[nv - 1][1].value() / 1000  # to GHz
+                self.nv_settings[nv][i][1] = (
+                    self.widths[nv - 1][1].value() / 1000
+                )  # to GHz
                 self.nv_settings[nv][i][2] = self.contrasts[nv - 1][1].value() / 100
                 self.nv_settings[nv][i][3] = self.contrasts[nv - 1][1].value() / 100
 
     def update_nv_text(self):
         self.LOG.debug("updating text")
         ax = self.canvas.ax
-        trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
+        trans = transforms.blended_transform_factory(
+            self.canvas.ax.transData, self.canvas.ax.transAxes
+        )
 
         for nv in self.nv_settings:
             for i, line in enumerate(self.nv_settings[nv]):
@@ -318,9 +362,10 @@ class FrequencySelectWidget(QMainWindow):
         """
         fields = np.zeros(len(self.nv_directions))
         for i, nv in enumerate(self.nv_directions):
-            f =  np.dot(bias_field + source_field, nv) / np.linalg.norm(nv)
+            f = np.dot(bias_field + source_field, nv) / np.linalg.norm(nv)
             fields[i] = np.linalg.norm(f)
         return fields
+
     def update_measure_range(self):
         bias_shift = b2shift(self.bias_field_box.value(), in_unit="microT")
         b_shift = b2shift(self.range_box.value(), in_unit="microT")
@@ -351,7 +396,9 @@ class FrequencySelectWidget(QMainWindow):
             if txt is not None:
                 txt.remove()
 
-            trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
+            trans = transforms.blended_transform_factory(
+                self.canvas.ax.transData, self.canvas.ax.transAxes
+            )
             self.nv_span_text[i] = self.canvas.ax.text(
                 ZFS + bias_shift * [1, -1][i],
                 0.1,

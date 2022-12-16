@@ -164,6 +164,7 @@ def esr15n(x, parameter):
 
     for i in range(parameter.shape[0]):
         p = parameter[i]
+
         width_squared = p[1] * p[1]
 
         aux1 = x - p[0] + AHYP

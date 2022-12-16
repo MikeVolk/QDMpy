@@ -6,6 +6,7 @@ from typing import Union, Tuple, Optional, Sequence, Any
 
 import matplotlib.image as mpimg
 import numpy as np
+import numba
 import tomli
 from numpy.typing import ArrayLike, NDArray
 

@@ -27,13 +27,13 @@ from src.QDMpy import test_data_location
 
 matplotlib.use("Agg")
 
-from QDMpy.app.widgets.fit_widget import FitWidget
-from QDMpy.app.widgets.tools import FrequencySelectWidget
-from QDMpy.utils import millify
-
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
+
+from QDMpy.app.widgets.fit_widget import FitWidget
+from QDMpy.app.widgets.tools import FrequencySelectWidget
+from QDMpy.utils import millify
 
 matplotlib.use("Agg")
 
@@ -60,13 +60,13 @@ from PySide6.QtWidgets import (
 )
 
 import QDMpy
+from QDMpy._core.fit import CONSTRAINT_TYPES
+from QDMpy._core.qdm import QDM
 from QDMpy.app.widgets.fluo_widget import FluoWidget
 from QDMpy.app.widgets.global_widget import GlobalWidget
 from QDMpy.app.widgets.misc import PandasWidget, gf_applied_window
 from QDMpy.app.widgets.simple_widget import SimpleWidget
 from QDMpy.app.widgets.warning_windows import PyGPUfitNotInstalledDialog
-from QDMpy._core.fit import CONSTRAINT_TYPES
-from QDMpy._core.qdm import QDM
 from QDMpy.exceptions import CantImportError
 
 colors = {
@@ -324,9 +324,9 @@ class QDMpyApp(QMainWindow):
         menu = self.menuBar()
 
         # About_QDMpy
-        about_QDMpy_button = QAction("&About QDMpy", self)
-        about_QDMpy_button.setStatusTip("This is your button")
-        about_QDMpy_button.triggered.connect(self.on_about_QDMpy_button_press)
+        about_qdmpy_button = QAction("&About QDMpy", self)
+        about_qdmpy_button.setStatusTip("This is your button")
+        about_qdmpy_button.triggered.connect(self.on_about_QDMpy_button_press)
 
         # file menu
         file_menu = menu.addMenu("&File")
@@ -341,7 +341,7 @@ class QDMpyApp(QMainWindow):
         self._export_menu(file_menu)
 
         file_menu.addSeparator()
-        file_menu.addAction(about_QDMpy_button)
+        file_menu.addAction(about_qdmpy_button)
         close_action = file_menu.addAction("&Quit", self.close)
         close_action.setShortcut(QKeySequence("Ctrl+Q"))
 
@@ -358,9 +358,7 @@ class QDMpyApp(QMainWindow):
         tools_menu = menu.addMenu("&Tools")
         frequency_tool_button = QAction("Frequency Select", self)
         frequency_tool_button.setStatusTip("Open Frequency Select tool")
-        frequency_tool_button.triggered.connect(
-            self.on_frequency_select_button_press
-        )
+        frequency_tool_button.triggered.connect(self.on_frequency_select_button_press)
         tools_menu.addAction(frequency_tool_button)
         # initialize the window
         self.frequency_select_window = None
@@ -760,6 +758,7 @@ class QDMpyApp(QMainWindow):
             self.frequency_select_window.hide()
         else:
             self.frequency_select_window.show()
+
     def on_about_QDMpy_button_press(self):
         about_message_box = QMessageBox.about(
             self,
@@ -927,11 +926,12 @@ class QDMpyApp(QMainWindow):
         self.qdm.export_qdmpy(filename.with_suffix(".b111"))
 
     def debug_call(self):
-        self.import_file(test_data_location())
-        self.on_quick_start_button_press()
-
-        if sys.platform != "darwin":
-            self.on_fit_button_press()
+        self.on_frequency_select_button_press()
+        # self.import_file(test_data_location())
+        # self.on_quick_start_button_press()
+        #
+        # if sys.platform != "darwin":
+        #     self.on_fit_button_press()
 
 
 def main(**kwargs):

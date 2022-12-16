@@ -192,7 +192,7 @@ def plot_data(
     ax: plt.Axes,
     data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
-    norm_percentile: Tuple[float] = (0,100),
+    norm_percentile: Tuple[float] = (0, 100),
     clim: Optional[Tuple[float]] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -220,9 +220,7 @@ def plot_data(
     return img
 
 
-def get_vmin_vmax(
-    img: mpl.image.AxesImage, percentile: float, use_percentile: bool
-) -> Tuple[float, float]:
+def get_vmin_vmax(img: mpl.image.AxesImage, percentile: float, use_percentile: bool) -> Tuple[float, float]:
     """Get the vmin and vmax for the colorbar of the image
 
     Args:
@@ -317,9 +315,7 @@ def plot_outlier(
     return img
 
 
-def update_clim(
-    img: mpl.image.AxesImage, vmin: float, vmax: float
-) -> mpl.image.AxesImage:
+def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image.AxesImage:
     """Update the colorbar limits of the image
 
     Args:
@@ -353,9 +349,7 @@ def update_cbar(
     Returns:
 
     """
-    extent = detect_extent(
-        vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max()
-    )
+    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
 
     label = cax.get_ylabel()
     cax.clear()
@@ -384,9 +378,7 @@ def detect_extent(vmin: float, vmax: float, mn: float, mx: float) -> str:
         return "max"
 
 
-def update_img(
-    ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any
-) -> mpl.image.AxesImage:
+def update_img(ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any) -> mpl.image.AxesImage:
     """
 
     Args:
@@ -446,9 +438,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     print(f"{header}")
     print("-" * 100)
 
-    for p, f in itertools.product(
-        range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)
-    ):
+    for p, f in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.fit.initial_parameter[p, f, [idx]], x=f_new)
@@ -483,9 +473,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     return f, ax
 
 
-def plot_fit_params(
-    qdm_obj: QDM, param: str, save: Optional[bool] = False
-) -> plt.Figure:
+def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> plt.Figure:
     """
 
     Args:
