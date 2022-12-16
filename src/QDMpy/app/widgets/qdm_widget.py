@@ -2,6 +2,9 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.backend_bases import Event, MouseButton
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from numpy.typing import NDArray
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -13,11 +16,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from matplotlib.backend_bases import MouseButton, Event
-from matplotlib.backends.backend_qtagg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
-from numpy.typing import NDArray
 
 from QDMpy._core import models
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
@@ -125,9 +123,9 @@ class QDMWidget(QMainWindow):
             return
 
         # get a copy of the data
-        if self.b111_select.currentIndex() == 0: # B111 data
+        if self.b111_select.currentIndex() == 0:  # B111 data
             d = self.qdm.b111[self.induced_select.currentIndex()].copy()
-        elif self.b111_select.currentIndex() == 1: # Bz data
+        elif self.b111_select.currentIndex() == 1:  # Bz data
             if self.induced_select.currentIndex() == 0:
                 d = self.qdm.get_bz_remanent()
             elif self.induced_select.currentIndex() == 1:

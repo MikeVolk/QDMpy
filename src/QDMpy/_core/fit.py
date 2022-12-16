@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 import QDMpy
 from QDMpy._core.models import guess_model
 
-if QDMpy.PYGPUFIT_PRESENT:  # type: ignore[has-type]
+if QDMpy.PYGPUFIT_PRESENT:
     import pygpufit.gpufit as gf
 
 from scipy.io import savemat
@@ -24,7 +24,8 @@ CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
 
 
-def main():
+def main() -> None:
+    """ """
     from QDMpy._core.qdm import QDM
 
     q = QDM.from_qdmio(QDMpy.test_data_location())
@@ -36,6 +37,7 @@ if __name__ == "__main__":
 
 
 class Fit:
+    """ Fitting class to calculate the fit parameters and the fit results from a QDM measurement. """
     LOG = logging.getLogger(__name__)
 
     def __init__(
@@ -81,14 +83,23 @@ class Fit:
         ]  # 0 for LSE, 1 for MLE
 
     def __repr__(self) -> str:
+        """Return a string representation of the fit."""
         return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model_name})"
 
     @property
     def data(self) -> NDArray:
+        """ Return the data to fit. """
         return self._data
 
     @data.setter
     def data(self, data: NDArray) -> None:
+        """ Setter for the data to fit.
+
+        Args:
+          data: 3D array of the data to fit.
+
+        Returns: None
+        """
         self.LOG.info("Data changed, fits need to be recalculated!")
         if np.all(self._data == data):
             return
@@ -101,7 +112,7 @@ class Fit:
         """Guess the model name from the data.
 
         Returns:
-            str: Name of the model.
+          str: Name of the model.    
         """
 
         data = np.median(self.data, axis=2)
@@ -125,28 +136,31 @@ class Fit:
 
     @property
     def model_func(self) -> Callable:
+        """ Return the model function. """
         return self._model["func"]
 
     @property
-    def model_params(self) -> dict:
-        """
-        Return the model parameters.
-        """
+    def model_params(self) -> List[str]:
+        """ Return the model parameters. """
         return self._model["params"]
 
     @property
     def model(self) -> dict:
-        """
-        Return the model dictionary.
-        """
+        """ Return the model dictionary. """
         return self._model
 
     @property
     def model_name(self) -> Callable:
+        """ """
         return self._model["func_name"]
 
     @model_name.setter
     def model_name(self, model_name: str) -> None:
+        """ Setter for the model name.
+
+        Args:
+          model_name: Name of the model to fit.
+        """
         if model_name.upper() not in models.IMPLEMENTED:
             raise ValueError(
                 f"Unknown model: {model_name} choose from {list(models.IMPLEMENTED.keys())}"
@@ -159,17 +173,22 @@ class Fit:
             f"Setting model to {model_name}, resetting all fit results and initial parameters."
         )
         self._reset_fit()
-        self._initial_parameter = self.get_initial_parameter()
+        self._initial_parameter: Union[NDArray, None] = self.get_initial_parameter()
 
     @property
     def model_id(self) -> int:
+        """ Return the model id. """
         return self._model["model_id"]
 
     @property
     def model_params_unique(self) -> List[str]:
         """
-        Return a list of unique fitting parameters.
-        :return: list
+        Return the unique model parameters.
+        Contrast is a non unique parameter, as we can not tell what peak it belongs to.
+        To make it unique, a number is added to the parameter name.
+
+        Returns:
+            List[str]: List of unique model parameters.
         """
         lst = []
         for v in self.model_params:
@@ -184,23 +203,20 @@ class Fit:
 
     @property
     def n_parameter(self) -> int:
+        """ Return the number of parameters. """
         return len(self.model_params)
 
     ### INITIAL PARAMETER RELATED METHODS ###
     @property
-    def initial_parameter(self) -> NDArray:
-        """
-        Return the initial parameter.
-        """
+    def initial_parameter(self) -> Union[NDArray, None]:
+        """ Return the initial parameter. """
         if self._initial_parameter is None:
             self._initial_parameter = self.get_initial_parameter()
         return self._initial_parameter
 
     ### COSTRAINTS RELATED METHODS ###
     def _set_initial_constraints(self) -> Dict[str, List[Any]]:
-        """
-        Get the default constraints dictionary for the fit.
-        """
+        """Get the default constraints dictionary for the fit."""
         constraints = QDMpy.SETTINGS["fit"]["constraints"]
 
         defaults = {}
@@ -221,34 +237,41 @@ class Fit:
         vmax: Union[float, None] = None,
         constraint_type: Union[str, None] = None,
         reset_fit: bool = True,
-    ):
-        """
-        Set the constraints for the fit.
+    ) -> None:
+        """Set the constraints for the fit.
 
-        :param param: str
-            The parameter to set the constraints for.
-        :param vmin: float, optional
-            The minimum value to set the constraints to. The default is None.
-        :param vmax: float, optional
-            The maximum value to set the constraints to. The default is None.
-        :param constraint_type: str optional
-            The bound type to set the constraints to. The default is None.
-        :param reset_fit: bool, optional
-            Whether to reset the fit results. The default is True.
-        """
-        if isinstance(constraint_type, int):
-            constraint_type = CONSTRAINT_TYPES[constraint_type]
+        Args:
+          param: The parameter to set the constraints for.
+          vmin:  The minimum value to set the constraints to. The default is None.
+          vmax:  The maximum value to set the constraints to. The default is None.
+          constraint_type:  The bound type to set the constraints to. The default is None.
+          reset_fit:  Whether to reset the fit results. The default is True.
 
+        Returns:
+            None
+
+        Raises:
+            ValueError: If the constraint_type does not exist.
+        """
+
+        # Raise error if parameter is not in the model
         if constraint_type is not None and constraint_type not in CONSTRAINT_TYPES:
             raise ValueError(
                 f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}"
             )
 
+        # check if parameter is an integer and use it as index of CONTRAINT_TYPES
+        if isinstance(constraint_type, int):
+            constraint_type = CONSTRAINT_TYPES[constraint_type]
+
+        # if a non-unique parameter is given, use it for all instances of the parameter
+        # (i.e. contrast -> contrast_0, contrast_1, ...)
         if param == "contrast" and self.model_params_unique != self.model_params:
             for contrast in [v for v in self.model_params_unique if "contrast" in v]:
                 self.set_constraints(
                     contrast, vmin=vmin, vmax=vmax, constraint_type=constraint_type
                 )
+        # otherwise set the specific constraint
         else:
             self.LOG.debug(
                 f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}"
@@ -260,36 +283,29 @@ class Fit:
                 UNITS[param.split("_")[0]],
             ]
 
+        # reset the fit results if requested
         if reset_fit:
             self._reset_fit()
 
-    def set_free_constraints(self):
-        """
-        Set the constraints to be free.
-        """
+    def set_free_constraints(self) -> None:
+        """Set all constraints to be free."""
         for param in set(self.model_params_unique):
             self.set_constraints(param, constraint_type="FREE")
 
     @property
     def constraints(self) -> Dict[str, List[Union[float, str]]]:
+        """ Return a dictionary of the constraints. """
         return self._constraints
-
-    # todo not used
-    def constraints_changed(
-        self, constraints: List[float], constraint_types: List[str]
-    ) -> bool:
-        """
-        Check if the constraints have changed.
-        """
-        return (
-            list(self._constraints.keys()) != constraints
-            or self._constraint_types != constraint_types
-        )
 
     def get_constraints_array(self, n_pixel: int) -> NDArray:
         """
-        Return the constraints as an array (pixel, 2*fitting_parameters).
-        :return: np.array
+
+        Args:
+          n_pixel: int: 
+
+        Returns:
+          :return: np.array
+
         """
         constraints_list: List[float] = []
         for k in self.model_params_unique:
@@ -298,8 +314,12 @@ class Fit:
 
     def get_constraint_types(self) -> NDArray:
         """
-        Return the constraint types.
-        :return: np.array
+
+        Args:
+
+        Returns:
+          :return: np.array
+
         """
         fit_bounds = [
             CONSTRAINT_TYPES.index(self._constraints[k][2])
@@ -310,11 +330,17 @@ class Fit:
     # parameters
     @property
     def parameter(self) -> NDArray:
+        """ """
         return self._fit_results
 
     def get_param(self, param: str) -> Union[NDArray, None]:
-        """
-        Get the value of a parameter reshaped to the image dimesions.
+        """Get the value of a parameter reshaped to the image dimesions.
+
+        Args:
+          param: str: 
+
+        Returns:
+
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
@@ -326,10 +352,14 @@ class Fit:
         return self._fit_results[:, :, :, idx]  # type: ignore[index]
 
     def _param_idx(self, parameter: str) -> List[int]:
-        """
-        Get the index of the fitted parameter.
-        :param parameter:
-        :return:
+        """Get the index of the fitted parameter.
+
+        Args:
+          parameter: return:
+          parameter: str: 
+
+        Returns:
+
         """
         if parameter == "resonance":
             parameter = "center"
@@ -344,9 +374,7 @@ class Fit:
 
     # initial guess
     def _guess_center(self) -> NDArray:
-        """
-        Guess the center of the ODMR spectra.
-        """
+        """Guess the center of the ODMR spectra."""
         center = guess_center(self.data, self.f_ghz)
         self.LOG.debug(
             f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
@@ -354,26 +382,20 @@ class Fit:
         return center
 
     def _guess_contrast(self) -> NDArray:
-        """
-        Guess the contrast of the ODMR spectra.
-        """
+        """Guess the contrast of the ODMR spectra."""
         contrast = guess_contrast(self.data)
         self.LOG.debug(f"Guessing contrast of ODMR spectra {contrast.shape}.")
         # np.ones((self.n_pol, self.n_frange, self.n_pixel)) * 0.03
         return contrast
 
     def _guess_width(self) -> NDArray:
-        """
-        Guess the width of the ODMR spectra.
-        """
-        correct = 0
+        """Guess the width of the ODMR spectra."""
 
         # detection thresholds
         if self._model["n_peaks"] == 1:
             vmin, vmax = 0.3, 0.7
         elif self._model["n_peaks"] == 2:
             vmin, vmax = 0.4, 0.6
-            correct = -0.001
         elif self._model["n_peaks"] == 3:
             vmin, vmax = 0.35, 0.65
         else:
@@ -384,18 +406,14 @@ class Fit:
         return width
 
     def _guess_offset(self) -> NDArray:
-        """
-        Guess the offset from 0 of the ODMR spectra. Usually this is 1
-        """
+        """Guess the offset from 0 of the ODMR spectra. Usually this is 1"""
         n_pol, n_frange, n_pixel, _ = self.data.shape
         offset = np.zeros((n_pol, n_frange, n_pixel))
         self.LOG.debug(f"Guessing offset {offset.shape}")
         return offset
 
     def get_initial_parameter(self) -> NDArray:
-        """
-        Constructs an initial guess for the fit.
-        """
+        """Constructs an initial guess for the fit."""
         fit_parameter = []
 
         for p in self.model_params:
@@ -417,9 +435,18 @@ class Fit:
 
     @property
     def fitted(self) -> bool:
+        """ """
         return self._fitted
 
     def fit_odmr(self, refit=False) -> None:
+        """
+
+        Args:
+          refit:  (Default value = False)
+
+        Returns:
+
+        """
         if self._fitted and not refit:
             self.LOG.debug("Already fitted")
             return
@@ -461,22 +488,25 @@ class Fit:
     def fit_frange(
         self, data: NDArray, freq: NDArray, initial_parameters: NDArray
     ) -> List[NDArray]:
-        """
-        Wrapper for the fit_constrained function.
+        """Wrapper for the fit_constrained function.
 
         Args:
-            data: data for one frequency range, to be fitted. array of size (n_pol, n_pixel, n_freqs) of the ODMR data
-            freq: array of size (n_freqs) of the frequencies
-            initial_parameters: initial guess for the fit, an array of size (n_pol * n_pixel, 2 * n_param) of
-                the initial parameters
+          data: data for one frequency range, to be fitted. array of size (n_pol, n_pixel, n_freqs) of the ODMR data
+          freq: array of size (n_freqs) of the frequencies
+          initial_parameters: initial guess for the fit, an array of size (n_pol * n_pixel, 2 * n_param) of
+        the initial parameters
+          data: NDArray: 
+          freq: NDArray: 
+          initial_parameters: NDArray: 
 
         Returns:
-            fit_results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
-                results: array of size (n_pol*n_pixel, n_param) of the fitted parameters
-                states: array of size (n_pol*n_pixel) of the fit states (i.e. did the fit work)
-                chi_squares: array of size (n_pol*n_pixel) of the chi squares
-                number_iterations: array of size (n_pol*n_pixel) of the number of iterations
-                execution_time: execution time
+          fit_results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
+          results: array of size (n_pol*n_pixel, n_param) of the fitted parameters
+          states: array of size (n_pol*n_pixel) of the fit states (i.e. did the fit work)
+          chi_squares: array of size (n_pol*n_pixel) of the chi squares
+          number_iterations: array of size (n_pol*n_pixel) of the number of iterations
+          execution_time: execution time
+
         """
         # reshape the data into a single array with (n_pix*n_pol, n_freqs)
         n_pol, n_pix, n_freqs = data.shape
@@ -502,19 +532,21 @@ class Fit:
 
         return list(results)
 
-    def reshape_results(self, results: List[NDArray]) -> NDArray:
+    def reshape_results(self, results: List[NDArray]) -> List[NDArray]:
         """Reshape the results from the fit_constrained function into the correct shape.
 
         Args:
-            results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
+          results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
+          results: List[NDArray]: 
 
         Returns:
-            results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
-                results: array of size (n_pol, n_pixel, n_param) of the fitted parameters
-                states: array of size (n_pol, n_pixel) of the fit states (i.e. did the fit work)
-                chi_squares: array of size (n_pol, n_pixel) of the chi squares
-                number_iterations: array of size (n_pol, n_pixel) of the number of iterations
-                execution_time: execution time
+          results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
+          results: array of size (n_pol, n_pixel, n_param) of the fitted parameters
+          states: array of size (n_pol, n_pixel) of the fit states (i.e. did the fit work)
+          chi_squares: array of size (n_pol, n_pixel) of the chi squares
+          number_iterations: array of size (n_pol, n_pixel) of the number of iterations
+          execution_time: execution time
+
         """
         for i in range(len(results)):
             if isinstance(results[i], float):
@@ -523,14 +555,15 @@ class Fit:
         return results
 
     def reshape_result(self, result: NDArray) -> NDArray:
-        """
-        Reshape the results to the original shape of (n_pol, npix, -1)
+        """Reshape the results to the original shape of (n_pol, npix, -1)
 
         Args:
-            result: array of size (n_pol * n_pixel, -1) of the fitted parameters
+          result: array of size (n_pol * n_pixel, -1) of the fitted parameters
+          result: NDArray: 
 
         Returns:
-            result: array of size (n_pol, n_pixel, -1) of the fitted parameters
+          result: array of size (n_pol, n_pixel, -1) of the fitted parameters
+
         """
         n_pol, npix, _ = self.data[0].shape
         result = result.reshape((n_pol, npix, -1))
@@ -538,14 +571,15 @@ class Fit:
 
 
 @numba.njit(parallel=True)
-def guess_contrast(data):
-    """
-    Guess the contrast of a ODMR data.
+def guess_contrast(data: NDArray) -> NDArray:
+    """Guess the contrast of a ODMR data.
 
-    :param data: np.array
-        data to guess the contrast from
-    :return: np.array
-        contrast of the data
+    Args:
+      data: data to guess the contrast from
+
+    Returns:
+      contrast of the data
+
     """
     amp = np.zeros(data.shape[:-1])
 
@@ -556,24 +590,34 @@ def guess_contrast(data):
 
 
 @numba.njit()
-def guess_contrast_pixel(data):
+def guess_contrast_pixel(data: NDArray) -> float:
+    """
+
+    Args:
+      data: 
+
+    Returns:
+
+    """
     mx = np.nanmax(data)
     mn = np.nanmin(data)
     return np.abs((mx - mn) / mx)
 
 
 @numba.njit(parallel=True, fastmath=True)
-def guess_center(data, freq):
-    """
-    Guess the center frequency of ODMR data.
+def guess_center(data:NDArray, freq:NDArray) -> NDArray:
+    """Guess the center frequency of ODMR data.
 
-    :param data: np.array
-        data to guess the center frequency from
-    :param freq: np.array
-        frequency range of the data
+    Args:
+      data: np.array
+    data to guess the center frequency from
+      freq: np.array
+    frequency range of the data
 
-    :return: np.array
-        center frequency of the data
+    Returns:
+      np.array
+      center frequency of the data
+
     """
     # center frequency
     center = np.zeros(data.shape[:-1])
@@ -584,16 +628,21 @@ def guess_center(data, freq):
 
 
 @numba.njit(fastmath=True)
-def guess_center_pixel(pixel, freq):
-    """
-    Guess the center frequency of a single frequency range.
+def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
+    """Guess the center frequency of a single frequency range.
 
-    :param data: np.array
-        data to guess the center frequency from
-    :param freq: np.array
-        frequency range of the data
-    :return: np.array
-        center frequency of the data
+    Args:
+      data: np.array
+    data to guess the center frequency from
+      freq: np.array
+    frequency range of the data
+      pixel: NDArray: 
+      freq: NDArray: 
+
+    Returns:
+      np.array
+      center frequency of the data
+
     """
     pixel = normalized_cumsum_pixel(pixel)
     idx = np.argmin(np.abs(pixel - 0.5))
@@ -602,20 +651,26 @@ def guess_center_pixel(pixel, freq):
 
 @numba.njit(parallel=True, fastmath=True)
 def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDArray:
-    """
-    Guess the width of a ODMR resonance peaks.
+    """Guess the width of a ODMR resonance peaks.
 
-    :param data: np.array
-        data to guess the width from
-    :param f_ghz: np.array
-        frequency range of the data
-    :param vmin: float
-        minimum value of normalized cumsum to be considered
-    :param vmax: float
-        maximum value of normalized cumsum to be considered
+    Args:
+      data: np.array
+    data to guess the width from
+      f_ghz: np.array
+    frequency range of the data
+      vmin: float
+    minimum value of normalized cumsum to be considered
+      vmax: float
+    maximum value of normalized cumsum to be considered
+      data: NDArray: 
+      f_ghz: NDArray: 
+      vmin: float: 
+      vmax: float: 
 
-    :return: np.array
-        width of the data
+    Returns:
+      np.array
+      width of the data
+
     """
     # width
     width = np.zeros(data.shape[:-1])
@@ -631,18 +686,24 @@ def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDAr
 def guess_width_pixel(
     pixel: NDArray, freq: NDArray, vmin: float, vmax: float
 ) -> NDArray:
-    """
-    Guess the width of a single frequency range.
+    """Guess the width of a single frequency range.
 
-    :param data: np.array
-        data to guess the width from
-    :param freq: np.array
-        frequency range of the data
+    Args:
+      data: np.array
+    data to guess the width from
+      freq: np.array
+    frequency range of the data
+      pixel: NDArray: 
+      freq: NDArray: 
+      vmin: float: 
+      vmax: float: 
 
-    :return: np.array
-        width of the data
+    Returns:
+      np.array
+      width of the data
+      
+      Raises ValueError if the number of peaks is not 1, 2 or 3.
 
-    Raises ValueError if the number of peaks is not 1, 2 or 3.
     """
     pixel = normalized_cumsum_pixel(pixel)
     lidx = np.argmin(np.abs(pixel - vmin))
@@ -652,16 +713,19 @@ def guess_width_pixel(
 
 @numba.njit(parallel=True, fastmath=True)
 def normalized_cumsum(data: NDArray) -> NDArray:
-    """
-    Guess the width of a ODMR resonance peaks.
+    """Guess the width of a ODMR resonance peaks.
 
-    :param data: np.array
-        data to guess the width from
-    :param f_GHz: np.array
-        frequency range of the data
+    Args:
+      data: np.array
+    data to guess the width from
+      f_GHz: np.array
+    frequency range of the data
+      data: NDArray: 
 
-    :return: np.array
-        width of the data
+    Returns:
+      np.array
+      width of the data
+
     """
     # width
     width = np.zeros(data.shape)
@@ -673,19 +737,16 @@ def normalized_cumsum(data: NDArray) -> NDArray:
 
 
 @numba.njit
-def normalized_cumsum_pixel(pixel):
+def normalized_cumsum_pixel(pixel:NDArray) -> NDArray:
     """Calculate the normalized cumulative sum of the data.
 
-    Parameters
-    ----------
-    data : NDArray
-        Data to calculate the normalized cumulative sum of.
+    Args:
+      data(NDArray): Data to calculate the normalized cumulative sum of.
+      pixel: 
 
+    Returns:
 
-    Returns
-    -------
-    NDArray
-        Normalized cumulative sum of the data.
+    
     """
     pixel = np.cumsum(pixel - 1)
     pixel -= np.min(pixel)
@@ -700,6 +761,21 @@ def make_dummy_data(
     shift: float = 0,
     noise: float = 0,
 ) -> Tuple[NDArray, NDArray, NDArray]:
+    """
+
+    Args:
+      model: str:  (Default value = "esr14n")
+      n_freqs: int:  (Default value = 50)
+      scan_dimensions: Union[Tuple[int: 
+      int]: 
+      None]:  (Default value = (120)
+      190): 
+      shift: float:  (Default value = 0)
+      noise: float:  (Default value = 0)
+
+    Returns:
+
+    """
     model = model.upper()
 
     if model not in models.IMPLEMENTED:
@@ -747,16 +823,25 @@ def make_parameter_array(
 ) -> np.ndarray:
     """Make a parameter array for a given center frequency.
 
-    :param c0: float
-        center frequency
-    :param n_params: int
-        number of parameters
-    :param p: np.array
-        parameter array
-    :param params: dict
-        parameter dictionary
-    :return: np.array
-        parameter array
+    Args:
+      c0: float
+    center frequency
+      n_params: int
+    number of parameters
+      p: np.array
+    parameter array
+      params: dict
+    parameter dictionary
+      c0: float: 
+      n_params: int: 
+      p: NDArray: 
+      params: Dict[int: 
+      List[float]]: 
+
+    Returns:
+      np.array
+      parameter array
+
     """
     p00 = p.copy()
     p00[:, 0] *= c0 - 0.0001
@@ -765,6 +850,16 @@ def make_parameter_array(
 
 
 def write_test_qdmio_file(path: Union[str, os.PathLike], **kwargs: Any) -> None:
+    """
+
+    Args:
+      path: Union[str: 
+      os.PathLike]: 
+      **kwargs: Any: 
+
+    Returns:
+
+    """
     path = Path(path)
     path.mkdir(exist_ok=True)
 
