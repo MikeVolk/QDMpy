@@ -192,6 +192,8 @@ def plot_data(
     ax: plt.Axes,
     data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
+    norm_percentile: Tuple[float] = (0,100),
+    clim: Optional[Tuple[float]] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
     """
@@ -205,11 +207,16 @@ def plot_data(
     Returns:
 
     """
+    if clim is None:
+        vmin, vmax = np.percentile(data, norm_percentile)
+    else:
+        vmin, vmax = clim
+    norm = get_color_norm(vmin, vmax)
 
-    norm = get_color_norm(data.min(), data.max())
-    # plt_props["cmap"] = ""
+    plt_props["cmap"] = "RdBu"
     plt_props["norm"] = norm
     img = update_img(ax, img, data, **plt_props)
+    img.set_clim(vmin, vmax)
     return img
 
 
