@@ -13,7 +13,21 @@ import QDMpy.plotting as qdmplot
 POL = ["+", "-"]
 FRANGE = ["<", ">"]
 
+class FrequencyToolCanvas(FigureCanvas):
+    LOG = logging.getLogger(__name__)
 
+    def __init__(self, *args, **kwargs):
+        self.fig = Figure()
+        self.fig.subplots_adjust(top = 0.8, bottom=0.13, left=0.1, right=0.9)
+        self.ax = self.fig.add_subplot(111)
+
+        self.axb = self.ax.twiny()
+        self.ax.set_xlabel("Frequency (GHz)")
+        self.axb.set_xlabel("B$_{\mathrm{equivalent}}$ [mT]")
+        self.ax.set_ylabel("Contrast (a.u.)")
+        self.ax.grid(True)
+
+        super().__init__(self.fig)
 class QDMCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 

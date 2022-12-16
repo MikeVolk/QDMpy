@@ -28,6 +28,7 @@ from src.QDMpy import test_data_location
 matplotlib.use("Agg")
 
 from QDMpy.app.widgets.fit_widget import FitWidget
+from QDMpy.app.widgets.tools import FrequencySelectWidget
 from QDMpy.utils import millify
 
 import matplotlib
@@ -353,6 +354,16 @@ class QDMpyApp(QMainWindow):
         )
         edit_menu.addAction(set_fit_constraints_button)
 
+        # tools menu
+        tools_menu = menu.addMenu("&Tools")
+        frequency_tool_button = QAction("Frequency Select", self)
+        frequency_tool_button.setStatusTip("Open Frequency Select tool")
+        frequency_tool_button.triggered.connect(
+            self.on_frequency_select_button_press
+        )
+        tools_menu.addAction(frequency_tool_button)
+        # initialize the window
+        self.frequency_select_window = None
         # view menu
         view_menu = menu.addMenu("&View")
         self._add_led_plot_toolbar(view_menu)
@@ -742,6 +753,13 @@ class QDMpyApp(QMainWindow):
 
         self.outlierListWidget.show()
 
+    def on_frequency_select_button_press(self):
+        if self.frequency_select_window is None:
+            self.frequency_select_window = FrequencySelectWidget(parent=self)
+        if self.frequency_select_window.isVisible():
+            self.frequency_select_window.hide()
+        else:
+            self.frequency_select_window.show()
     def on_about_QDMpy_button_press(self):
         about_message_box = QMessageBox.about(
             self,
