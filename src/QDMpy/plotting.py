@@ -208,9 +208,10 @@ def plot_data(
 
     """
     if clim is None:
-        vmin, vmax = np.percentile(data, norm_percentile)
+        vmin, vmax = np.percentile(data[~np.isnan(data)], norm_percentile)
     else:
         vmin, vmax = clim
+
     norm = get_color_norm(vmin, vmax)
 
     plt_props["cmap"] = "RdBu"

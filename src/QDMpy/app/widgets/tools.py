@@ -30,10 +30,11 @@ from PySide6.QtWidgets import (
     QToolBar,
     QVBoxLayout,
     QWidget,
+    QSpacerItem,
 )
 
 from QDMpy._core import models
-from QDMpy._core.convert import b2shift, freq2b
+from QDMpy._core.convert import b2shift, freq2b, project
 from QDMpy._core.models import esr14n, esr15n
 from QDMpy.app.assets.GuiElements import LabeledDoubleSpinBox
 from QDMpy.app.canvas import FrequencyToolCanvas
@@ -56,9 +57,7 @@ class FrequencySelectWidget(QMainWindow):
 
     def get_label_slider(self, value, min, max, callback, decimals=0, step=1):
         hlayout = QHBoxLayout()
-        label, spinbox = LabeledDoubleSpinBox(
-            f"{MUT}", value, decimals, step, min, max, callback
-        )
+        label, spinbox = LabeledDoubleSpinBox(f"{MUT}", value, decimals, step, min, max, callback)
         slider = QSlider()
         slider.setOrientation(Qt.Horizontal)
         slider.setRange(min, max)
@@ -90,21 +89,19 @@ class FrequencySelectWidget(QMainWindow):
 
         # layout
         self.mainVerticalLayout = QVBoxLayout()
-        vlayout = QVBoxLayout()
 
-        top_layout = QHBoxLayout()
-        self.add_bias_field_setter(top_layout)
+        top_layout = QVBoxLayout()
+        measurement_range_layout = QHBoxLayout()
+        bias_layout = QHBoxLayout()
+        source_layout = QHBoxLayout()
 
-        separator = QLabel("   |   ")
-        range_label, self.range_box = LabeledDoubleSpinBox(
-            f"Measurement range [{MUT}]", 500, 0, 10, 0, 10000, self.update_plot
-        )
-        top_layout.addWidget(separator)
-        top_layout.addWidget(range_label)
-        top_layout.addWidget(self.range_box)
+        self.add_bias_field_setter(bias_layout)
+        self.add_source_field_setter(source_layout)
+        self.add_measurement_range_selector(measurement_range_layout)
 
-        vlayout.addLayout(top_layout)
-
+        top_layout.addLayout(measurement_range_layout, 4)
+        top_layout.addLayout(bias_layout)
+        top_layout.addLayout(source_layout, 4)
         # nv settings box
         box = QGroupBox("nv-settings")
         self.nv_settings_box = QGridLayout()
@@ -114,10 +111,10 @@ class FrequencySelectWidget(QMainWindow):
         self.nv_settings_box.addWidget(QLabel("contrast [%]"), 0, 3)
 
         self.b111 = [
-            self.get_label_slider(0, -1000, 1000, self.update_plot, step=10),
-            self.get_label_slider(0, -1000, 1000, self.update_plot, step=10),
-            self.get_label_slider(0, -1000, 1000, self.update_plot, step=10),
-            self.get_label_slider(0, -1000, 1000, self.update_plot, step=10),
+            self.get_label_slider(0, -10000, 10000, self.update_plot, step=10),
+            self.get_label_slider(0, -10000, 10000, self.update_plot, step=10),
+            self.get_label_slider(0, -10000, 10000, self.update_plot, step=10),
+            self.get_label_slider(0, -10000, 10000, self.update_plot, step=10),
         ]
         for i, b111 in enumerate(self.b111):
             self.nv_settings_box.addLayout(b111[0], i + 1, 1)
@@ -143,8 +140,8 @@ class FrequencySelectWidget(QMainWindow):
         for i, contrast in enumerate(self.contrasts):
             self.nv_settings_box.addWidget(contrast[1], i + 1, 3)
 
-        vlayout.addLayout(self.nv_settings_box)
-        box.setLayout(vlayout)
+        top_layout.addLayout(self.nv_settings_box)
+        box.setLayout(top_layout)
 
         self.mainVerticalLayout.addWidget(box)
         self.mainVerticalLayout.addWidget(self.canvas)
@@ -176,12 +173,8 @@ class FrequencySelectWidget(QMainWindow):
             3: [None, None],
             4: [None, None],
         }
-        self.nv_directions = {
-            1: [1, 1, 1],
-            2: [1, -1, -1],
-            3: [-1, 1, -1],
-            4: [-1, -1, 1],
-        }
+        self.nv_directions = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]
+
         self.nv_span = [None, None]
         self.nv_span_text = [None, None]
 
@@ -196,29 +189,68 @@ class FrequencySelectWidget(QMainWindow):
         self.nv_colors = {1: "C00", 2: "C01", 3: "C02", 4: "C03"}
 
         # update parameter for bias field
+        self.update_fields()
         self.update_parameter()
         self.update_plot()
         self.update_xlim()
         plt.tight_layout()
         self.set_main_window()
 
-    def add_bias_field_setter(self, top_layout):
+    def add_measurement_range_selector(self, layout):
+        # add the measurement range selector
+        range_label, self.range_box = LabeledDoubleSpinBox(
+            f"Measurement range [{MUT}]", 500, 0, 10, 0, 10000, self.update_plot
+        )
+        self.range_box.setGeometry(0, 0, 50, 100)
+        layout.addWidget(range_label)
+        layout.addWidget(self.range_box)
+        self.add_spacer(layout)
+
+    def add_spacer(self, layout):
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        layout.addItem(spacer)
+
+    def add_source_field_setter(self, layout):
+        """add a box to set the source field to the top layout
+
+        Parameters
+        ----------
+        layout : QHBoxLayout
+            layout to add the box to
+
+        """
+        source_field_label, self.source_field_box = LabeledDoubleSpinBox(
+            f"Strength [{MUT}]:", 0, 0, 10, 0, 10000, self.update_fields
+        )
+        source_dec_label, self.source_dec_box = LabeledDoubleSpinBox(f"Dec: ", 0, 2, 1, 0, 360, self.update_fields)
+        source_inc_label, self.source_inc_box = LabeledDoubleSpinBox(f"Inc: ", 0, 2, 1, -90, 90, self.update_fields)
+        label = QLabel("Source field: ")
+        label.setFixedSize(100, 20)
+        layout.addWidget(label)
+        layout.addWidget(source_dec_label)
+        layout.addWidget(self.source_dec_box)
+        layout.addWidget(source_inc_label)
+        layout.addWidget(self.source_inc_box)
+        layout.addWidget(source_field_label)
+        layout.addWidget(self.source_field_box)
+        self.add_spacer(layout)
+
+    def add_bias_field_setter(self, layout):
         bias_field_label, self.bias_field_box = LabeledDoubleSpinBox(
-            f"Strength [{MUT}]:", 900, 0, 10, 0, 10000, self.update_plot
+            f"Strength [{MUT}]:", 900, 0, 10, 0, 10000, self.update_fields
         )
-        bias_dec_label, self.bias_dec_box = LabeledDoubleSpinBox(
-            f"Dec: ", 0, 1, 1, 0, 360, self.update_plot
-        )
-        bias_inc_label, self.bias_inc_box = LabeledDoubleSpinBox(
-            f"Inc: ", 35.3, 1, 1, -90, 90, self.update_plot
-        )
-        top_layout.addWidget(QLabel("Bias field: "))
-        top_layout.addWidget(bias_dec_label)
-        top_layout.addWidget(self.bias_dec_box)
-        top_layout.addWidget(bias_inc_label)
-        top_layout.addWidget(self.bias_inc_box)
-        top_layout.addWidget(bias_field_label)
-        top_layout.addWidget(self.bias_field_box)
+        bias_dec_label, self.bias_dec_box = LabeledDoubleSpinBox(f"Dec: ", 45, 2, 1, 0, 360, self.update_fields)
+        bias_inc_label, self.bias_inc_box = LabeledDoubleSpinBox(f"Inc: ", 35.3, 2, 1, -90, 90, self.update_fields)
+        label = QLabel("Bias field:")
+        label.setFixedSize(100, 20)
+        layout.addWidget(label)
+        layout.addWidget(bias_dec_label)
+        layout.addWidget(self.bias_dec_box)
+        layout.addWidget(bias_inc_label)
+        layout.addWidget(self.bias_inc_box)
+        layout.addWidget(bias_field_label)
+        layout.addWidget(self.bias_field_box)
+        self.add_spacer(layout)
 
     def set_main_window(self):
         """
@@ -229,9 +261,25 @@ class FrequencySelectWidget(QMainWindow):
         central_widget.setLayout(self.mainVerticalLayout)
         self.setCentralWidget(central_widget)
 
-    def set_bias_field(self, value):
-        self.caller.bias_field = value
-        self.update_plot()
+    def update_fields(self):
+        b_bias = dim2xyz(
+            np.array([
+                self.bias_dec_box.value(),
+                self.bias_inc_box.value(),
+                self.bias_field_box.value(),
+            ])
+        )
+        b_source = dim2xyz(
+            np.array([
+                self.source_dec_box.value(),
+                self.source_inc_box.value(),
+                self.source_field_box.value(),
+            ])
+        )
+        field = b_bias + b_source
+        for nv in range(4):
+            projected_field = project(field, self.nv_directions[nv])[0]
+            self.b111[nv][1].setValue(projected_field)
 
     def update_xlim(self):
         self.LOG.debug("Updating X limits")
@@ -283,9 +331,7 @@ class FrequencySelectWidget(QMainWindow):
     def update_sum_line(self):
         self.LOG.debug("Updating sum line")
         if self.nv_sum_line is None:
-            l = self.canvas.ax.plot(
-                self.frequencies[0], self.nv_sum, label="Sum", color="k", lw=1
-            )
+            l = self.canvas.ax.plot(self.frequencies[0], self.nv_sum, label="Sum", color="k", lw=1)
             self.nv_sum_line = l[0]
         else:
             self.nv_sum_line.set_data(self.frequencies[0], self.nv_sum)
@@ -295,49 +341,33 @@ class FrequencySelectWidget(QMainWindow):
             f"Updating data to:\n {self.nv_settings[1]} \n {self.nv_settings[2]} \n {self.nv_settings[3]} \n {self.nv_settings[4]}"
         )
         self.nv_data = {
-            nv: [
-                esr15n(self.frequencies[i], self.nv_settings[nv][i])[0]
-                for i in range(2)
-            ]
-            for nv in self.nv_settings
+            nv: [esr15n(self.frequencies[i], self.nv_settings[nv][i])[0] for i in range(2)] for nv in self.nv_settings
         }
-        self.nv_sum = np.sum(
-            [self.nv_data[nv][i] for nv in self.nv_data for i in range(2)], axis=0
-        )
+        self.nv_sum = np.sum([self.nv_data[nv][i] for nv in self.nv_data for i in range(2)], axis=0)
         self.nv_sum -= 7
 
     def update_parameter(self):
         self.LOG.debug("updating parameters")
-        b_bias = dim2xyz(
-            [
-                self.bias_dec_box.value(),
-                self.bias_inc_box.value(),
-                self.bias_field_box.value(),
-            ]
-        )
 
         for nv in self.nv_settings:
-            if nv == 1:
-                bias = b2shift(self.bias_field_box.value(), in_unit="microT")
-            else:
-                bias = 0
 
+            # iterate over left and right frequency range
             for i, line in enumerate(self.nv_settings[nv]):
+                # set the center of the dstribution
                 self.nv_settings[nv][i][0] = ZFS + [1, -1][i] * (
-                    b2shift(self.b111[nv - 1][1].value(), in_unit="microT") + bias
+                    b2shift(self.b111[nv - 1][1].value(), in_unit="microT")
                 )
-                self.nv_settings[nv][i][1] = (
-                    self.widths[nv - 1][1].value() / 1000
-                )  # to GHz
+                # set the width of the distribution
+                self.nv_settings[nv][i][1] = self.widths[nv - 1][1].value() / 1000  # to GHz
+
+                # set the contrast of the distribution
                 self.nv_settings[nv][i][2] = self.contrasts[nv - 1][1].value() / 100
                 self.nv_settings[nv][i][3] = self.contrasts[nv - 1][1].value() / 100
 
     def update_nv_text(self):
         self.LOG.debug("updating text")
         ax = self.canvas.ax
-        trans = transforms.blended_transform_factory(
-            self.canvas.ax.transData, self.canvas.ax.transAxes
-        )
+        trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
 
         for nv in self.nv_settings:
             for i, line in enumerate(self.nv_settings[nv]):
@@ -396,9 +426,7 @@ class FrequencySelectWidget(QMainWindow):
             if txt is not None:
                 txt.remove()
 
-            trans = transforms.blended_transform_factory(
-                self.canvas.ax.transData, self.canvas.ax.transAxes
-            )
+            trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
             self.nv_span_text[i] = self.canvas.ax.text(
                 ZFS + bias_shift * [1, -1][i],
                 0.1,

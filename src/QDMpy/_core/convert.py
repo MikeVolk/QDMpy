@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import pint
-from numba import vectorize, float64
+from numba import vectorize, float64, guvectorize
 from numpy.typing import NDArray
 
 import QDMpy
@@ -13,10 +13,10 @@ _VECTOR_OR_NONE = Union[Tuple[float, float, float], None]
 
 
 def toBxyz(
-        map: NDArray,
-        pixel_size: float = 1.175e-06,
-        rotation_angle: float = 0,
-        direction_vector: _VECTOR_OR_NONE = None,
+    map: NDArray,
+    pixel_size: float = 1.175e-06,
+    rotation_angle: float = 0,
+    direction_vector: _VECTOR_OR_NONE = None,
 ) -> NDArray:
     """
     Convert a map measured along the direction u to a Bz map of the sample.
@@ -47,14 +47,14 @@ def toBxyz(
 
     kx = 2 * np.pi * fgrid_x
     ky = 2 * np.pi * fgrid_y
-    k = np.sqrt(kx ** 2 + ky ** 2)
+    k = np.sqrt(kx**2 + ky**2)
 
     e = np.fft.fft2(map)
 
     x_filter = -1j * kx / k
     y_filter = -1j * ky / k
     z_filter = k / (
-            unit_vector[2] * k - unit_vector[1] * 1j * ky - unit_vector[0] * 1j * kx
+        unit_vector[2] * k - unit_vector[1] * 1j * ky - unit_vector[0] * 1j * kx
     )  # calculate the filter frequency response associated with the x component
 
     map_x = np.fft.ifft2(e * x_filter)
@@ -75,9 +75,7 @@ def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = N
         direction_vector = np.array([0, np.sqrt(2 / 3), np.sqrt(1 / 3)])
 
     QDMpy.LOG.info(
-        "Getting unit vector from rotation angle {} along direction vector {}".format(
-            rotation_angle, direction_vector
-        )
+        "Getting unit vector from rotation angle {} along direction vector {}".format(rotation_angle, direction_vector)
     )
 
     alpha = np.rad2deg(rotation_angle)
@@ -94,7 +92,7 @@ def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = N
 
 @vectorize([float64(float64)])
 def _b2shift(b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-    """ converts a magnetic field along as single NV-axis into a resonance freq.
+    """converts a magnetic field along as single NV-axis into a resonance freq.
 
     Args:
         b: magnetic field in T to be converted
@@ -110,7 +108,7 @@ def _b2shift(b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
 
 @vectorize([float64(float64)])
 def _shift2b(shift):
-    """ converts a resonance freq. shift into a magnetic field along as single NV-axis.
+    """converts a resonance freq. shift into a magnetic field along as single NV-axis.
 
     Args:
         shift: resonance frequency shift in GHz to be converted
@@ -124,8 +122,8 @@ def _shift2b(shift):
     return shift / 28.024e9  # T
 
 
-def b2shift(b: float, in_unit: str = 'T', out_unit: str = 'GHz') -> float:
-    """ converts a magnetic field along as single NV-axis into a resonance freq.
+def b2shift(b: float, in_unit: str = "T", out_unit: str = "GHz") -> float:
+    """converts a magnetic field along as single NV-axis into a resonance freq.
     shift for that axis.
 
     Args:
@@ -139,11 +137,13 @@ def b2shift(b: float, in_unit: str = 'T', out_unit: str = 'GHz') -> float:
     >>> b2shift(1, in_unit='nT', out_unit='Hz')
     >>> 28.024000000000004
     """
-    b = convert_to(b, in_unit, 'T')
+    b = convert_to(b, in_unit, "T")
     shift = _b2shift(b)
-    return convert_to(shift, 'Hz', out_unit)
+    return convert_to(shift, "Hz", out_unit)
+
+
 def convert_to(value, in_unit, out_unit):
-    """ converts a value from in_unit to out_unit
+    """converts a value from in_unit to out_unit
 
     Args:
         value: value to be converted
@@ -157,11 +157,12 @@ def convert_to(value, in_unit, out_unit):
     >>> 1e-9
     """
     value = UREG.Quantity(value, in_unit)
-    value = value.to(out_unit, 'Gau').magnitude
+    value = value.to(out_unit, "Gau").magnitude
     return value
 
-def freq2b(freq: float, in_unit: str = 'Hz', out_unit: str = 'T') -> float:
-    """ converts a resonance frequency into a magnetic field along as single NV-axis.
+
+def freq2b(freq: float, in_unit: str = "Hz", out_unit: str = "T") -> float:
+    """converts a resonance frequency into a magnetic field along as single NV-axis.
 
     Args:
         freq: frequency to be converted
@@ -181,14 +182,14 @@ def freq2b(freq: float, in_unit: str = 'Hz', out_unit: str = 'T') -> float:
     """
     ZFS = 2.87e9  # zero-field splitting in Hz
     # calculate the shift by subtracting the ZFS
-    freq = convert_to(freq, in_unit, 'Hz')
+    freq = convert_to(freq, in_unit, "Hz")
     shift = freq - ZFS
 
-    return shift2b(shift, 'Hz', out_unit)
+    return shift2b(shift, "Hz", out_unit)
 
 
-def shift2b(shift: float, in_unit: str = 'GHz', out_unit: str = 'T') -> float:
-    """ converts a resonance frequency shift into a magnetic field along as single NV-axis.
+def shift2b(shift: float, in_unit: str = "GHz", out_unit: str = "T") -> float:
+    """converts a resonance frequency shift into a magnetic field along as single NV-axis.
 
     Args:
         shift: shift to be converted
@@ -201,21 +202,49 @@ def shift2b(shift: float, in_unit: str = 'GHz', out_unit: str = 'T') -> float:
     >>> shift2b(1, in_unit='MHz', out_unit='mT')
     >>> 0.03571428571428571
     """
-    shift = convert_to(shift, in_unit, 'Hz')
-    b = _shift2b(shift) # in T
-    return convert_to(b, 'T', out_unit)
+    shift = convert_to(shift, in_unit, "Hz")
+    b = _shift2b(shift)  # in T
+    return convert_to(b, "T", out_unit)
+
+
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(n)->()", forceobj=True)
+def project(a, b, c):
+    """projects vector a onto b and returns the result in c
+
+    Args:
+        a: vector(s) to be projected
+        b: vector(s) to project onto
+        c: vector to store the result
+
+    Notes:
+        1. a and b must have the same shape
+        2. you can either pass a single vector or a list of vectors but only for either a or b
+           This means that you can either project a single vector onto a list of vectors or
+              project a list of vectors onto a single vector
+    >>> a = np.array([1, 2, 3])
+    >>> b = np.array([1, 1, 1])
+    >>> project(a,b)
+    >>> array([1.5, 1.5, 1.5])
+    """
+    a = np.ascontiguousarray(a)
+    b = np.ascontiguousarray(b)
+    c[0] = np.dot(a, b) / np.linalg.norm(b)
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    from scipy.io import loadmat
+    a = [1, 1, 1]
+    b = [1, 2, 3]
+    print(project(a, [b,b,a]))
 
-    map = loadmat(
-        "/Users/mike/Dropbox/data/QDMlab_example_data/data/viscosity/ALH84001-FOV1_VISC_20-20/4x4Binned/B111dataToPlot.mat"
-    )["B111ferro"]
-    out = toBz(map, pixel_size=4.70e-6)
-    print(out)
-    plt.imshow(out[2])
+    # import matplotlib.pyplot as plt
+    # from scipy.io import loadmat
+    #
+    # map = loadmat(
+    #     "/Users/mike/Dropbox/data/QDMlab_example_data/data/viscosity/ALH84001-FOV1_VISC_20-20/4x4Binned/B111dataToPlot.mat"
+    # )["B111ferro"]
+    # out = toBz(map, pixel_size=4.70e-6)
+    # print(out)
+    # plt.imshow(out[2])
 
 #         function [Bz] = QDMBzFromBu(Bu, fs, u)
 # %[Bz] = QDMBzFromBu(Bu, fs, u)
