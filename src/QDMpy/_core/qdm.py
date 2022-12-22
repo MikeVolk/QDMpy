@@ -531,7 +531,7 @@ class QDM:
                     f"Cannot export data with bin factor {bin_factor} as it is smaller than the pre bin factor {self.odmr._pre_bin_factor}"
                 )
                 continue
-            if not self.bin_factor == bin_factor:
+            if self.bin_factor != bin_factor:
                 self.bin_data(bin_factor)
             if not self.fitted:
                 self.fit_odmr()
@@ -543,18 +543,17 @@ class QDM:
 
     # CALCULATIONS ###
     @property
-    def delta_resonance(self) -> NDArray:
-        """Return the difference between low and high freq. resonance of the fit.
+    def mean_resonance_distance_ghz(self) -> NDArray:
+        """Return the difference between low and high freq. range resonance of the fit.
+
+        This is the mean distance between the two resonance frequencies in the high and low frange.
 
         Returns:
-          numpy.ndarray: negative difference
-          numpy.ndarray: positive difference
+            Mean distance in resonance frequency [GHz] for positive and negative applied field of the fit.
 
         """
-        d = np.expand_dims(np.array([-1, 1]), axis=[1, 2])
         resonance = self.get_param("resonance")
-        half_distance = (resonance[:, 1] - resonance[:, 0]) / 2
-        return half_distance / GAMMA
+        return (resonance[:, 1] - resonance[:, 0]) / 2 # mean shift from ZFS to resonance position
 
     @property
     def b111(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -575,8 +574,13 @@ class QDM:
         Returns:
             np.ndarray: B111 remanent map
         """
-        neg_difference, pos_difference = self.delta_resonance
-        return (pos_difference - neg_difference) / 2
+        neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
+
+        # convert to microTesla
+        neg_mean_fshift /= GAMMA
+        pos_mean_fshift /= GAMMA
+
+        return (pos_mean_fshift - neg_mean_fshift) / 2
 
     def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
         """Calculates the Bz remanent map from the fit results.
@@ -617,8 +621,13 @@ class QDM:
         Returns:
             np.ndarray: B111 induced map
         """
-        neg_difference, pos_difference = self.delta_resonance
-        return (pos_difference + neg_difference) / 2
+        neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
+
+        # convert to microTesla
+        neg_mean_fshift /= GAMMA
+        pos_mean_fshift /= GAMMA
+
+        return (pos_mean_fshift + neg_mean_fshift) / 2
 
     # PLOTTING
     def rc2idx(self, rc: np.ndarray, ref: str = "data") -> NDArray:
@@ -699,7 +708,7 @@ class QDM:
             }
 
         elif dialect == "QDMio":
-            neg_diff, pos_diff = self.delta_resonance
+            neg_diff, pos_diff = self.mean_resonance_distance_ghz
             b111_remanent, b111_induced = self.b111
             chi_squares = self.get_param("chi2")
             chi2_pos1, chi2_pos2 = chi_squares[0]
@@ -737,7 +746,7 @@ def main():
 
     d = QDM.from_qdmio("D:\Dropbox\FOV18x")
     d.fit_odmr()
-    d.delta_resonance
+    d.mean_resonance_distance_ghz
     # d = QDM.from_qdmio(QDMpy.test_data_location())
     #
     # d.fit_odmr()
