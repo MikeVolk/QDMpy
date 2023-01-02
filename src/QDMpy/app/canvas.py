@@ -6,9 +6,9 @@ from matplotlib.axes import Axes
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib_scalebar.scalebar import ScaleBar
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import QDMpy.plotting as qdmplot
+from QDMpy.plotting import add_cax
 
 POL = ["+", "-"]
 FRANGE = ["<", ">"]
@@ -88,12 +88,6 @@ class QDMCanvas(FigureCanvas):
         self.fluorescence = {}  # fluorescence is a dictionary of dictionaries
         self.data = {}
         self.odmr = {}  # dictionary of ax : odmr data lines
-
-    def _add_cax(self, ax):
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        original_locator = cax.get_axes_locator()
-        return cax, original_locator
 
     def set_img(self, cbar_label=r"B$_{111}$ [$\mu$T]"):
         for axdict in [self.data, self.laser, self.light, self.fluorescence]:
@@ -177,7 +171,7 @@ class QDMCanvas(FigureCanvas):
                 ax.add_artist(scalebar)
 
     def add_cax(self, ax, axdict, save=True):
-        cax, original_locator = self._add_cax(ax)
+        cax, original_locator = add_cax(ax)
         if save:
             axdict[ax]["cax"] = cax
             axdict[ax]["cax_locator"] = original_locator
