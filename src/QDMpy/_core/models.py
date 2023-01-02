@@ -1,113 +1,43 @@
-from abc import ABC, abstractmethod
-from typing import Tuple, Any, List
+from typing import Tuple, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numba import guvectorize, float64
 from numpy.typing import NDArray
 
 import QDMpy
 
 
-class Model(ABC):
-    """Abstract class for models.
+@guvectorize([(float64[:], float64, float64, float64, float64[:])], "(n),(),(),()->(n)", forceobj=True)
+def lorentzian_peak(f, center, width, contrast, model):
+    """Lorentzian peak
+
+    Calculates a single lorentzian peak.
 
     Args:
-        ABC (ABC): Abstract class
+        f : array_like
+            Frequency axis
+        center : float
+            Center frequency of the peak
+        width : float
+            Width of the peak
+        contrast : float
+            Contrast of the peak
+        model : array_like
+            Model array to be filled with the model
+
+    Notes:
+        The model is calculated as numpy ufunc (using numba), so it can be used in a vectorized way.
+        Meaning that the parameters can be arrays but need to have the same shape.
+
     """
-
-    def __init__(self, name: str, n_peaks: int, parameters_unique: List[str]):
-        self.name = name
-        self.parameters_unique = parameters_unique
-        self.n_peaks = n_peaks
-
-    @property
-    def parameter(self):
-        return [i.split("_")[0] for i in self.parameters_unique]
-
-    @abstractmethod
-    def func(self):
-        """Abstract method for model function.
-
-        Raises:
-            NotImplementedError: [description]
-        """
-        raise NotImplementedError
-
-    def calculate(self, x: NDArray, parameter: NDArray) -> NDArray:
-        """Model function.
-
-        Args:
-            x (np.ndarray): x values
-            parameter (np.ndarray): parameters
-
-        Returns:
-            np.ndarray: y values
-        """
-        self.func(x, parameter)
-
-    @property
-    def n_parameters(self) -> int:
-        """Number of parameters.
-
-        Returns:
-            int: Number of parameters
-        """
-        return len(self.parameters_unique)
-
-    def __repr__(self):
-        return f"model({self.name}, n_parameters: {self.n_parameters}, n_peaks: {self.n_peaks})"
+    sq_width = np.square(width)
+    delta = f - center
+    model[:] = contrast * sq_width / (delta**2 + sq_width)
 
 
-class ESR14N(Model):
-    """ESR14N model"""
-
-    AHYP = 0.002158
-
-    def __init__(self):
-        super().__init__(
-            "ESR14N",
-            3,
-            ["contrast", "center", "width_0", "width_1", "width_2", "offset"],
-        )
-
-    def func(self):
-        """Model function.
-
-        Returns:
-            function: Model function
-        """
-        return esr14n
-
-
-class ESR15N(Model):
-    def __init__(self):
-        super().__init__(
-            "ESR15N", 2, ["contrast", "center", "width_0", "width_1", "offset"]
-        )
-
-    def func(self):
-        """Model function.
-
-        Returns:
-            function: Model function
-        """
-        return esr15n
-
-
-class ESRSINGLE(Model):
-    def __init__(self):
-        super().__init__("ESRSINGLE", 1, ["contrast", "center", "width_0", "offset"])
-
-    def func(self):
-        """Model function.
-
-        Returns:
-            function: Model function
-        """
-        return esrsingle
-
-
-def esr14n(x, parameter):
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
+def esr14n(x, parameter, model):
     """ESR14N model
 
     Args:
@@ -123,28 +53,45 @@ def esr14n(x, parameter):
     Returns:
         np.ndarray: y values
     """
-    out = []
     AHYP = 0.002158
-    parameter = np.atleast_2d(parameter)
-    for i in range(parameter.shape[0]):
-        p = parameter[i]
-        aux1 = x - p[0] + AHYP
-        width_squared = p[1] * p[1]
 
-        dip1 = p[2] * width_squared / (aux1 * aux1 + p[1] * p[1])
+    center, width, c0, c1, c2, offset = parameter
+    center0 = center + AHYP
+    center1 = center
+    center2 = center - AHYP
 
-        aux2 = x - p[0]
-        dip2 = p[3] * width_squared / (aux2 * aux2 + p[1] * p[1])
-
-        aux3 = x - p[0] - AHYP
-        dip3 = p[4] * width_squared / (aux3 * aux3 + p[1] * p[1])
-
-        out.append(1 + p[5] - dip1 - dip2 - dip3)
-    return np.array(out)
+    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
 
 
-def esr15n(x, parameter):
-    """ESR15N model
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
+def esr15n(x, parameter, model):
+    """ESR14N model
+
+    Args:
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = contrast
+            parameter[4] = contrast
+            parameter[5] = offset
+
+    Returns:
+        np.ndarray: y values
+    """
+    AHYP = 0.002158
+
+    center, width, c0, c1, offset = parameter
+    center0 = center + AHYP
+    center1 = center - AHYP
+
+    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+
+
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
+def esr15n_folded(x, parameter, model):
+    """ESR14N model, with folded spectrum
 
     Args:
         x (np.ndarray): x values
@@ -158,26 +105,36 @@ def esr15n(x, parameter):
     Returns:
         np.ndarray: y values
     """
-    out = []
-    AHYP = 0.0015
-    parameter = np.atleast_2d(parameter)
+    AHYP = 0.002158
 
-    for i in range(parameter.shape[0]):
-        p = parameter[i]
+    center, width, c0, c1, offset = parameter
+    center0 = center - AHYP
+    center1 = center
+    center2 = center + AHYP
 
-        width_squared = p[1] * p[1]
+    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1, center1, center2], width, [c0, c1, c0, c1]), axis=0)
 
-        aux1 = x - p[0] + AHYP
-        dip1 = p[2] * width_squared / (aux1 * aux1 + width_squared)
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True,
+             target="parallel")
+def esrsingle(x, param, model):
+    """Single Lorentzian model
 
-        aux2 = x - p[0] - AHYP
-        dip2 = p[3] * width_squared / (aux2 * aux2 + width_squared)
+    Args:
+        x (np.ndarray): frequency values
+        param (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = offset
 
-        out.append(1 + p[4] - dip1 - dip2)
-    return np.array(out)
+    Returns:
+        np.ndarray: y values
+    """
+    AHYP = 0.002158
+    model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
 
 
-def esrsingle(x, parameter):
+def esrsingle_(x, parameter):
     """ESRSINGLE model
 
     Args:
@@ -192,7 +149,7 @@ def esrsingle(x, parameter):
         np.ndarray: y values
     """
     out = []
-
+    parameter = np.atleast_2d(parameter)
     for i in range(parameter.shape[0]):
         p = parameter[i]
         width_squared = p[1] * p[1]
@@ -241,6 +198,32 @@ IMPLEMENTED = {
 PEAK_TO_TYPE = {1: "ESRSINGLE", 2: "ESR15N", 3: "ESR14N"}
 
 
+def full_model(model, freqs, parameters):
+    """Full model
+
+    Args:
+        model (str): Model name
+        freqs (np.ndarray): Frequencies
+        parameters (np.ndarray): Parameters
+
+    Returns:
+        np.ndarray: Model
+    """
+    if model == "ESR14N":
+        model = esr14n
+    elif model == "ESR15N":
+        model = esr15n
+    elif model == "ESRSINGLE":
+        model = esrsingle
+    else:
+        raise ValueError("Model not implemented")
+
+    low_f_data = model(freqs[: len(freqs) // 2], parameters)
+    high_f_data = model(freqs[len(freqs) // 2 :], parameters)
+
+    return np.concatenate((low_f_data, high_f_data), axis=1)
+
+
 def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
     """Guess the diamond type based on the number of peaks.
 
@@ -259,9 +242,7 @@ def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
 
     # Find the indices of the peaks
     for p, f in np.ndindex(*data.shape[:2]):
-        peaks = find_peaks(
-            -data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
-        )
+        peaks = find_peaks(-data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"])
         indices.append(peaks[0])
         if check:
             (l,) = plt.plot(data[p, f])
