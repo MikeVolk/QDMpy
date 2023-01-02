@@ -5,13 +5,55 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
+from matplotlib_scalebar.scalebar import ScaleBar
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+import QDMpy
 from QDMpy._core import models
 from QDMpy._core.qdm import QDM
 from QDMpy.utils import double_norm
 
+MUT = "μT"
+
 FREQ_LABEL = "f [GHz]"
 CONTRAST_LABEL = "c [%]"
+
+
+def qdm(
+    qdm: QDM,
+    remanence: bool = True,
+    ax: Union[plt.Axes, None] = None,
+    scalebar: Union[float, None] = None,
+    **plt_props: Any,
+) -> plt.Axes:
+    """
+
+    Args:
+      qdm: QDM instance
+      remanence:  (Default value = True)
+        Weather to plot the remanence or induced signal
+      ax: (Default value = None)
+      **plt_props: Additional formatting options, passed to the imshow function.
+
+    Returns:
+        Axes object with the image
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    img = plot_data(data=qdm.b111_remanent if remanence else qdm.b111_induced, ax=ax, **plt_props)
+
+    cax, _ = add_cax(ax)
+    _ = plt.colorbar(
+        ax.images[0],
+        cax=cax,
+        label=f"B [{MUT}]",
+        extend=detect_extend_from_img(img),
+    )
+
+    if scalebar:
+        add_scalebar(ax=ax, pixel_size=scalebar)
+    return ax
 
 
 def plot_light_img(
@@ -376,7 +418,7 @@ def update_cbar(
     Returns:
 
     """
-    extent = detect_extent(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
+    extent = detect_extend(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
 
     label = cax.get_ylabel()
     cax.clear()
@@ -384,7 +426,7 @@ def update_cbar(
     plt.colorbar(img, cax=cax, extend=extent, label=label, **plt_props)
 
 
-def detect_extent(vmin: float, vmax: float, mn: float, mx: float) -> str:
+def detect_extend(vmin: float, vmax: float, mn: float, mx: float) -> str:
     """Detects the extend of the colorbar
 
     Args:
