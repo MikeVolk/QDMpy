@@ -379,6 +379,17 @@ def detect_extent(vmin: float, vmax: float, mn: float, mx: float) -> str:
         return "max"
 
 
+def detect_extend_from_img(img) -> str:
+    """Detects if extend should be used in the colorbar. Only wraps the detect_extend function
+
+    Args:
+        img: mpl.image.AxesImage: The image to detect the extend from
+
+    Returns: str: "neither", "min", "max", "both"
+    """
+    return detect_extend(img.get_clim()[0], img.get_clim()[1], img.get_array().min(), img.get_array().max())
+
+
 def update_img(ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any) -> mpl.image.AxesImage:
     """
 
