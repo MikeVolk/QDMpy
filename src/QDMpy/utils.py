@@ -1,17 +1,14 @@
 import logging
 import os
-import shutil
 import sys
-from typing import Union, Tuple, Optional, Sequence, Any
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import matplotlib.image as mpimg
 import numpy as np
-import numba
-import tomli
 from numpy.typing import ArrayLike, NDArray
-
-import QDMpy
-
+from pypole.convert import dim2xyz, xyz2dim
+from QDMpy._core.convert import project, b2shift
+from QDMpy._core.models import esr15n
 # from QDMpy import QDMpy.CONFIG_FILE, QDMpy.CONFIG_INI, QDMpy.CONFIG_PATH
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -37,9 +34,7 @@ def millify(n: float, sign: int = 1) -> str:
       human readable string
 
     """
-    millidx = max(
-        0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3)))
-    )
+    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
 
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
@@ -84,12 +79,12 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
-    kx: Optional[int] = 3,
-    ky: Optional[int] = 3,
-    order: Optional[Union[None, int]] = None,
+        x: np.ndarray,
+        y: np.ndarray,
+        z: np.ndarray,
+        kx: Optional[int] = 3,
+        ky: Optional[int] = 3,
+        order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
@@ -127,12 +122,94 @@ def polyfit2d(
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x**i * y**j
+            arr = coeffs[i, j] * x ** i * y ** j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
     solution, res, rank, s = np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
     return solution, res, rank, s
+
+
+from itertools import product
+
+ZFS = 2.87
+
+
+def generate_parameter(projected_shifts: NDArray, width: float, contrast: float) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate the parameter (low/high frange) for the QDMpy simulation.
+    Args:
+        projected_shifts: shift of the peaks in GHz
+        width: width of the peaks in GHz
+        contrast: contrast of the peaks
+
+    Returns:
+        parameter: parameter for the QDMpy simulation
+    """
+    left_resonance = np.stack(
+        [
+            ZFS - projected_shifts,
+            np.ones(projected_shifts.shape[0]) * width,
+            np.ones(projected_shifts.shape[0]) * contrast,
+            np.ones(projected_shifts.shape[0]) * contrast,
+            np.zeros(projected_shifts.shape[0]),
+        ],
+        axis=1,
+    )
+    right_resonance = np.stack(
+        [
+            ZFS + projected_shifts,
+            np.ones(projected_shifts.shape[0]) * width,
+            np.ones(projected_shifts.shape[0]) * contrast,
+            np.ones(projected_shifts.shape[0]) * contrast,
+            np.zeros(projected_shifts.shape[0]),
+        ],
+        axis=1,
+    )
+    return left_resonance, right_resonance
+
+
+def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast):
+    """Calculates the models for all dec/inc combinations of the current applied field.
+
+    This function is meant to calculate the "safe" field margins for the current applied field.
+
+    Returns:
+        ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
+    """
+
+    # generate the dec/inc combinations at current source field
+    source_dim = generate_possible_dim(b_source=b_source, n=10)
+    source_xyz = dim2xyz(source_dim)
+
+    total_field_xyz = source_xyz + bias_xyz
+
+    # calculate all projected shifts for all specified NVs
+    projected_fields = project(total_field_xyz, nv_direction)
+    projected_shifts = b2shift(projected_fields, in_unit="microT", out_unit="GHz")
+
+    parameters = generate_parameter(projected_shifts=projected_shifts, width=width, contrast=contrast)
+    all_nv_models = [esr15n(freqs, p) for p in parameters]  # calculate left/right spectra
+    return np.min(all_nv_models, axis=0)  # returns only the minimum
+
+
+def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
+    """Generates a set of dec/inc combinations for a given source field.
+
+    Args:
+        b_source (float): The source field magnitude in microTesla.
+        n (int, optional): The number of dec/inc combinations to generate. Defaults to 10.
+
+    Returns:
+        ndarray: The generated dec/inc combinations.
+    """
+
+    dec = np.linspace(0, 360, n)
+    inc = np.linspace(-90, 90, n)
+    di = np.array(list(product(dec, inc)))
+    source_dim = np.stack([di[:, 0], di[:, 1], np.ones(di.shape[0]) * b_source])
+
+    return source_dim.T
 
 
 def rms(data):
@@ -182,8 +259,8 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
 
 
 def get_image(
-    folder: Union[str, bytes, os.PathLike],
-    lst: Sequence[Union[str, bytes, os.PathLike]],
+        folder: Union[str, bytes, os.PathLike],
+        lst: Sequence[Union[str, bytes, os.PathLike]],
 ) -> np.ndarray:
     """Loads an image from a list of files.
 
@@ -202,9 +279,7 @@ def get_image(
     return np.array(img)
 
 
-def double_norm(
-    data: np.ndarray, axis: Optional[Union[int, None]] = None
-) -> np.ndarray:
+def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:
