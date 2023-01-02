@@ -164,6 +164,32 @@ def update_marker(
     return line
 
 
+def add_scalebar(ax: plt.Axes, pixel_size: float, **plt_props: Any) -> None:
+    """
+    Adds a scalebar to the given axis.
+
+    Args:
+        pixel_size: The size of a pixel in the image in meters.
+        ax:  (Default value = plt.gca())
+        **plt_props: Additional formatting options, passed to the ScaleBar object.
+
+    Returns:
+
+    """
+
+    scalebar = ScaleBar(
+        pixel_size,
+        "m",
+        length_fraction=plt_props.pop("length_fraction", 0.25),
+        location=plt_props.pop("location", "lower left"),
+        box_alpha=plt_props.pop("box_alpha", 0.5),
+        frameon=plt_props.pop("frameon", True),
+        **plt_props,
+    )
+    QDMpy.LOG.debug(f"Adding scalebar with pixel size {pixel_size}")
+    ax.add_artist(scalebar)
+
+
 def plot_quality_data(
     ax: plt.Axes,
     data: np.ndarray,
