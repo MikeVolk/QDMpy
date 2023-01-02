@@ -64,7 +64,7 @@ def esr14n(x, parameter, model):
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
-def esr15n(x, parameter, model):
+def esr14n_folded(x, parameter, model):
     """ESR14N model
 
     Args:
@@ -82,7 +82,33 @@ def esr15n(x, parameter, model):
     """
     AHYP = 0.002158
 
+    center, width, c0, c1, c2, offset = parameter
+    center0 = center + AHYP
+    center1 = center
+    center2 = center - AHYP
+
+    model[:] = - np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] -= np.sum(lorentzian_peak(x+2*AHYP, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] += 1 + offset
+
+@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
+def esr15n(x, parameter, model):
+    """ESR14N model
+
+    Args:
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
+            parameter[0] = center
+            parameter[1] = width
+            parameter[2] = contrast
+            parameter[3] = contrast
+            parameter[4] = offset
+
+    Returns:
+        np.ndarray: y values
+    """
     AHYP = 0.0015
+
     center, width, c0, c1, offset = parameter
     center0 = center + AHYP
     center1 = center - AHYP
@@ -221,9 +247,9 @@ def full_model(model, freqs, parameters):
         raise ValueError("Model not implemented")
 
     low_f_data = model(freqs[: len(freqs) // 2], parameters)
-    high_f_data = model(freqs[len(freqs) // 2 :], parameters)
+    high_f_data = model(freqs[len(freqs) // 2:], parameters)
 
-    return np.concatenate((low_f_data, high_f_data), axis=1)
+    return np.concatenate((low_f_data, high_f_data), axis=-1)
 
 
 def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
