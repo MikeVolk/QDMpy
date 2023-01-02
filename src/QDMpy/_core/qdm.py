@@ -258,7 +258,13 @@ class QDM:
 
         """
         if bin_factor == self.bin_factor:
+            self.LOG.info(f"bin_factor is already set to the desired value of << {bin_factor} >>")
             return
+        elif bin_factor < self.odmr._pre_bin_factor:
+            raise ValueError(
+                f"bin_factor {bin_factor} is smaller than pre_bin_factor {self.odmr._pre_bin_factor}"
+            )
+
         self.odmr.bin_data(bin_factor=bin_factor)
         self._fit.data = self.odmr.data
         if self._fit.fitted:
