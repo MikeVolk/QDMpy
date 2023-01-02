@@ -1,3 +1,10 @@
+# plotting.py
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from QDMpy._core.qdm import QDM
+
 import itertools
 from typing import Any, Optional, Tuple, Union
 
@@ -10,7 +17,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import QDMpy
 from QDMpy._core import models
-from QDMpy._core.qdm import QDM
 from QDMpy.utils import double_norm
 
 MUT = "μT"
