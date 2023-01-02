@@ -4,6 +4,7 @@ from itertools import product
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import numpy as np
+from pypole.convert import dim2xyz
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QScreen
 from PySide6.QtWidgets import (
@@ -16,12 +17,14 @@ from PySide6.QtWidgets import (
     QSlider,
     QVBoxLayout,
     QWidget,
+    QCheckBox,
 )
-from pypole.convert import dim2xyz
 
 from QDMpy._core.convert import b2shift, freq2b, project
 from QDMpy._core.models import esr15n
 from QDMpy.app.canvas import FrequencyToolCanvas
+from QDMpy._core.convert import b2shift, freq2b, project
+from QDMpy import utils
 
 ZFS = 2.87
 
@@ -61,6 +64,7 @@ class FrequencySelectWidget(QMainWindow):
         top_layout.addLayout(top_grid)
 
         self.add_measurement_range_selector(top_grid, 1)
+        self.add_visibility_boxes(top_grid, 4)
         self.add_row_header(top_grid)
         self.add_bias_field_setter(top_grid, 1)
         self.add_source_field_setter(top_grid, 4)
@@ -75,7 +79,7 @@ class FrequencySelectWidget(QMainWindow):
 
         self.nvs = {
             0: {
-                "lines": [None, None],
+                "line": None,
                 "field": 0.0,
                 "resonance": [ZFS, ZFS],
                 "width": 0.002,
@@ -87,37 +91,37 @@ class FrequencySelectWidget(QMainWindow):
                 "direction": [1, -1, -1],
             },
             1: {
-                "lines": [None, None],
+                "line": None,
                 "field": 0.0,
                 "resonance": [ZFS, ZFS],
                 "width": 0.002,
                 "contrast": 0.02,
                 "color": "C01",
-                "label": "NV 2",
+                "label": "NV2",
                 "data": [None, None],
                 "text": [None, None],
                 "direction": [-1, -1, 1],
             },
             2: {
-                "lines": [None, None],
+                "line": None,
                 "field": 0.0,
                 "resonance": [ZFS, ZFS],
                 "width": 0.002,
                 "contrast": 0.02,
                 "color": "C02",
-                "label": "NV  3",
+                "label": "NV3",
                 "data": [None, None],
                 "text": [None, None],
                 "direction": [1, 1, 1],
             },
             3: {
-                "lines": [None, None],
+                "line": None,
                 "field": 0.0,
                 "resonance": [ZFS, ZFS],
                 "width": 0.002,
                 "contrast": 0.02,
                 "color": "C03",
-                "label": "NV   4",
+                "label": "NV4",
                 "data": [None, None],
                 "text": [None, None],
                 "direction": [-1, 1, -1],
@@ -162,7 +166,7 @@ class FrequencySelectWidget(QMainWindow):
             layout.addWidget(label, i + 1, col)
 
         # column header
-        for i, key in enumerate(["f1 [MHz]", "f2 [MHz]", "B", "width [MHz]", "c [%]"]):
+        for i, key in enumerate(["f1 [MHz]", "f2 [MHz]", f"B [{MUT}]", "width [MHz]", "c [%]", "show"]):
             label = QLabel(key)
             label.setAlignment(Qt.AlignCenter | Qt.AlignHCenter)
             layout.addWidget(label, 0, col + i + 1)
@@ -202,16 +206,43 @@ class FrequencySelectWidget(QMainWindow):
         for i, contrast in enumerate(self.contrast_boxes):
             layout.addWidget(contrast, i + 1, col + 5)
 
+        # add contrast Show to the group box
+        self.visibility_boxes = [
+            CheckBox("", self.update_visibility, False),
+            CheckBox("", self.update_visibility, False),
+            CheckBox("", self.update_visibility, False),
+            CheckBox("", self.update_visibility, False),
+        ]
+
+        for i, box in enumerate(self.visibility_boxes):
+            layout.addWidget(box, i + 1, col + 6)
+
     def add_measurement_range_selector(self, layout, col):
         # add the measurement range selector
         range_layout, self.range_box = BoxSlider(500, 0, 1, 0, 5000, self.update_plot)
         layout.addLayout(range_layout, 0, col + 1)
 
+    def add_visibility_boxes(self, layout, col):
+        # add the measurement range selector
+        self.range_visibility = CheckBox(
+            "", [self.update_range_text_visibilities, self.update_range_visibility], False
+        )
+        self.measure_range_visibility = CheckBox("NV1", self.update_range_visibility, False)
+        self.danger_range_visibility = CheckBox("NV2-NV4", self.update_range_visibility, True)
+
+        layout.addWidget(self.range_visibility, 0, col+1)
+        layout.addWidget(self.measure_range_visibility, 0, col + 2)
+        layout.addWidget(self.danger_range_visibility, 0, col + 3)
+
     def add_row_header(self, layout):
-        range_label = QLabel("Range")
-        dec_label = QLabel("Dec")
-        inc_label = QLabel("Inc")
-        field_label = QLabel("Field")
+        range_label = QLabel(f"Range [{MUT}]")
+        range_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+        dec_label = QLabel("Dec [°]")
+        dec_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+        inc_label = QLabel("Inc [°]")
+        inc_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+        field_label = QLabel(f"Field [{MUT}]")
+        field_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
         # row header
         layout.addWidget(range_label, 0, 0)
         layout.addWidget(dec_label, 2, 0)
@@ -325,24 +356,50 @@ class FrequencySelectWidget(QMainWindow):
         for nv in self.nvs:
             self.update_nv_dict(nv, "contrast", self.contrast_boxes[nv].value() / 100)
 
+    def update_visibility(self):
+        for nv in self.nvs:
+            line = self.nvs[nv]["line"]
+            self.LOG.debug(f"updating visibility of {line}")
+            line.set_visible(self.visibility_boxes[nv].isChecked())
+        self.canvas.draw_idle()
+
+    def update_range_text_visibilities(self):
+        for txt in self.nv_span_text:
+            if txt is not None:
+                txt.set_visible(self.range_visibility.isChecked())
+
+    def update_range_visibility(self):
+        for i, span in enumerate(self.nv_span):
+            if span is None:
+                continue
+            self.LOG.debug(f"updating visibility of {span}")
+            span.set_visible(self.range_visibility.isChecked())
+
+        self.danger_span[1].set_visible(self.danger_range_visibility.isChecked())
+        self.danger_span[2].set_visible(self.measure_range_visibility.isChecked())
+
+        self.canvas.draw_idle()
+
     def update_nv_lines(self):
         self.LOG.debug("Updating NV lines")
         for nv in self.nvs:
-            for i, line in enumerate(self.nvs[nv]["lines"]):
-                if line is None:
-                    self.LOG.debug(f"line {i} is None setting initial line")
-                    l = self.canvas.ax.plot(
-                        self.frequencies[i],
-                        self.nvs[nv]["data"][i],
-                        label=self.nvs[nv]["label"].replace(" ", "") if i == 0 else None,
-                        color=self.nvs[nv]["color"],
-                        alpha=1,
-                        ls="--",
-                        lw=0.5,
-                    )
-                    self.nvs[nv]["lines"][i] = l[0]
-                else:
-                    line.set_data(self.frequencies[i], self.nvs[nv]["data"][i])
+            line = self.nvs[nv]["line"]
+            data = np.min(self.nvs[nv]["data"], axis=0)
+            if line is None:
+                self.LOG.debug(f"line is None setting initial line")
+                l = self.canvas.ax.plot(
+                    self.frequencies[0],
+                    data,
+                    label=self.nvs[nv]["label"].replace(" ", ""),
+                    color=self.nvs[nv]["color"],
+                    alpha=0.9,
+                    ls="--",
+                    lw=0.5,
+                    visible=self.visibility_boxes[nv].isChecked(),
+                )
+                self.nvs[nv]["line"] = l[0]
+            else:
+                line.set_data(self.frequencies[0], data)
 
     def update_nv_data(self):
         self.LOG.debug("Updating NV data")
@@ -363,7 +420,7 @@ class FrequencySelectWidget(QMainWindow):
                 data = esr15n(
                     self.frequencies[i],
                     nv_parameter,
-                )[0]
+                )
 
                 self.nvs[nv]["data"][i] = data
 
@@ -382,7 +439,7 @@ class FrequencySelectWidget(QMainWindow):
                     txt = ax.text(
                         self.nvs[nv]["resonance"][i],
                         1.2,
-                        f"NV$_{nv}$\n |",
+                        f"NV$_{nv+1}$\n |",
                         va="center",
                         ha="center",
                         transform=trans,
@@ -405,6 +462,7 @@ class FrequencySelectWidget(QMainWindow):
                     color="g",
                     alpha=0.1,
                     label="range" if i == 0 else None,
+                    visible=self.range_visibility.isChecked(),
                 )
             else:
                 xy = [
@@ -427,14 +485,7 @@ class FrequencySelectWidget(QMainWindow):
                 self.danger_span[i] = None
 
         if self.danger_span[0] is None:
-            # self.danger_span[0] = self.canvas.ax.axvspan(
-            #     min(self.frequencies[0][min_all_models < self.danger_range]),
-            #     max(self.frequencies[0][min_all_models < self.danger_range]),
-            #     color="r",
-            #     alpha=0.1,
-            #     linewidth=0,
-            #     label="Danger range",
-            # )
+
             self.danger_span[1] = self.canvas.ax.fill_between(
                 self.frequencies[0],
                 np.ones(len(self.frequencies[0])),
@@ -443,6 +494,7 @@ class FrequencySelectWidget(QMainWindow):
                 alpha=0.05,
                 linewidth=0,
                 label="MIN(NV$_{2-4}$) $\\forall$ dec/inc",
+                visible=self.danger_range_visibility.isChecked(),
             )
             self.danger_span[2] = self.canvas.ax.fill_between(
                 self.frequencies[0],
@@ -452,6 +504,7 @@ class FrequencySelectWidget(QMainWindow):
                 alpha=0.1,
                 linewidth=0,
                 label="MIN(NV$_0$) $\\forall$ dec/inc",
+                visible=self.measure_range_visibility.isChecked(),
             )
 
     def update_plot_range_text(self):
@@ -470,8 +523,8 @@ class FrequencySelectWidget(QMainWindow):
                 va="center",
                 ha="center",
                 transform=trans,
-                bbox=dict(facecolor="w", alpha=0.5, edgecolor="none", pad=0),
                 color="k",
+                visible=self.range_visibility.isChecked(),
             )
 
     def update_plot_sum_line(self):
@@ -520,69 +573,71 @@ class FrequencySelectWidget(QMainWindow):
             ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
         """
         self.LOG.debug("Monte Carlo models")
-        # generate the dec/inc combinations at current source field
-        source_dim = self.generate_possible_dim(b_source=self.source_field_slider.value(), n=10)
-        source_xyz = dim2xyz(source_dim)
 
         bias_xyz = dim2xyz(
             np.array([self.bias_dec_slider.value(), self.bias_inc_slider.value(), self.bias_field_slider.value()])
         )
 
-        total_field_xyz = source_xyz + bias_xyz
+        all_models = np.concatenate(
+            [
+                utils.monte_carlo_models(
+                    freqs=self.frequencies[0],
+                    bias_xyz=bias_xyz,
+                    b_source=self.source_field_slider.value(),
+                    nv_direction=self.nvs[nv]["direction"],
+                    width=self.width_boxes[nv].value() / 1000,
+                    contrast=self.contrast_boxes[nv].value() / 100,
+                )
+                for nv in nv_indices
+            ]
+        )
 
-        all_models = []
-
-        for b in total_field_xyz:
-            all_nv_model = []
-
-            # iterate over all NV axes
-            for nv in self.nvs:
-                # skip NV axes that are not in the list of NV axes to be considered
-                if nv not in nv_indices:
-                    continue
-
-                # calculate the model for the current NV axis
-                # for both field ranges (i.e. +/- field shift)
-                for i in range(2):
-                    # determine projected field on NV axis
-                    projected_field = project(b, self.nvs[nv]["direction"])
-                    parameters = np.array(
-                        [
-                            ZFS + [1, -1][i] * b2shift(projected_field, in_unit="microT", out_unit="GHz"),
-                            self.width_boxes[nv].value() / 1000,
-                            self.contrast_boxes[nv].value() / 100,
-                            self.contrast_boxes[nv].value() / 100,
-                            0,
-                        ]
-                    )
-                    nv_model = esr15n(self.frequencies[i], parameters)[0]
-                    all_nv_model.append(nv_model)
-
-            all_nv_model = np.sum(all_nv_model, axis=0)
-            all_nv_model -= np.max(all_nv_model)
-            all_nv_model += 1
-
-            all_models.append(all_nv_model)
-
-        return np.reshape(all_models, (-1, len(self.frequencies[0])))
-
-    def generate_possible_dim(self, b_source, n=10):
-        """Generates a set of dec/inc combinations for a given source field.
-
-        Args:
-            b_source (float): The source field in microTesla.
-            n (int, optional): The number of dec/inc combinations to generate. Defaults to 10.
-
-        Returns:
-            ndarray: The generated dec/inc combinations.
-        """
-
-        dec = np.linspace(0, 360, n)
-        inc = np.linspace(-90, 90, n)
-        di = np.array(list(product(dec, inc)))
-        source_dim = np.stack([di[:, 0], di[:, 1], np.ones(di.shape[0]) * b_source])
-
-        return source_dim.T
+        return all_models
+        # # generate the dec/inc combinations at current source field
+        # source_dim = utils.generate_possible_dim(b_source=self.source_field_slider.value(), n=10)
+        # source_xyz = dim2xyz(source_dim)
+        #
+        # bias_xyz = dim2xyz(
+        #     np.array([self.bias_dec_slider.value(), self.bias_inc_slider.value(), self.bias_field_slider.value()])
+        # )
+        #
+        # total_field_xyz = source_xyz + bias_xyz
+        #
+        # all_models = []
+        #
+        # for b in total_field_xyz:
+        #     all_nv_model = []
+        #
+        #     # iterate over all NV axes
+        #     for nv in self.nvs:
+        #         # skip NV axes that are not in the list of NV axes to be considered
+        #         if nv not in nv_indices:
+        #             continue
+        #
+        #         # calculate the model for the current NV axis
+        #         # for both field ranges (i.e. +/- field shift)
+        #         for i in range(2):
+        #             # determine projected field on NV axis
+        #             projected_field = project(b, self.nvs[nv]["direction"])
+        #             parameters = np.array(
+        #                 [
+        #                     ZFS + [1, -1][i] * b2shift(projected_field, in_unit="microT", out_unit="GHz"),
+        #                     self.width_boxes[nv].value() / 1000,
+        #                     self.contrast_boxes[nv].value() / 100,
+        #                     self.contrast_boxes[nv].value() / 100,
+        #                     0,
+        #                 ]
+        #             )
+        #             nv_model = esr15n(self.frequencies[i], parameters)
+        #             all_nv_model.append(nv_model)
+        #
+        #     all_nv_model = np.sum(all_nv_model, axis=0)
+        #     all_nv_model -= np.max(all_nv_model)
+        #     all_nv_model += 1
+        #
+        #     all_models.append(all_nv_model)
+        #
+        # return np.reshape(all_models, (-1, len(self.frequencies[0])))
 
 
 def BoxSlider(value, decimals, step, vmin, vmax, callback, suffix=None):
@@ -616,6 +671,18 @@ def BoxSlider(value, decimals, step, vmin, vmax, callback, suffix=None):
     hlayout.addWidget(slider, alignment=Qt.AlignLeft)
     hlayout.setContentsMargins(0, 0, 0, 0)
     return hlayout, slider
+
+
+def CheckBox(text, callback, checked=False):
+    callback = np.atleast_1d(callback)
+
+    checkbox = QCheckBox(text)
+    checkbox.setChecked(checked)
+
+    for cb in callback:
+        checkbox.stateChanged.connect(cb)
+
+    return checkbox
 
 
 def DoubleSpinBox(value, decimals, step, vmin, vmax, callback):
@@ -669,3 +736,5 @@ def main(**kwargs):
 
 if __name__ == "__main__":
     main()
+
+from QDMpy import utils
