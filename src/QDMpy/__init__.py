@@ -31,16 +31,16 @@ fileConfig(logging_conf)
 
 LOG = logging.getLogger("QDMpy")
 
-import coloredlogs
-
-coloredlogs.install(
-    level="DEBUG",
-    fmt="%(asctime)s %(levelname)8s %(name)s.%(funcName)s >> %(message)s",
-    datefmt="%H:%M:%S",
-    stream=sys.stdout,
-    logger=LOG,
-    isatty=True,
-)
+# import coloredlogs
+#
+# coloredlogs.install(
+#     level="DEBUG",
+#     fmt="%(asctime)s %(levelname)8s %(name)s.%(funcName)s >> %(message)s",
+#     datefmt="%H:%M:%S",
+#     stream=sys.stdout,
+#     logger=LOG,
+#     isatty=True,
+# )
 
 LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
