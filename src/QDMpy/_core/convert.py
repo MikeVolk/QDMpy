@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import pint
-from numba import vectorize, float64, guvectorize
+from numba import float64, guvectorize, vectorize
 from numpy.typing import NDArray
 
 import QDMpy

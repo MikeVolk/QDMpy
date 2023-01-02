@@ -54,11 +54,12 @@ class ODMR:
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,
-            None,
+            None, # spaceholder for binning
             self._apply_outlier_mask,
         ]
 
         self._apply_edit_stack()
+
         self._imported_files = kwargs.pop("imported_files", [])
         self._bin_factor = 1
         self._pre_bin_factor = 1  # in case pre binned data is loaded
@@ -227,8 +228,10 @@ class ODMR:
 
         cls.LOG.info(f"Reading {len(run_files)} run_* files.")
 
+        # initialize the data
         data = None
 
+        # loop over all run files
         for mfile in run_files:
             cls.LOG.debug(f"Reading file {mfile}")
 
@@ -257,6 +260,7 @@ class ODMR:
 
         if n_freqs != len(frequencies):
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
+
         return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)  # type: ignore[arg-type]
 
     @classmethod
@@ -282,7 +286,6 @@ class ODMR:
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-
             img_stack1 = np.concatenate([mat_dict["imgStack1"], mat_dict["imgStack2"]]).T
             img_stack2 = np.concatenate([mat_dict["imgStack3"], mat_dict["imgStack4"]]).T
         return np.stack((img_stack1, img_stack2), axis=0)
@@ -421,7 +424,7 @@ class ODMR:
 
     # edit methods
 
-    def _apply_edit_stack(self, **kwargs: Any) -> None:
+    def _apply_edit_stack(self, **kwargs: Any) -> None: # todo add index of calling method?
         """Apply the edit stack.
 
         Args:
@@ -474,9 +477,6 @@ class ODMR:
         Args:
           method:  (Default value = "max")
           **kwargs:
-
-        Returns:
-
         """
         self._norm_factors = self.get_norm_factors(self.data, method=method)  # type: ignore[assignment]
         self.LOG.debug(f"Normalizing data with method: {method}")
@@ -561,8 +561,8 @@ class ODMR:
         _odmr_binned = block_reduce(
             reshape_data,
             block_size=(1, 1, int(bin_factor), int(bin_factor), 1),
-            func=np.nanmean,
-            cval=np.median(reshape_data),
+            func=np.nanmean, # uses mean
+            cval=np.median(reshape_data), # replaces with median
         )  # bins the data
         self._data_edited = _odmr_binned.reshape(
             self.n_pol, self.n_frange, -1, self.n_freqs
@@ -630,7 +630,7 @@ class ODMR:
         if gf_factor is None:
             gf_factor = self._gf_factor
 
-        self.LOG.debug(f"Correcting for global fluorescence with value {gf_factor}")
+        self.LOG.info(f"Correcting for global fluorescence with value {gf_factor}")
         correction = self.calc_gf_correction(gf=gf_factor)
 
         self._data_edited -= correction[:, :, np.newaxis, :]

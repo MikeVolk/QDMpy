@@ -1,8 +1,9 @@
 import logging
 import os
-from typing import Union, Tuple, Optional, Any
 from copy import deepcopy
+from typing import Any, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.ensemble import IsolationForest
@@ -10,10 +11,11 @@ from sklearn.neighbors import LocalOutlierFactor
 
 import QDMpy
 import QDMpy._core.fit
+from QDMpy import plotting
 from QDMpy._core import models
+from QDMpy._core.convert import toBxyz
 from QDMpy._core.fit import Fit
 from QDMpy._core.odmr import ODMR
-from QDMpy._core.convert import toBxyz
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
@@ -286,7 +288,6 @@ class QDM:
             )
             # set the true bin factor
             self.odmr._pre_bin_factor = bin_factors[0]
-            # self.odmr._img_shape = np.array(self.light.shape)
 
     # global fluorescence related functions
     def correct_glob_fluorescence(self, glob_fluo: float) -> None:
