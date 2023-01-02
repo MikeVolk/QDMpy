@@ -76,7 +76,7 @@ class Fit:
         self._reset_fit()
         self._constraints = (
             self._set_initial_constraints()
-        )  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
+        )  # structure is: type: [float(vmin), float(vmax), str(constraint_type), str(unit)]
 
         self.estimator_id = ESTIMATOR_ID[
             QDMpy.SETTINGS["fit"]["estimator"]
@@ -481,7 +481,8 @@ class Fit:
                 )
                 self._execution_time = np.stack((self._execution_time, results[4]))
 
-            self.LOG.info(f"fit finished in {results[4]:.2f} seconds")
+            self.LOG.info(f"        finished in {results[4]:.2f} seconds")
+
         self._fit_results = np.swapaxes(self._fit_results, 0, 1)  # type: ignore[call-overload]
         self._fitted = True
 
