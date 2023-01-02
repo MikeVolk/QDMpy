@@ -630,6 +630,21 @@ class QDM:
         return (pos_mean_fshift + neg_mean_fshift) / 2
 
     # PLOTTING
+    def plot(self,
+        remanence: bool = True,
+        ax: Union[plt.Axes, None] = None,
+        scalebar: Union[float, None] = None,
+        **plt_props: Any,
+        ) -> plt.Axes:
+        """Plot the B111 map.
+
+        Args:
+            remanence: If True, plot the remanence component, else the induced component.
+            ax: The axes to plot on. If None, create a new figure.
+            scalebar: The length of the scalebar in µm. If None, no scalebar is plotted.
+            **plt_props: Additional properties to pass to the plot
+            """
+        return plotting.qdm(self, remanence, ax, scalebar, **plt_props)
     def rc2idx(self, rc: np.ndarray, ref: str = "data") -> NDArray:
         """Convert the xy coordinates to the index of the data.
 
