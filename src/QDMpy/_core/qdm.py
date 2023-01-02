@@ -173,21 +173,19 @@ class QDM:
         """
         outlier_props["n_jobs"] = -1
         d1 = self.get_param("chi2", reshape=False)
-        d1 = np.sum(d1, axis=tuple(range(0, d1.ndim - 1)))
+        d1 = np.sum(d1, axis=tuple(range(d1.ndim - 1)))
 
         if dtype in self.fit.model_params + self.fit.model_params_unique:
             d2 = self.get_param(dtype, reshape=False)
         else:
             raise ValueError(f"dtype {dtype} not recognized")
 
-        d2 = np.sum(d2, axis=tuple(range(0, d2.ndim - 1)))
+        d2 = np.sum(d2, axis=tuple(range(d2.ndim - 1)))
         data = np.stack([d1, d2], axis=0)
 
         outlier_props["contamination"] = outlier_props.pop("contamination", 0.05)
 
-        if method == "LocalOutlierFactor":
-            clf = LocalOutlierFactor(**outlier_props)
-        elif method == "IsolationForest":
+        if method == "IsolationForest":
             outlier_props = {
                 k: v
                 for k, v in outlier_props.items()
@@ -203,6 +201,8 @@ class QDM:
                 ]
             }
             clf = IsolationForest(**outlier_props)
+        elif method == "LocalOutlierFactor":
+            clf = LocalOutlierFactor(**outlier_props)
         else:
             raise ValueError(f"Method {method} not recognized.")
 
@@ -691,7 +691,11 @@ class QDM:
 
         """
 
-        if dialect == "QDMpy":
+        if dialect == "MMT":
+            raise NotImplementedError("MMT dialect not implemented yet.")
+        elif dialect == "QDMio":
+            return self._extracted_from__save_data_()
+        elif dialect == "QDMpy":
             return {
                 "remanent": self.b111[0],
                 "induced": self.b111[1],
@@ -707,54 +711,46 @@ class QDM:
                 "bin_factor": self.bin_factor,
             }
 
-        elif dialect == "QDMio":
-            neg_diff, pos_diff = self.mean_resonance_distance_ghz
-            b111_remanent, b111_induced = self.b111
-            chi_squares = self.get_param("chi2")
-            chi2_pos1, chi2_pos2 = chi_squares[0]
-            chi2_neg1, chi2_neg2 = chi_squares[1]
-            led_img = self.light
-            laser_img = self.laser
-            pixel_alerts = np.zeros(b111_remanent.shape)
-
-            out = dict(
-                negDiff=neg_diff,
-                posDiff=pos_diff,
-                B111ferro=b111_remanent,
-                B111para=b111_induced,
-                chi2Pos1=chi2_pos1,
-                chi2Pos2=chi2_pos2,
-                chi2Neg1=chi2_neg1,
-                chi2Neg2=chi2_neg2,
-                ledImg=led_img,
-                laser=laser_img,
-                pixelAlerts=pixel_alerts,
-                bin_factor=self.bin_factor,
-                QDMpy_version=QDMpy.__version__,
-            )
-            return out
-
-        elif dialect == "MMT":
-            raise NotImplementedError("MMT dialect not implemented yet.")
         else:
             raise ValueError(f"Dialect {dialect} not supported.")
+
+    # TODO Rename this here and in `_save_data`
+    def _extracted_from__save_data_(self):
+        neg_diff, pos_diff = self.mean_resonance_distance_ghz
+        b111_remanent, b111_induced = self.b111
+        chi_squares = self.get_param("chi2")
+        chi2_pos1, chi2_pos2 = chi_squares[0]
+        chi2_neg1, chi2_neg2 = chi_squares[1]
+        led_img = self.light
+        laser_img = self.laser
+        pixel_alerts = np.zeros(b111_remanent.shape)
+
+        return dict(
+            negDiff=neg_diff,
+            posDiff=pos_diff,
+            B111ferro=b111_remanent,
+            B111para=b111_induced,
+            chi2Pos1=chi2_pos1,
+            chi2Pos2=chi2_pos2,
+            chi2Neg1=chi2_neg1,
+            chi2Neg2=chi2_neg2,
+            ledImg=led_img,
+            laser=laser_img,
+            pixelAlerts=pixel_alerts,
+            bin_factor=self.bin_factor,
+            QDMpy_version=QDMpy.__version__,
+        )
 
 
 def main():
     """ """
+    from QDMpy import plotting
     from QDMpy._core import outlier
 
-    d = QDM.from_qdmio("D:\Dropbox\FOV18x")
-    d.fit_odmr()
-    d.mean_resonance_distance_ghz
-    # d = QDM.from_qdmio(QDMpy.test_data_location())
-    #
-    # d.fit_odmr()
-    # outl = outlier.StatisticsPercentile(d.b111[0], d.get_param('chi2'), d.get_param('width'),
-    #                                     d.get_param('mean_contrast'))
-    # d.bin_data(16)
-    # d.export_mmt("/home/mike/Desktop/test.mmt")
-
-
+    data = QDM.from_qdmio("/media/data/Dropbox/FOV18x")
+    data.bin_data(8)
+    data.correct_glob_fluorescence(0.2)
+    data.fit_odmr()
+    plotting.qdm(data)
 if __name__ == "__main__":
     main()
