@@ -577,11 +577,11 @@ def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> p
     return f
 
 
-# def plot_fluorescence(qdm_obj, f_idx):
-#     # noinspection PyTypeChecker
-#     f, ax = plt.subplots(2, 2, figsize=(9, 5), sharex=True, sharey=True)
-#     f.suptitle(
-#         f"Fluorescence of frequency " f"({qdm_obj.odmr.f_ghz[0, f_idx]:.5f};" f"{qdm_obj.odmr.f_ghz[1, f_idx]:.5f}) GHz"
+def add_cax(ax):
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    original_locator = cax.get_axes_locator()
+    return cax, original_locator
 #     )
 #
 #     vmin = np.min(qdm_obj.odmr.data)
