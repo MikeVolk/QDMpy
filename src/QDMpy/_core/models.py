@@ -82,6 +82,7 @@ def esr15n(x, parameter, model):
     """
     AHYP = 0.002158
 
+    AHYP = 0.0015
     center, width, c0, c1, offset = parameter
     center0 = center + AHYP
     center1 = center - AHYP
@@ -105,14 +106,16 @@ def esr15n_folded(x, parameter, model):
     Returns:
         np.ndarray: y values
     """
-    AHYP = 0.002158
+    AHYP = 0.0015
 
     center, width, c0, c1, offset = parameter
     center0 = center - AHYP
-    center1 = center
-    center2 = center + AHYP
+    center1 = center + AHYP
 
-    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1, center1, center2], width, [c0, c1, c0, c1]), axis=0)
+    model[:] = -np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] -= np.sum(lorentzian_peak(x+2*AHYP, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] += 1 + offset
+
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True,
              target="parallel")
@@ -130,7 +133,6 @@ def esrsingle(x, param, model):
     Returns:
         np.ndarray: y values
     """
-    AHYP = 0.002158
     model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
 
 
