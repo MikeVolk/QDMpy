@@ -582,36 +582,3 @@ def add_cax(ax):
     cax = divider.append_axes("right", size="5%", pad=0.05)
     original_locator = cax.get_axes_locator()
     return cax, original_locator
-#     )
-#
-#     vmin = np.min(qdm_obj.odmr.data)
-#     vmax = 1
-#
-#     d = qdm_obj.odmr["r"]
-#
-#     # low frequency
-#     ax[0, 0].imshow(d[0, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-#     ax[1, 0].imshow(d[1, 0, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-#     # high frequency
-#     ax[0, 1].imshow(d[0, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-#     c = ax[1, 1].imshow(d[1, 1, :, :, f_idx], origin="lower", vmin=vmin, vmax=vmax)
-#
-#     cb = f.colorbar(c, ax=ax[:, 1], shrink=0.97)
-#     cb.ax.set_ylabel("fluorescence intensity")
-#
-#     pol = ["+", "-"]
-#     side = ["l", "h"]
-#     for i, j in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
-#         a = ax[i, j]
-#         a.set_title(rf"B$^{pol[i]}_\mathrm{{{side[j]}f}}$")
-#         a.text(
-#             0.0,
-#             1,
-#             f"{qdm_obj.odmr.f_ghz[j, f_idx]:.5f} GHz",
-#             va="bottom",
-#             ha="left",
-#             transform=a.transAxes,
-#             color="k",
-#             zorder=100,
-#         )
-#     plt.show()
