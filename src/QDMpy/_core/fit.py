@@ -718,27 +718,25 @@ def guess_width_pixel(
 
 @numba.njit(parallel=True, fastmath=True)
 def normalized_cumsum(data: NDArray) -> NDArray:
-    """Guess the width of a ODMR resonance peaks.
+    """ Calculate the normalized cumsum of the data.
 
     Args:
       data: np.array
-    data to guess the width from
-      f_GHz: np.array
-    frequency range of the data
-      data: NDArray: 
+        data to guess the width from
 
     Returns:
-      np.array
-      width of the data
+      normalized (0-1) cumsum of the data
 
     """
-    # width
-    width = np.zeros(data.shape)
-    for p, f in np.ndindex(data.shape[0], data.shape[1]):
-        for px in numba.prange(data.shape[2]):
-            width[p, f, px, :] = normalized_cumsum_pixel(data[p, f, px])
+    data_shape = data.shape
+    # reshape for faster processing
+    data = data.reshape(-1, data_shape[-1])
 
-    return width
+    # initialize array
+    csum = np.zeros(data.shape)
+    for px in numba.prange(data.shape[0]):
+        csum[px, :] = normalized_cumsum_pixel(data[px])
+    return csum.reshape(data_shape)
 
 
 @numba.njit
