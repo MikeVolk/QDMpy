@@ -289,8 +289,12 @@ class Fit:
 
     def set_free_constraints(self) -> None:
         """Set all constraints to be free."""
-        for param in set(self.model_params_unique):
-            self.set_constraints(param, constraint_type="FREE")
+        for param in self.model_params_unique:
+            self.set_constraints(
+                param,
+                constraint_type="FREE",
+                reset_fit=param == self.model_params_unique[-1],
+            )
 
     @property
     def constraints(self) -> Dict[str, List[Union[float, str]]]:
