@@ -108,7 +108,7 @@ class Fit:
         self._reset_fit()
 
     ### MODEL RELATED METHODS ###
-    def guess_model_name(self) -> str:
+    def guess_model_name(self, check=False) -> str:
         """Guess the model name from the data.
 
         Returns:
@@ -116,11 +116,11 @@ class Fit:
         """
 
         data = np.median(self.data, axis=2)
-        n_peaks, doubt, peaks = guess_model(data)
+        n_peaks, doubt, peaks = guess_model(data, check=check)
 
         if doubt:
             self.LOG.warning(
-                "Doubt on the diamond type. Check using `guess_diamond_type('debug')` and set manually if incorrect."
+                "Doubt on the diamond type. Check using `guess_model(True)` and set manually if incorrect."
             )
 
         model = [
