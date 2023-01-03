@@ -288,8 +288,8 @@ def plot_data(
 
     norm = get_color_norm(vmin, vmax)
 
-    plt_props["cmap"] = "RdBu"
-    plt_props["norm"] = norm
+    plt_props["cmap"] = plt_props.get("cmap", "RdBu")
+    plt_props["norm"] = plt_props.get("norm", norm)
     img = update_img(ax, img, data, **plt_props)
     img.set_clim(vmin, vmax)
     return img
