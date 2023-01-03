@@ -62,7 +62,7 @@ class Fit:
         self._data = data
         self.f_ghz = frequencies
         self.LOG.debug(
-            f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies."
+            f"Initializing Fit instance with data: {data.shape} at {frequencies.shape} frequencies."
         )
 
         if model_name == "auto":
@@ -169,7 +169,7 @@ class Fit:
         self._model = models.IMPLEMENTED[model_name]
         self._constraints = self._set_initial_constraints()
 
-        self.LOG.debug(
+        self.LOG.info(
             f"Setting model to {model_name}, resetting all fit results and initial parameters."
         )
         self._reset_fit()
@@ -273,8 +273,8 @@ class Fit:
                 )
         # otherwise set the specific constraint
         else:
-            self.LOG.debug(
-                f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}"
+            self.LOG.info(
+                f"Setting constraints for << {param} >> ({vmin}, {vmax}) with {constraint_type}"
             )
             self._constraints[param] = [
                 vmin,
@@ -348,7 +348,7 @@ class Fit:
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
-        if param in {"chi2", "chi_squares", "chi_squared"}:
+        if param in {"chi2", "chi_squares", "chi_squared", "chi"}:
             return self._chi_squares
         idx = self._param_idx(param)
         if param == "mean_contrast":
@@ -365,7 +365,7 @@ class Fit:
         Returns:
 
         """
-        if parameter == "resonance":
+        if parameter in ["resonance", "res"]:
             parameter = "center"
         if parameter == "mean_contrast":
             parameter = "contrast"
@@ -436,6 +436,7 @@ class Fit:
         self._chi_squares = None
         self._number_iterations = None
         self._execution_time = None
+        self.LOG.info("Fit results have been reset.")
 
     @property
     def fitted(self) -> bool:
@@ -620,7 +621,6 @@ def guess_center(data:NDArray, freq:NDArray) -> NDArray:
     frequency range of the data
 
     Returns:
-      np.array
       center frequency of the data
 
     """
