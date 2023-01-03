@@ -630,3 +630,23 @@ def add_cax(ax):
     cax = divider.append_axes("right", size="5%", pad=0.05)
     original_locator = cax.get_axes_locator()
     return cax, original_locator
+
+
+def add_cbar(ax: plt.Axes, im: mpl.image.AxesImage, label: str = 'B [μT]') :
+    """
+    Add a colorbar to an existing axes.
+
+    Args:
+        ax: The axes to which the colorbar is added.
+        im:  The image object returned by imshow.
+        label:  The label of the colorbar.
+
+    Returns: The colorbar object.
+    """
+    cax, original_locator = add_cax(ax)
+    cbar = plt.colorbar(im, cax=cax, orientation="vertical")
+    cbar.ax.set_ylabel(label)
+    cax.yaxis.set_ticks_position("right")
+    cax.yaxis.set_label_position("right")
+    cax.set_axes_locator(original_locator)
+    return cbar
