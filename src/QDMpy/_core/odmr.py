@@ -675,6 +675,18 @@ class ODMR:
         self.is_gf_corrected = True  # sets the gf corrected flag
         self._gf_factor = gf_factor  # sets the gf factor
 
+    def reset_gf_correction(self):
+        """Reset the global fluorescence correction.
+
+        Returns:
+
+        """
+        print(self.global_factor)
+        if self.global_factor == 0:
+            self.LOG.debug(f"Removing old global fluorescence with value {self.global_factor}")
+            old_correction = self.calc_gf_correction(gf=self.global_factor)
+            self._data_edited += old_correction[:, :, np.newaxis, :]
+
     # noinspection PyTypeChecker
     def check_glob_fluorescence(
         self, gf_factor: Union[float, None] = None, idx: Union[int, None] = None
