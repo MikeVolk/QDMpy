@@ -31,11 +31,11 @@ class ODMR:
         **kwargs: Any,
     ) -> None:
         self.LOG.info("ODMR data object initialized")
-        self.LOG.debug("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
-        self.LOG.debug(f"read parameter shape: data: {data.shape}")
-        self.LOG.debug(f"                      scan_dimensions: {scan_dimensions}")
-        self.LOG.debug(f"                      frequencies: {frequencies.shape}")
-        self.LOG.debug(f"                      n(freqs): {data.shape[-1]}")
+        self.LOG.info("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
+        self.LOG.info(f"read parameter shape: data: {data.shape}")
+        self.LOG.info(f"                      scan_dimensions: {scan_dimensions}")
+        self.LOG.info(f"                      frequencies: {frequencies.shape}")
+        self.LOG.info(f"                      n(freqs): {data.shape[-1]}")
 
         self._raw_data = data
 
