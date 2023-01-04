@@ -51,11 +51,13 @@ class ODMR:
         self._data_edited = np.ones(data.shape)
         self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
+
         self._edit_stack = [
             self.reset_data,
             self._normalize_data,
             None,  # spaceholder for binning
-            self._apply_outlier_mask,
+            None, # spaceholder for outlier removal
+            None, # spaceholder for global correction
         ]
 
         self._apply_edit_stack()
@@ -518,6 +520,9 @@ class ODMR:
         Returns:
 
         """
+
+        self._edit_stack[3] = self._apply_outlier_mask
+
         if outlier_mask is None:
             outlier_mask = self.outlier_mask
 
