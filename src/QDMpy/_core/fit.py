@@ -63,7 +63,7 @@ class Fit:
         self._data = data
         self.f_ghz = frequencies
         self.LOG.debug(
-            f"Initializing Fit instance with data: {self.data.shape} at {frequencies.shape} frequencies."
+            f"Initializing Fit instance with data: {data.shape} at {frequencies.shape} frequencies."
         )
 
         if model_name == "auto":
@@ -109,7 +109,7 @@ class Fit:
         self._reset_fit()
 
     ### MODEL RELATED METHODS ###
-    def guess_model_name(self) -> str:
+    def guess_model_name(self, check=False) -> str:
         """Guess the model name from the data.
 
         Returns:
@@ -117,11 +117,11 @@ class Fit:
         """
 
         data = np.median(self.data, axis=2)
-        n_peaks, doubt, peaks = guess_model(data)
+        n_peaks, doubt, peaks = guess_model(data, check=check)
 
         if doubt:
             self.LOG.warning(
-                "Doubt on the diamond type. Check using `guess_diamond_type('debug')` and set manually if incorrect."
+                "Doubt on the diamond type. Check using `guess_model(True)` and set manually if incorrect."
             )
 
         model = [
@@ -170,7 +170,7 @@ class Fit:
         self._model = models.IMPLEMENTED[model_name]
         self._constraints = self._set_initial_constraints()
 
-        self.LOG.debug(
+        self.LOG.info(
             f"Setting model to {model_name}, resetting all fit results and initial parameters."
         )
         self._reset_fit()
@@ -274,8 +274,8 @@ class Fit:
                 )
         # otherwise set the specific constraint
         else:
-            self.LOG.debug(
-                f"Setting constraints for {param}: ({vmin}, {vmax}) with {constraint_type}"
+            self.LOG.info(
+                f"Setting constraints for << {param} >> ({vmin}, {vmax}) with {constraint_type}"
             )
             self._constraints[param] = [
                 vmin,
@@ -290,8 +290,12 @@ class Fit:
 
     def set_free_constraints(self) -> None:
         """Set all constraints to be free."""
-        for param in set(self.model_params_unique):
-            self.set_constraints(param, constraint_type="FREE")
+        for param in self.model_params_unique:
+            self.set_constraints(
+                param,
+                constraint_type="FREE",
+                reset_fit=param == self.model_params_unique[-1],
+            )
 
     @property
     def constraints(self) -> Dict[str, List[Union[float, str]]]:
@@ -345,7 +349,7 @@ class Fit:
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
-        if param in {"chi2", "chi_squares", "chi_squared"}:
+        if param in {"chi2", "chi_squares", "chi_squared", "chi"}:
             return self._chi_squares
         idx = self._param_idx(param)
         if param == "mean_contrast":
@@ -362,7 +366,7 @@ class Fit:
         Returns:
 
         """
-        if parameter == "resonance":
+        if parameter in ["resonance", "res"]:
             parameter = "center"
         if parameter == "mean_contrast":
             parameter = "contrast"
@@ -433,6 +437,7 @@ class Fit:
         self._chi_squares = None
         self._number_iterations = None
         self._execution_time = None
+        self.LOG.info("Fit results have been reset.")
 
     @property
     def fitted(self) -> bool:
@@ -617,7 +622,6 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
     frequency range of the data
 
     Returns:
-      np.array
       center frequency of the data
 
     """
@@ -715,27 +719,25 @@ def guess_width_pixel(
 
 @numba.njit(parallel=True, fastmath=True)
 def normalized_cumsum(data: NDArray) -> NDArray:
-    """Guess the width of a ODMR resonance peaks.
+    """ Calculate the normalized cumsum of the data.
 
     Args:
       data: np.array
-    data to guess the width from
-      f_GHz: np.array
-    frequency range of the data
-      data: NDArray:
+        data to guess the width from
 
     Returns:
-      np.array
-      width of the data
+      normalized (0-1) cumsum of the data
 
     """
-    # width
-    width = np.zeros(data.shape)
-    for p, f in np.ndindex(data.shape[0], data.shape[1]):
-        for px in numba.prange(data.shape[2]):
-            width[p, f, px, :] = normalized_cumsum_pixel(data[p, f, px])
+    data_shape = data.shape
+    # reshape for faster processing
+    data = data.reshape(-1, data_shape[-1])
 
-    return width
+    # initialize array
+    csum = np.zeros(data.shape)
+    for px in numba.prange(data.shape[0]):
+        csum[px, :] = normalized_cumsum_pixel(data[px])
+    return csum.reshape(data_shape)
 
 
 @numba.njit
