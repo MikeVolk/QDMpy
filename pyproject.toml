@@ -41,7 +41,7 @@ pygpufit = [{ path = "src/pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", mar
 ]
 pypole = "^0.1.1"
 pint = "^0.20.1"
-PySide6 = "=6.2.0"
+PySide6 = "^6.2.0"
 matplotlib = "^3.5.3"
 matplotlib-scalebar = "^0.8.1"
 superqt = "^0.3.5"
