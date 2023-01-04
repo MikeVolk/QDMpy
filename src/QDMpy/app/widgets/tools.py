@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QScreen
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDoubleSpinBox,
     QGridLayout,
     QHBoxLayout,
@@ -17,14 +18,12 @@ from PySide6.QtWidgets import (
     QSlider,
     QVBoxLayout,
     QWidget,
-    QCheckBox,
 )
 
+from QDMpy import utils
 from QDMpy._core.convert import b2shift, freq2b, project
 from QDMpy._core.models import esr15n
 from QDMpy.app.canvas import FrequencyToolCanvas
-from QDMpy._core.convert import b2shift, freq2b, project
-from QDMpy import utils
 
 ZFS = 2.87
 
@@ -166,7 +165,9 @@ class FrequencySelectWidget(QMainWindow):
             layout.addWidget(label, i + 1, col)
 
         # column header
-        for i, key in enumerate(["f1 [MHz]", "f2 [MHz]", f"B [{MUT}]", "width [MHz]", "c [%]", "show"]):
+        for i, key in enumerate(
+            ["f1 [MHz]", "f2 [MHz]", f"B [{MUT}]", "width [MHz]", "c [%]", "show"]
+        ):
             label = QLabel(key)
             label.setAlignment(Qt.AlignCenter | Qt.AlignHCenter)
             layout.addWidget(label, 0, col + i + 1)
@@ -186,10 +187,38 @@ class FrequencySelectWidget(QMainWindow):
                 layout.addWidget(b, i + 1, col + j + 1)
 
         self.width_boxes = [
-            DoubleSpinBox(1, 1, 0.1, 0, 1000, [self.update_widths, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 1000, [self.update_widths, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 1000, [self.update_widths, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 1000, [self.update_widths, self.update_nv_data, self.update_plot]),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                1000,
+                [self.update_widths, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                1000,
+                [self.update_widths, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                1000,
+                [self.update_widths, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                1000,
+                [self.update_widths, self.update_nv_data, self.update_plot],
+            ),
         ]  # in MHz
 
         for i, width in enumerate(self.width_boxes):
@@ -197,10 +226,38 @@ class FrequencySelectWidget(QMainWindow):
 
         # add contrast Spinboxes to the group box
         self.contrast_boxes = [
-            DoubleSpinBox(1, 1, 0.1, 0, 100, [self.update_contrasts, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 100, [self.update_contrasts, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 100, [self.update_contrasts, self.update_nv_data, self.update_plot]),
-            DoubleSpinBox(1, 1, 0.1, 0, 100, [self.update_contrasts, self.update_nv_data, self.update_plot]),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                100,
+                [self.update_contrasts, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                100,
+                [self.update_contrasts, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                100,
+                [self.update_contrasts, self.update_nv_data, self.update_plot],
+            ),
+            DoubleSpinBox(
+                1,
+                1,
+                0.1,
+                0,
+                100,
+                [self.update_contrasts, self.update_nv_data, self.update_plot],
+            ),
         ]
 
         for i, contrast in enumerate(self.contrast_boxes):
@@ -225,12 +282,18 @@ class FrequencySelectWidget(QMainWindow):
     def add_visibility_boxes(self, layout, col):
         # add the measurement range selector
         self.range_visibility = CheckBox(
-            "", [self.update_range_text_visibilities, self.update_range_visibility], False
+            "",
+            [self.update_range_text_visibilities, self.update_range_visibility],
+            False,
         )
-        self.measure_range_visibility = CheckBox("NV1", self.update_range_visibility, False)
-        self.danger_range_visibility = CheckBox("NV2-NV4", self.update_range_visibility, True)
+        self.measure_range_visibility = CheckBox(
+            "NV1", self.update_range_visibility, False
+        )
+        self.danger_range_visibility = CheckBox(
+            "NV2-NV4", self.update_range_visibility, True
+        )
 
-        layout.addWidget(self.range_visibility, 0, col+1)
+        layout.addWidget(self.range_visibility, 0, col + 1)
         layout.addWidget(self.measure_range_visibility, 0, col + 2)
         layout.addWidget(self.danger_range_visibility, 0, col + 3)
 
@@ -262,17 +325,34 @@ class FrequencySelectWidget(QMainWindow):
         label = QLabel("Source field: ")
 
         source_field_layout, self.source_field_slider = BoxSlider(
-            0, 0, 10, -5000, 5000, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            0,
+            0,
+            10,
+            -5000,
+            5000,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
         source_dec_layout, self.source_dec_slider = BoxSlider(
-            0, 2, 1, 0, 360, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            0,
+            2,
+            1,
+            0,
+            360,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
         source_inc_layout, self.source_inc_slider = BoxSlider(
-            0, 2, 1, -90, 90, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            0,
+            2,
+            1,
+            -90,
+            90,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
 
         # widgets
-        for i, box in enumerate([label, source_dec_layout, source_inc_layout, source_field_layout]):
+        for i, box in enumerate(
+            [label, source_dec_layout, source_inc_layout, source_field_layout]
+        ):
             if i == 0:
                 layout.addWidget(box, i + 1, col + 1, 1, 3, alignment=Qt.AlignLeft)
             else:
@@ -283,17 +363,34 @@ class FrequencySelectWidget(QMainWindow):
         label = QLabel("Bias field:")
 
         bias_field_layout, self.bias_field_slider = BoxSlider(
-            900, 0, 10, 0, 10000, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            900,
+            0,
+            10,
+            0,
+            10000,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
         bias_dec_layout, self.bias_dec_slider = BoxSlider(
-            45, 2, 1, 0, 360, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            45,
+            2,
+            1,
+            0,
+            360,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
         bias_inc_layout, self.bias_inc_slider = BoxSlider(
-            35.3, 2, 1, -90, 90, [self.update_field_shift, self.update_field_shift_labels, self.update_plot]
+            35.3,
+            2,
+            1,
+            -90,
+            90,
+            [self.update_field_shift, self.update_field_shift_labels, self.update_plot],
         )
 
         # widgets
-        for i, box in enumerate([label, bias_dec_layout, bias_inc_layout, bias_field_layout]):
+        for i, box in enumerate(
+            [label, bias_dec_layout, bias_inc_layout, bias_field_layout]
+        ):
             if i == 0:
                 layout.addWidget(box, i + 1, col + 1, 1, 3, alignment=Qt.AlignLeft)
             else:
@@ -424,14 +521,18 @@ class FrequencySelectWidget(QMainWindow):
 
                 self.nvs[nv]["data"][i] = data
 
-        self.nv_sum = np.sum([self.nvs[nv]["data"][i] for nv in self.nvs for i in range(2)], axis=0)
+        self.nv_sum = np.sum(
+            [self.nvs[nv]["data"][i] for nv in self.nvs for i in range(2)], axis=0
+        )
         self.nv_sum -= np.max(self.nv_sum)
         self.nv_sum += 1
 
     def update_plot_nv_text(self):
         self.LOG.debug("updating text")
         ax = self.canvas.ax
-        trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
+        trans = transforms.blended_transform_factory(
+            self.canvas.ax.transData, self.canvas.ax.transAxes
+        )
 
         for nv in self.nvs:
             for i in range(2):
@@ -515,7 +616,9 @@ class FrequencySelectWidget(QMainWindow):
             if txt is not None:
                 txt.remove()
 
-            trans = transforms.blended_transform_factory(self.canvas.ax.transData, self.canvas.ax.transAxes)
+            trans = transforms.blended_transform_factory(
+                self.canvas.ax.transData, self.canvas.ax.transAxes
+            )
             self.nv_span_text[i] = self.canvas.ax.text(
                 ZFS + bias_shift * [1, -1][i],
                 0.1,
@@ -530,7 +633,9 @@ class FrequencySelectWidget(QMainWindow):
     def update_plot_sum_line(self):
         self.LOG.debug("Updating sum line")
         if self.nv_sum_line is None:
-            l = self.canvas.ax.plot(self.frequencies[0], self.nv_sum, label="Spectrum", color="0.1", lw=0.9)
+            l = self.canvas.ax.plot(
+                self.frequencies[0], self.nv_sum, label="Spectrum", color="0.1", lw=0.9
+            )
             self.nv_sum_line = l[0]
         else:
             self.nv_sum_line.set_data(self.frequencies[0], self.nv_sum)
@@ -575,7 +680,13 @@ class FrequencySelectWidget(QMainWindow):
         self.LOG.debug("Monte Carlo models")
 
         bias_xyz = dim2xyz(
-            np.array([self.bias_dec_slider.value(), self.bias_inc_slider.value(), self.bias_field_slider.value()])
+            np.array(
+                [
+                    self.bias_dec_slider.value(),
+                    self.bias_inc_slider.value(),
+                    self.bias_field_slider.value(),
+                ]
+            )
         )
 
         all_models = np.concatenate(

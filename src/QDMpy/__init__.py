@@ -2,12 +2,12 @@ __version__ = "0.1.0a"
 
 import logging
 import os
-import sys
-import tomli
 import shutil
+import sys
 from pathlib import Path
 
 import matplotlib as mpl
+import tomli
 
 mpl.rcParams["figure.facecolor"] = "white"
 

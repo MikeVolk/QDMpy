@@ -1,14 +1,18 @@
-from typing import Tuple, Any
+from typing import Any, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numba import guvectorize, float64
+from numba import float64, guvectorize
 from numpy.typing import NDArray
 
 import QDMpy
 
 
-@guvectorize([(float64[:], float64, float64, float64, float64[:])], "(n),(),(),()->(n)", forceobj=True)
+@guvectorize(
+    [(float64[:], float64, float64, float64, float64[:])],
+    "(n),(),(),()->(n)",
+    forceobj=True,
+)
 def lorentzian_peak(f, center, width, contrast, model):
     """Lorentzian peak
 
@@ -60,7 +64,13 @@ def esr14n(x, parameter, model):
     center1 = center
     center2 = center - AHYP
 
-    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] = (
+        1
+        + offset
+        - np.sum(
+            lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0
+        )
+    )
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
@@ -87,9 +97,15 @@ def esr14n_folded(x, parameter, model):
     center1 = center
     center2 = center - AHYP
 
-    model[:] = - np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
-    model[:] -= np.sum(lorentzian_peak(x+2*AHYP, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] = -np.sum(
+        lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0
+    )
+    model[:] -= np.sum(
+        lorentzian_peak(x + 2 * AHYP, [center0, center1, center2], width, [c0, c1, c2]),
+        axis=0,
+    )
     model[:] += 1 + offset
+
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
 def esr15n(x, parameter, model):
@@ -113,7 +129,11 @@ def esr15n(x, parameter, model):
     center0 = center + AHYP
     center1 = center - AHYP
 
-    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] = (
+        1
+        + offset
+        - np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+    )
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
@@ -139,12 +159,18 @@ def esr15n_folded(x, parameter, model):
     center1 = center + AHYP
 
     model[:] = -np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
-    model[:] -= np.sum(lorentzian_peak(x+2*AHYP, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] -= np.sum(
+        lorentzian_peak(x + 2 * AHYP, [center0, center1], width, [c0, c1]), axis=0
+    )
     model[:] += 1 + offset
 
 
-@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True,
-             target="parallel")
+@guvectorize(
+    [(float64[:], float64[:], float64[:])],
+    "(n),(m)->(n)",
+    forceobj=True,
+    target="parallel",
+)
 def esrsingle(x, param, model):
     """Single Lorentzian model
 
@@ -159,7 +185,9 @@ def esrsingle(x, param, model):
     Returns:
         np.ndarray: y values
     """
-    model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
+    model[:] = (
+        1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
+    )
 
 
 def esrsingle_(x, parameter):
@@ -247,7 +275,7 @@ def full_model(model, freqs, parameters):
         raise ValueError("Model not implemented")
 
     low_f_data = model(freqs[: len(freqs) // 2], parameters)
-    high_f_data = model(freqs[len(freqs) // 2:], parameters)
+    high_f_data = model(freqs[len(freqs) // 2 :], parameters)
 
     return np.concatenate((low_f_data, high_f_data), axis=-1)
 
@@ -270,7 +298,9 @@ def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
 
     # Find the indices of the peaks
     for p, f in np.ndindex(*data.shape[:2]):
-        peaks = find_peaks(-data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"])
+        peaks = find_peaks(
+            -data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
+        )
         indices.append(peaks[0])
         if check:
             (l,) = plt.plot(data[p, f])
