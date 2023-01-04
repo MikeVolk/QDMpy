@@ -686,7 +686,7 @@ class ODMR:
         Returns:
 
         """
-        print(self.global_factor)
+
         if self.global_factor == 0:
             self.LOG.debug(f"Removing old global fluorescence with value {self.global_factor}")
             old_correction = self.calc_gf_correction(gf=self.global_factor)
@@ -745,6 +745,8 @@ class ODMR:
                 ax[p, f].legend()
                 # , ylim=(0, 1.5))
                 ax[p, f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]")
+            plt.tight_layout()
+
 
 
 def main() -> None:
