@@ -12,6 +12,7 @@ import tomli
 mpl.rcParams["figure.facecolor"] = "white"
 
 PROJECT_PATH = Path(os.path.abspath(__file__)).parent
+TEST_DATA_PATH = PROJECT_PATH.parents[1] / "tests" / "data"
 CONFIG_PATH = Path().home() / ".config" / "QDMpy"
 CONFIG_FILE = CONFIG_PATH / "config.ini"
 CONFIG_INI = PROJECT_PATH / "config.ini"
