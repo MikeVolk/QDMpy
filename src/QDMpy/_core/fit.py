@@ -2,7 +2,7 @@ import logging
 import os.path
 from collections.abc import Callable
 from pathlib import Path
-from typing import List, Tuple, Union, Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numba
 import numpy as np
@@ -37,7 +37,8 @@ if __name__ == "__main__":
 
 
 class Fit:
-    """ Fitting class to calculate the fit parameters and the fit results from a QDM measurement. """
+    """Fitting class to calculate the fit parameters and the fit results from a QDM measurement."""
+
     LOG = logging.getLogger(__name__)
 
     def __init__(
@@ -88,12 +89,12 @@ class Fit:
 
     @property
     def data(self) -> NDArray:
-        """ Return the data to fit. """
+        """Return the data to fit."""
         return self._data
 
     @data.setter
     def data(self, data: NDArray) -> None:
-        """ Setter for the data to fit.
+        """Setter for the data to fit.
 
         Args:
           data: 3D array of the data to fit.
@@ -112,7 +113,7 @@ class Fit:
         """Guess the model name from the data.
 
         Returns:
-          str: Name of the model.    
+          str: Name of the model.
         """
 
         data = np.median(self.data, axis=2)
@@ -136,17 +137,17 @@ class Fit:
 
     @property
     def model_func(self) -> Callable:
-        """ Return the model function. """
+        """Return the model function."""
         return self._model["func"]
 
     @property
     def model_params(self) -> List[str]:
-        """ Return the model parameters. """
+        """Return the model parameters."""
         return self._model["params"]
 
     @property
     def model(self) -> dict:
-        """ Return the model dictionary. """
+        """Return the model dictionary."""
         return self._model
 
     @property
@@ -156,7 +157,7 @@ class Fit:
 
     @model_name.setter
     def model_name(self, model_name: str) -> None:
-        """ Setter for the model name.
+        """Setter for the model name.
 
         Args:
           model_name: Name of the model to fit.
@@ -177,7 +178,7 @@ class Fit:
 
     @property
     def model_id(self) -> int:
-        """ Return the model id. """
+        """Return the model id."""
         return self._model["model_id"]
 
     @property
@@ -203,13 +204,13 @@ class Fit:
 
     @property
     def n_parameter(self) -> int:
-        """ Return the number of parameters. """
+        """Return the number of parameters."""
         return len(self.model_params)
 
     ### INITIAL PARAMETER RELATED METHODS ###
     @property
     def initial_parameter(self) -> Union[NDArray, None]:
-        """ Return the initial parameter. """
+        """Return the initial parameter."""
         if self._initial_parameter is None:
             self._initial_parameter = self.get_initial_parameter()
         return self._initial_parameter
@@ -298,14 +299,14 @@ class Fit:
 
     @property
     def constraints(self) -> Dict[str, List[Union[float, str]]]:
-        """ Return a dictionary of the constraints. """
+        """Return a dictionary of the constraints."""
         return self._constraints
 
     def get_constraints_array(self, n_pixel: int) -> NDArray:
         """
 
         Args:
-          n_pixel: int: 
+          n_pixel: int:
 
         Returns:
           :return: np.array
@@ -341,7 +342,7 @@ class Fit:
         """Get the value of a parameter reshaped to the image dimesions.
 
         Args:
-          param: str: 
+          param: str:
 
         Returns:
 
@@ -360,7 +361,7 @@ class Fit:
 
         Args:
           parameter: return:
-          parameter: str: 
+          parameter: str:
 
         Returns:
 
@@ -501,9 +502,9 @@ class Fit:
           freq: array of size (n_freqs) of the frequencies
           initial_parameters: initial guess for the fit, an array of size (n_pol * n_pixel, 2 * n_param) of
         the initial parameters
-          data: NDArray: 
-          freq: NDArray: 
-          initial_parameters: NDArray: 
+          data: NDArray:
+          freq: NDArray:
+          initial_parameters: NDArray:
 
         Returns:
           fit_results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
@@ -543,7 +544,7 @@ class Fit:
 
         Args:
           results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
-          results: List[NDArray]: 
+          results: List[NDArray]:
 
         Returns:
           results: results consist of: parameters, states, chi_squares, number_iterations, execution_time
@@ -565,7 +566,7 @@ class Fit:
 
         Args:
           result: array of size (n_pol * n_pixel, -1) of the fitted parameters
-          result: NDArray: 
+          result: NDArray:
 
         Returns:
           result: array of size (n_pol, n_pixel, -1) of the fitted parameters
@@ -600,7 +601,7 @@ def guess_contrast_pixel(data: NDArray) -> float:
     """
 
     Args:
-      data: 
+      data:
 
     Returns:
 
@@ -611,7 +612,7 @@ def guess_contrast_pixel(data: NDArray) -> float:
 
 
 @numba.njit(parallel=True, fastmath=True)
-def guess_center(data:NDArray, freq:NDArray) -> NDArray:
+def guess_center(data: NDArray, freq: NDArray) -> NDArray:
     """Guess the center frequency of ODMR data.
 
     Args:
@@ -641,8 +642,8 @@ def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
     data to guess the center frequency from
       freq: np.array
     frequency range of the data
-      pixel: NDArray: 
-      freq: NDArray: 
+      pixel: NDArray:
+      freq: NDArray:
 
     Returns:
       np.array
@@ -667,10 +668,10 @@ def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDAr
     minimum value of normalized cumsum to be considered
       vmax: float
     maximum value of normalized cumsum to be considered
-      data: NDArray: 
-      f_ghz: NDArray: 
-      vmin: float: 
-      vmax: float: 
+      data: NDArray:
+      f_ghz: NDArray:
+      vmin: float:
+      vmax: float:
 
     Returns:
       np.array
@@ -698,15 +699,15 @@ def guess_width_pixel(
     data to guess the width from
       freq: np.array
     frequency range of the data
-      pixel: NDArray: 
-      freq: NDArray: 
-      vmin: float: 
-      vmax: float: 
+      pixel: NDArray:
+      freq: NDArray:
+      vmin: float:
+      vmax: float:
 
     Returns:
       np.array
       width of the data
-      
+
       Raises ValueError if the number of peaks is not 1, 2 or 3.
 
     """
@@ -740,16 +741,16 @@ def normalized_cumsum(data: NDArray) -> NDArray:
 
 
 @numba.njit
-def normalized_cumsum_pixel(pixel:NDArray) -> NDArray:
+def normalized_cumsum_pixel(pixel: NDArray) -> NDArray:
     """Calculate the normalized cumulative sum of the data.
 
     Args:
       data(NDArray): Data to calculate the normalized cumulative sum of.
-      pixel: 
+      pixel:
 
     Returns:
 
-    
+
     """
     pixel = np.cumsum(pixel - 1)
     pixel -= np.min(pixel)
@@ -769,10 +770,10 @@ def make_dummy_data(
     Args:
       model: str:  (Default value = "esr14n")
       n_freqs: int:  (Default value = 50)
-      scan_dimensions: Union[Tuple[int: 
-      int]: 
+      scan_dimensions: Union[Tuple[int:
+      int]:
       None]:  (Default value = (120)
-      190): 
+      190):
       shift: float:  (Default value = 0)
       noise: float:  (Default value = 0)
 
@@ -835,11 +836,11 @@ def make_parameter_array(
     parameter array
       params: dict
     parameter dictionary
-      c0: float: 
-      n_params: int: 
-      p: NDArray: 
-      params: Dict[int: 
-      List[float]]: 
+      c0: float:
+      n_params: int:
+      p: NDArray:
+      params: Dict[int:
+      List[float]]:
 
     Returns:
       np.array
@@ -856,9 +857,9 @@ def write_test_qdmio_file(path: Union[str, os.PathLike], **kwargs: Any) -> None:
     """
 
     Args:
-      path: Union[str: 
-      os.PathLike]: 
-      **kwargs: Any: 
+      path: Union[str:
+      os.PathLike]:
+      **kwargs: Any:
 
     Returns:
 

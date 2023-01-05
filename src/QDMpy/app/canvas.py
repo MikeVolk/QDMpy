@@ -26,7 +26,7 @@ class FrequencyToolCanvas(FigureCanvas):
         self.ax.set_xlabel("Frequency (GHz)")
         self.axb.set_xlabel("B$_{\mathrm{equivalent}}$ [mT]")
         self.ax.set_ylabel("Contrast (a.u.)")
-        self.ax.grid(True, ls='--', alpha=0.5)
+        self.ax.grid(True, ls="--", alpha=0.5)
 
         super().__init__(self.fig)
 

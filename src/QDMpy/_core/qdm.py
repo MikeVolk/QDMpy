@@ -13,7 +13,7 @@ import QDMpy
 import QDMpy._core.fit
 from QDMpy import plotting
 from QDMpy._core import models
-from QDMpy._core.convert import toBxyz
+from QDMpy._core.convert import b111_to_bxyz
 from QDMpy._core.fit import Fit
 from QDMpy._core.odmr import ODMR
 from QDMpy.exceptions import CantImportError, WrongFileNumber
@@ -260,7 +260,9 @@ class QDM:
 
         """
         if bin_factor == self.bin_factor:
-            self.LOG.info(f"bin_factor is already set to the desired value of << {bin_factor} >>")
+            self.LOG.info(
+                f"bin_factor is already set to the desired value of << {bin_factor} >>"
+            )
             return
         elif bin_factor < self.odmr._pre_bin_factor:
             raise ValueError(
@@ -560,7 +562,9 @@ class QDM:
 
         """
         resonance = self.get_param("resonance")
-        return (resonance[:, 1] - resonance[:, 0]) / 2 # mean shift from ZFS to resonance position
+        return (
+            resonance[:, 1] - resonance[:, 0]
+        ) / 2  # mean shift from ZFS to resonance position
 
     @property
     def b111(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -597,7 +601,7 @@ class QDM:
         Returns:
             np.ndarray: Bz remanent map
         """
-        return toBxyz(
+        return b111_to_bxyz(
             self.b111_remanent,
             self.pixel_size,
             rotation_angle=rotation_angle,
@@ -612,7 +616,7 @@ class QDM:
         Returns:
             np.ndarray: Bz remanent map
         """
-        return toBxyz(
+        return b111_to_bxyz(
             self.b111_induced,
             self.pixel_size,
             rotation_angle=rotation_angle,
@@ -637,12 +641,13 @@ class QDM:
         return (pos_mean_fshift + neg_mean_fshift) / 2
 
     # PLOTTING
-    def plot(self,
+    def plot(
+        self,
         remanence: bool = True,
         ax: Union[plt.Axes, None] = None,
         scalebar: Union[float, None] = None,
         **plt_props: Any,
-        ) -> plt.Axes:
+    ) -> plt.Axes:
         """Plot the B111 map.
 
         Args:
@@ -650,8 +655,9 @@ class QDM:
             ax: The axes to plot on. If None, create a new figure.
             scalebar: The length of the scalebar in µm. If None, no scalebar is plotted.
             **plt_props: Additional properties to pass to the plot
-            """
+        """
         return plotting.qdm(self, remanence, ax, scalebar, **plt_props)
+
     def rc2idx(self, rc: np.ndarray, ref: str = "data") -> NDArray:
         """Convert the xy coordinates to the index of the data.
 
@@ -774,5 +780,7 @@ def main():
     data.correct_glob_fluorescence(0.2)
     data.fit_odmr()
     plotting.qdm(data)
+
+
 if __name__ == "__main__":
     main()

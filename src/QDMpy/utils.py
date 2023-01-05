@@ -7,8 +7,10 @@ import matplotlib.image as mpimg
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from pypole.convert import dim2xyz, xyz2dim
-from QDMpy._core.convert import project, b2shift
+
+from QDMpy._core.convert import b2shift, project
 from QDMpy._core.models import esr15n
+
 # from QDMpy import QDMpy.CONFIG_FILE, QDMpy.CONFIG_INI, QDMpy.CONFIG_PATH
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +36,9 @@ def millify(n: float, sign: int = 1) -> str:
       human readable string
 
     """
-    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
+    millidx = max(
+        0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3)))
+    )
 
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
@@ -79,12 +83,12 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-        x: np.ndarray,
-        y: np.ndarray,
-        z: np.ndarray,
-        kx: Optional[int] = 3,
-        ky: Optional[int] = 3,
-        order: Optional[Union[None, int]] = None,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    kx: Optional[int] = 3,
+    ky: Optional[int] = 3,
+    order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
@@ -122,7 +126,7 @@ def polyfit2d(
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
         else:
-            arr = coeffs[i, j] * x ** i * y ** j
+            arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
     # do leastsq fitting and return leastsq result
@@ -135,7 +139,9 @@ from itertools import product
 ZFS = 2.87
 
 
-def generate_parameter(projected_shifts: NDArray, width: float, contrast: float) -> Tuple[np.ndarray, np.ndarray]:
+def generate_parameter(
+    projected_shifts: NDArray, width: float, contrast: float
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate the parameter (low/high frange) for the QDMpy simulation.
     Args:
@@ -188,8 +194,12 @@ def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
     projected_fields = project(total_field_xyz, nv_direction)
     projected_shifts = b2shift(projected_fields, in_unit="microT", out_unit="GHz")
 
-    parameters = generate_parameter(projected_shifts=projected_shifts, width=width, contrast=contrast)
-    all_nv_models = [esr15n(freqs, p) for p in parameters]  # calculate left/right spectra
+    parameters = generate_parameter(
+        projected_shifts=projected_shifts, width=width, contrast=contrast
+    )
+    all_nv_models = [
+        esr15n(freqs, p) for p in parameters
+    ]  # calculate left/right spectra
     return np.min(all_nv_models, axis=0)  # returns only the minimum
 
 
@@ -259,8 +269,8 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
 
 
 def get_image(
-        folder: Union[str, bytes, os.PathLike],
-        lst: Sequence[Union[str, bytes, os.PathLike]],
+    folder: Union[str, bytes, os.PathLike],
+    lst: Sequence[Union[str, bytes, os.PathLike]],
 ) -> np.ndarray:
     """Loads an image from a list of files.
 
@@ -279,7 +289,9 @@ def get_image(
     return np.array(img)
 
 
-def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
+def double_norm(
+    data: np.ndarray, axis: Optional[Union[int, None]] = None
+) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:

@@ -11,9 +11,12 @@ UREG = pint.UnitRegistry()
 
 _VECTOR_OR_NONE = Union[Tuple[float, float, float], None]
 
+""" convert.py contains a number of functions used to convert, signals, maps and frequencies. 
+"""
 
-def toBxyz(
-    map: NDArray,
+
+def b111_to_bxyz(
+    bmap: NDArray,
     pixel_size: float = 1.175e-06,
     rotation_angle: float = 0,
     direction_vector: _VECTOR_OR_NONE = None,
@@ -22,12 +25,15 @@ def toBxyz(
     Convert a map measured along the direction u to a Bz map of the sample.
 
     Args:
-        map: 2D array
+        bmap: 2D array
             The map to be converted
         pixel_size: float
             The size of the pixel in the map in m
         rotation_angle: float
             The rotation of the diamond lattice axes around z-axis
+        direction_vector:
+            The direction of the 111 axis with respect to the QDM measurement frame. Default (180°, 35.3°)
+
 
     Returns:
         2D array
@@ -36,12 +42,20 @@ def toBxyz(
 
     unit_vector = get_unit_vector(rotation_angle, direction_vector)
 
-    ypix, xpix = map.shape
+    ypix, xpix = bmap.shape
     step_size = 1 / pixel_size
 
     # these freq. coordinates match the fft algorithm
-    fx = np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)]) * step_size / xpix
-    fy = np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)]) * step_size / ypix
+    fx = (
+        np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)])
+        * step_size
+        / xpix
+    )
+    fy = (
+        np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)])
+        * step_size
+        / ypix
+    )
 
     fgrid_x, fgrid_y = np.meshgrid(fx + 1e-30, fy + 1e-30)
 
@@ -49,7 +63,7 @@ def toBxyz(
     ky = 2 * np.pi * fgrid_y
     k = np.sqrt(kx**2 + ky**2)
 
-    e = np.fft.fft2(map)
+    e = np.fft.fft2(bmap)
 
     x_filter = -1j * kx / k
     y_filter = -1j * ky / k
@@ -63,19 +77,27 @@ def toBxyz(
     return np.stack([map_x.real, map_y.real, map_z.real])
 
 
-def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = None) -> NDArray:
+def get_unit_vector(
+    rotation_angle: float, direction_vector: _VECTOR_OR_NONE = None
+) -> NDArray:
     """
     Get the unit vector of the sample in the lab frame.
 
     Args:
         rotation_angle: float
             The rotation of the diamond lattice axes around z-axis
+        direction_vector:
+            The direction of the 111 axis with respect to the QDM measurement frame. Default (180°, 35.3°)
+
+    Returns:
+        A normalized unit vector in the instrument frame
     """
+
     if direction_vector is None:
         direction_vector = np.array([0, np.sqrt(2 / 3), np.sqrt(1 / 3)])
 
     QDMpy.LOG.info(
-        "Getting unit vector from rotation angle {} along direction vector {}".format(rotation_angle, direction_vector)
+        f"Getting unit vector from rotation angle {rotation_angle} along direction vector {direction_vector}"
     )
 
     alpha = np.rad2deg(rotation_angle)
@@ -92,7 +114,7 @@ def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = N
 
 @vectorize([float64(float64)])
 def _b2shift(b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-    """converts a magnetic field along as single NV-axis into a resonance freq.
+    """converts a magnetic field in Tesla along an NV-axis into a resonance freq.
 
     Args:
         b: magnetic field in T to be converted
@@ -100,15 +122,18 @@ def _b2shift(b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     Returns:
         resonance frequency in GHz
 
+    Note:
+        This function is vectorized and can be used with numpy arrays.
+
     >>> _b2shift([1, 0.1])
-    >>> array([28.024e9 ,  2.8024e9])
+    >>> np.array([28.024e9 ,  2.8024e9])
     """
     return b * 28.024e9  # Hz/T
 
 
 @vectorize([float64(float64)])
-def _shift2b(shift):
-    """converts a resonance freq. shift into a magnetic field along as single NV-axis.
+def _shift2b(shift: Union[float, list, NDArray]):
+    """converts a resonance freq. shift into a magnetic field in Tesla along as single NV-axis.
 
     Args:
         shift: resonance frequency shift in GHz to be converted
@@ -116,8 +141,11 @@ def _shift2b(shift):
     Returns:
         magnetic field in T
 
+    Note:
+        This function is vectorized and can be used with numpy arrays.
+
     >>> _shift2b([1, 0.1])
-    >>> array([0.0356837 , 0.00356837])
+    >>> np.array([0.0356837 , 0.00356837])
     """
     return shift / 28.024e9  # T
 
@@ -134,15 +162,18 @@ def b2shift(b: float, in_unit: str = "T", out_unit: str = "GHz") -> float:
     Returns:
         freq. shift in the unit specified by out_unit
 
+    Note:
+        This function is vectorized and can be used with numpy arrays.
+
     >>> b2shift(1, in_unit='nT', out_unit='Hz')
     >>> 28.024000000000004
     """
-    b = convert_to(b, in_unit, "T")
+    b = convert_to_unit(b, in_unit, "T")
     shift = _b2shift(b)
-    return convert_to(shift, "Hz", out_unit)
+    return convert_to_unit(shift, "Hz", out_unit)
 
 
-def convert_to(value, in_unit, out_unit):
+def convert_to_unit(value, in_unit, out_unit):
     """converts a value from in_unit to out_unit
 
     Args:
@@ -153,7 +184,7 @@ def convert_to(value, in_unit, out_unit):
     Returns:
         converted value
 
-    >>> convert_to(1, 'nT', 'T')
+    >>> convert_to_unit(1, 'nT', 'T')
     >>> 1e-9
     """
     value = UREG.Quantity(value, in_unit)
@@ -180,10 +211,10 @@ def freq2b(freq: float, in_unit: str = "Hz", out_unit: str = "T") -> float:
     >>> freq2b(2.88, in_unit='MHz', out_unit='nT')
     >>> 356.8369968598426
     """
-    ZFS = 2.87e9  # zero-field splitting in Hz
-    # calculate the shift by subtracting the ZFS
-    freq = convert_to(freq, in_unit, "Hz")
-    shift = freq - ZFS
+    zfs = 2.87e9  # zero-field splitting in Hz
+    # calculate the shift by subtracting the zfs
+    freq = convert_to_unit(freq, in_unit, "Hz")
+    shift = freq - zfs
 
     return shift2b(shift, "Hz", out_unit)
 
@@ -202,13 +233,13 @@ def shift2b(shift: float, in_unit: str = "GHz", out_unit: str = "T") -> float:
     >>> shift2b(1, in_unit='MHz', out_unit='mT')
     >>> 0.03571428571428571
     """
-    shift = convert_to(shift, in_unit, "Hz")
+    shift = convert_to_unit(shift, in_unit, "Hz")
     b = _shift2b(shift)  # in T
-    return convert_to(b, "T", out_unit)
+    return convert_to_unit(b, "T", out_unit)
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(n)->()", forceobj=True)
-def project(a, b, c):
+def project(a: NDArray, b: NDArray, c: NDArray):
     """projects vector a onto b and returns the result in c
 
     Args:
@@ -220,67 +251,12 @@ def project(a, b, c):
         1. a and b must have the same shape
         2. you can either pass a single vector or a list of vectors but only for either a or b
            This means that you can either project a single vector onto a list of vectors or
-              project a list of vectors onto a single vector
-    >>> a = np.array([1, 2, 3])
-    >>> b = np.array([1, 1, 1])
-    >>> project(a,b)
-    >>> array([1.5, 1.5, 1.5])
+           project a list of vectors onto a single vector
+    >>> v1 = np.array([1, 2, 3])
+    >>> v2 = np.array([1, 1, 1])
+    >>> project(v1, v2)
+    >>> np.array([1.5, 1.5, 1.5])
     """
     a = np.ascontiguousarray(a)
     b = np.ascontiguousarray(b)
     c[0] = np.dot(a, b) / np.linalg.norm(b)
-
-
-if __name__ == "__main__":
-    a = [1, 1, 1]
-    b = [1, 2, 3]
-    print(project(a, [b,b,a]))
-
-    # import matplotlib.pyplot as plt
-    # from scipy.io import loadmat
-    #
-    # map = loadmat(
-    #     "/Users/mike/Dropbox/data/QDMlab_example_data/data/viscosity/ALH84001-FOV1_VISC_20-20/4x4Binned/B111dataToPlot.mat"
-    # )["B111ferro"]
-    # out = toBz(map, pixel_size=4.70e-6)
-    # print(out)
-    # plt.imshow(out[2])
-
-#         function [Bz] = QDMBzFromBu(Bu, fs, u)
-# %[Bz] = QDMBzFromBu(Bu, fs, u)
-# %   Retrieves the z component of the magnetic field from a QDM map of the u component. It performs
-# %   this operation in the frequency domain.
-# %
-# %   Code by Eduardo A. Lima - (c) 2017
-#
-# %   ----------------------------------------------------------------------------------------------
-# %   Bu     -> u component of the magnetic field measured in a regular planar grid
-# %   fs     -> Sampling frequency in 1/m
-# %   u      -> unit vector representing the field component measured
-# %   ----------------------------------------------------------------------------------------------
-#
-#
-# SHOWGRAPHS = 0; % Set this value to 1 to show frequency response plots, or to 0 otherwise.
-#
-# [SIZEx, SIZEy] = size(Bu);
-# N1 = SIZEx;
-# N2 = SIZEy;
-#
-# f1 = [0:N1 / 2 - 1, -(N1 / 2):-1] * fs / N1; %these freq. coordinates match the fft algorithm
-# f2 = [0:N2 / 2 - 1, -(N2 / 2):-1] * fs / N2;
-#
-# [F2, F1] = meshgrid(f2+1e-30, f1+1e-30);
-#
-# ky = 2 * pi * F1;
-# kx = 2 * pi * F2;
-#
-# k = sqrt(kx.^2+ky.^2);
-#
-#
-# etz = k ./ (u(3) * k - u(2) * 1i * ky - u(1) * 1i * kx); % calculate the filter frequency response associated with the x component
-#
-#
-# e = fft2(Bu, N1, N2);
-#
-# Bz = ifft2(e.*etz, N1, N2, 'symmetric');
-# %Bz=real(ifft2(e.*etz));

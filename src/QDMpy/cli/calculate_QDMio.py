@@ -4,9 +4,10 @@ import argparse
 import sys
 import time
 
+from argdoc import generate_doc
+
 import QDMpy
 from QDMpy._core.qdm import QDM
-from argdoc import generate_doc
 
 
 @generate_doc

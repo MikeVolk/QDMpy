@@ -8,8 +8,12 @@ from numpy.typing import NDArray
 import QDMpy
 
 
-@guvectorize([(float64[:], float64, float64, float64, float64[:])], "(n),(),(),()->(n)", forceobj=True)
-def lorentzian_peak(f:NDArray, center:float64, width:float64, contrast:float64, model:NDArray) -> NDArray:
+@guvectorize(
+    [(float64[:], float64, float64, float64, float64[:])],
+    "(n),(),(),()->(n)",
+    forceobj=True,
+)
+def lorentzian_peak(f, center, width, contrast, model):
     """Lorentzian peak
 
     Calculates a single lorentzian peak.
@@ -60,7 +64,13 @@ def esr14n(x:NDArray, parameter:NDArray, model:NDArray) -> NDArray:
     center1 = center
     center2 = center - AHYP
 
-    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] = (
+        1
+        + offset
+        - np.sum(
+            lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0
+        )
+    )
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
@@ -88,8 +98,13 @@ def esr14n_folded(x:NDArray, parameter:NDArray, model:NDArray) -> NDArray:
     center1 = center
     center2 = center - AHYP
 
-    model[:] = -np.sum(lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
-    model[:] -= np.sum(lorentzian_peak(x + fsec, [center0, center1, center2], width, [c0, c1, c2]), axis=0)
+    model[:] = -np.sum(
+        lorentzian_peak(x, [center0, center1, center2], width, [c0, c1, c2]), axis=0
+    )
+    model[:] -= np.sum(
+        lorentzian_peak(x + 2 * AHYP, [center0, center1, center2], width, [c0, c1, c2]),
+        axis=0,
+    )
     model[:] += 1 + offset
 
 
@@ -115,7 +130,11 @@ def esr15n(x:NDArray, parameter:NDArray, model:NDArray) -> NDArray:
     center0 = center + AHYP
     center1 = center - AHYP
 
-    model[:] = 1 + offset - np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] = (
+        1
+        + offset
+        - np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
+    )
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
@@ -142,12 +161,19 @@ def esr15n_folded(x:NDArray, parameter:NDArray, model:NDArray) -> NDArray:
     center1 = center + AHYP
 
     model[:] = -np.sum(lorentzian_peak(x, [center0, center1], width, [c0, c1]), axis=0)
-    model[:] -= np.sum(lorentzian_peak(x - fsec, [center0, center1], width, [c0, c1]), axis=0)
+    model[:] -= np.sum(
+        lorentzian_peak(x + 2 * AHYP, [center0, center1], width, [c0, c1]), axis=0
+    )
     model[:] += 1 + offset
 
 
-@guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True, target="parallel")
-def esrsingle(x:NDArray, param:NDArray, model:NDArray) -> NDArray:
+@guvectorize(
+    [(float64[:], float64[:], float64[:])],
+    "(n),(m)->(n)",
+    forceobj=True,
+    target="parallel",
+)
+def esrsingle(x, param, model):
     """Single Lorentzian model
 
     Args:
@@ -161,7 +187,9 @@ def esrsingle(x:NDArray, param:NDArray, model:NDArray) -> NDArray:
     Returns:
         np.ndarray: y values
     """
-    model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
+    model[:] = (
+        1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
+    )
 
 
 IMPLEMENTED = {
@@ -244,7 +272,9 @@ def guess_model(data: NDArray, check: bool = False) -> Tuple[int, bool, Any]:
 
     # Find the indices of the peaks
     for p, f in np.ndindex(*data.shape[:2]):
-        peaks = find_peaks(-data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"])
+        peaks = find_peaks(
+            -data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
+        )
         indices.append(peaks[0])
         if check:
             (l,) = plt.plot(data[p, f])
