@@ -260,6 +260,8 @@ class Fit:
             raise ValueError(
                 f"Unknown constraint type: {constraint_type} choose from {CONSTRAINT_TYPES}"
             )
+        elif constraint_type is None:
+            constraint_type = self._constraints[param][2]
 
         # check if parameter is an integer and use it as index of CONTRAINT_TYPES
         if isinstance(constraint_type, int):
