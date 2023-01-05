@@ -3,8 +3,10 @@ import os
 import sys
 from typing import Any, Optional, Sequence, Tuple, Union
 
+import mat73
 import matplotlib.image as mpimg
 import numpy as np
+import scipy.io
 from numpy.typing import ArrayLike, NDArray
 from pypole.convert import dim2xyz, xyz2dim
 
@@ -314,7 +316,22 @@ def double_norm(
     data /= mx
     return data
 
+def loadmat(path):
+    """Loads a Matlab file using the correct function (i.e. scipy.io.loadmat or mat73.loadmat)
+    and returns the raw data.
 
+        Args:
+            data_folder:
+            mfile:
+
+        Returns:
+            raw data
+    """
+    try:
+        raw_data = scipy.io.loadmat(path)
+    except NotImplementedError:
+        raw_data = mat73.loadmat(path)
+    return raw_data
 def main() -> None:
     """Main function."""
     print(millify(0.001, 10))

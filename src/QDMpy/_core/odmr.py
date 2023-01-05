@@ -5,12 +5,10 @@ import re
 from copy import deepcopy
 from typing import Any, Optional, Sequence, Tuple, Union
 
-import mat73
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import ma as ma
 from numpy.typing import ArrayLike, NDArray
-from scipy.io import loadmat
 from skimage.measure import block_reduce
 
 import QDMpy
@@ -245,10 +243,7 @@ class ODMR:
         for mfile in run_files:
             cls.LOG.debug(f"Reading file {mfile}")
 
-            try:
-                raw_data = loadmat(os.path.join(data_folder, mfile))
-            except NotImplementedError:
-                raw_data = mat73.loadmat(os.path.join(data_folder, mfile))
+            raw_data = QDMpy.utils.loadmat(os.path.join(data_folder, mfile))
 
             d = cls._qdmio_stack_data(raw_data)
             data = d if data is None else np.stack((data, d), axis=0)
