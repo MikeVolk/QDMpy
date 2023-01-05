@@ -652,11 +652,11 @@ class QDMpyApp(QMainWindow):
 
     @property
     def _need_marker_update(self):
-        return [w for w in self.widgets if w.needs_marker_update and hasattr(w, "update_marker")]
+        return [w for w in self.widgets if hasattr(w, "needs_marker_update") and w.needs_marker_update]
 
     @property
     def _need_odmr_update(self):
-        return [w for w in self.widgets if w.needs_odmr_update]
+        return [w for w in self.widgets if hasattr(w, "needs_odmr_update") and w.needs_odmr_update]
 
     def update_marker(self):
         self.LOG.debug(f"update_marker in {self._need_marker_update}")
