@@ -787,7 +787,7 @@ class QDMpyApp(QMainWindow):
         self.qdm.bin_data(self.binfactor_select.value())
         if self.qdm.fitted:
             self.qdm.fit_odmr()
-        self._current_idx = self.qdm.odmr.get_most_divergent_from_mean()[-1]
+        self._current_idx = self.qdm.odmr.most_divergent_from_mean()[-1]
         self.update_main_content()
         self._fill_fitconstraints_widget()
 
@@ -871,7 +871,7 @@ class QDMpyApp(QMainWindow):
         self._change_tool_visibility()
         self._fill_info_table()
         # in data coordinates
-        self.set_current_idx(idx=self.qdm.odmr.get_most_divergent_from_mean()[-1])
+        self.set_current_idx(idx=self.qdm.odmr.most_divergent_from_mean()[-1])
         self.file_imported()
         self.update_main_content()
 

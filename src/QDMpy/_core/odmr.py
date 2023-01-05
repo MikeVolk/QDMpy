@@ -205,7 +205,7 @@ class ODMR:
         """
         return QDMpy.utils.idx2rc(idx, self.data_shape)  # type: ignore[arg-type]
 
-    def get_most_divergent_from_mean(self) -> Tuple[int, int]:
+    def most_divergent_from_mean(self) -> Tuple[int, int]:
         """Get the most divergent pixel from the mean in data coordinates."""
         delta = self.delta_mean.copy()
         delta[delta > 0.001] = np.nan
@@ -221,7 +221,13 @@ class ODMR:
           data_folder:
 
         Returns:
+            ODMR instance
 
+        Raises:
+            WrongFileTypeError: if no .mat files are found
+
+        Notes:
+            Filenames starting with '#' are ignored.
         """
 
         files = os.listdir(data_folder)
@@ -267,6 +273,8 @@ class ODMR:
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
 
         return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)  # type: ignore[arg-type]
+
+
 
     @classmethod
     def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
@@ -701,7 +709,7 @@ class ODMR:
 
         """
         if idx is None:
-            idx = self.get_most_divergent_from_mean()[-1]
+            idx = self.most_divergent_from_mean()[-1]
 
         if gf_factor is None:
             gf_factor = self._gf_factor
