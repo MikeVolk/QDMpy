@@ -716,7 +716,7 @@ class ODMR:
 
         new_correct = self.calc_gf_correction(gf=gf_factor)
 
-        f, ax = plt.subplots(2, 2, sharex=False, sharey=True, figsize=(15, 10))
+        f, ax = plt.subplots(2, 2, sharex=False, sharey=True, figsize=(9, 5))
         for p in np.arange(self.n_pol):
             for f in np.arange(self.n_frange):
                 d = self.data[p, f, idx].copy()
@@ -738,7 +738,7 @@ class ODMR:
                     self.f_ghz[f],
                     d + old_correct[p, f] - new_correct[p, f],
                     ".-",
-                    label="corrected",
+                    label=f"corrected (GF={gf_factor})",
                     color=l.get_color(),
                 )
                 ax[p, f].plot(

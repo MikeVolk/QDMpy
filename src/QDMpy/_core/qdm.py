@@ -459,7 +459,7 @@ class QDM:
         Returns:
 
         """
-        cls.LOG.info(f"Initializing QDMpy object from QDMio data in {data_folder}")
+        cls.LOG.info(f"Initializing QDM object from QDMio data in {data_folder}")
         files = os.listdir(data_folder)
         light_files = [f for f in files if "led" in f.lower()]
         laser_files = [f for f in files if "laser" in f.lower()]
@@ -587,7 +587,7 @@ class QDM:
         """
         neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
 
-        # convert to microTesla
+        # convert from GHZ to microTesla
         neg_mean_fshift /= GAMMA
         pos_mean_fshift /= GAMMA
 
