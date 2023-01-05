@@ -926,12 +926,10 @@ class QDMpyApp(QMainWindow):
         self.qdm.export_qdmpy(filename.with_suffix(".b111"))
 
     def debug_call(self):
-        self.on_frequency_select_button_press()
-        # self.import_file(test_data_location())
+        self.import_file(test_data_location())
         # self.on_quick_start_button_press()
         #
-        # if sys.platform != "darwin":
-        #     self.on_fit_button_press()
+        self.on_fit_button_press()
 
 
 def main(**kwargs):
@@ -949,4 +947,4 @@ def main(**kwargs):
 
 
 if __name__ == "__main__":
-    main(debug=False)
+    main(debug=True)
