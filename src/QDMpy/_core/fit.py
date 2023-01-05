@@ -349,11 +349,19 @@ class Fit:
         """
         if not self.fitted:
             raise NotImplementedError("No fit has been performed yet. Run fit_odmr().")
+
         if param in {"chi2", "chi_squares", "chi_squared", "chi"}:
             return self._chi_squares
+        elif param in {"number_iterations", "num", "num_iter"}:
+            return self._number_iterations
+        elif param in {"states", "state"}:
+            return self._states
+
         idx = self._param_idx(param)
+
         if param == "mean_contrast":
             return np.mean(self._fit_results[:, :, :, idx], axis=-1)  # type: ignore[index]
+
         return self._fit_results[:, :, :, idx]  # type: ignore[index]
 
     def _param_idx(self, parameter: str) -> List[int]:
@@ -366,7 +374,7 @@ class Fit:
         Returns:
 
         """
-        if parameter in ["resonance", "res"]:
+        if parameter in {"resonance", "res"}:
             parameter = "center"
         if parameter == "mean_contrast":
             parameter = "contrast"
