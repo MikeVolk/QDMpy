@@ -819,6 +819,41 @@ def normalized_cumsum_pixel(pixel: NDArray) -> NDArray:
     return pixel
 
 
+@guvectorize([(float64[:], float64[:])], "(n)->(n)", target="parallel", nopython=True)
+def normalized_cumsum_vector(pixel_array: np.ndarray, result: np.ndarray) -> None:
+    """
+        Calculate the normalized cumulative sum of the given pixel data using guvectorize.
+
+        Args:
+          pixel_array (np.ndarray): A 1D NumPy array representing the pixel data.
+          result (np.ndarray): A 1D NumPy array where the output normalized cumulative sum will be stored.
+
+        Returns:
+          None: The output is directly stored in the 'result' array.
+
+        Example:
+          >>> pixel_data = np.array([1, 2, 3, 4, 5])
+          >>> normalized_data = normalized_cumsum(pixel_data)
+          >>> print(normalized_data)
+          array([0. , 0.1, 0.3, 0.6, 1. ])
+        """
+    # Calculate the cumulative sum of the input pixel data after subtracting 1
+    pixel_array = np.cumsum(pixel_array - 1)
+
+    # Subtract the minimum value from the pixel array
+    pixel_array -= np.min(pixel_array)
+
+    # Calculate the maximum value of the pixel array
+    max_pixel = np.max(pixel_array)
+
+    # Normalize the pixel array by dividing it by the maximum value, if the maximum value is not zero
+    if max_pixel != 0:
+        pixel_array /= max_pixel
+
+    # Store the result in the 'result' array
+    result[:] = pixel_array
+
+
 def make_dummy_data(
     model: str = "esr14n",
     n_freqs: int = 50,
