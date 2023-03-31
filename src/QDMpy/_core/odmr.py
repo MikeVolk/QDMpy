@@ -260,13 +260,14 @@ class ODMR:
         Notes:
             Filenames starting with '#' are ignored.
         """
-
-        files = os.listdir(data_folder)
-        run_files = [
-            f
-            for f in files
-            if f.endswith(".mat") and "run_" in f and not f.startswith("#")
-        ]
+        with os.scandir(data_folder) as entries:
+            run_files = [
+                entry.name
+                for entry in entries
+                if entry.name.endswith(".mat")
+                   and "run_" in entry.name
+                   and not entry.name.startswith("#")
+            ]
 
         if not run_files:
             raise WrongFileNumber("No run files found in folder.")
@@ -303,19 +304,24 @@ class ODMR:
         if n_freqs != len(frequencies):
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
 
-        return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)  # type: ignore[arg-type]
-
-
+        return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)
 
     @classmethod
     def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
         """Stack the data in the ODMR object.
 
         Args:
-          mat_dict: dictionary containing the data from the QDMio matlab file
+            mat_dict: dictionary containing the data from the QDMio matlab file
 
         Returns:
-            a numpy array containing the data for both frequency ranges
+            A numpy array containing the data for both frequency ranges.
+
+        Raises:
+            ValueError: If the number of image stacks is not 2 or 4.
+
+        Notes:
+            The number of image stacks determines whether the data is in low-frequency mode (50 frequencies) or
+            high-frequency mode (101 frequencies).
 
         """
         n_img_stacks = len([k for k in mat_dict if "imgStack" in k])
@@ -332,14 +338,13 @@ class ODMR:
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug(
-                "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4."
+                "Four ImgStacks found: Stacking data from imgStack1, imgStack2, imgStack3, imgStack4."
             )
-            img_stack1 = np.concatenate(
-                [mat_dict["imgStack1"], mat_dict["imgStack2"]]
-            ).T
-            img_stack2 = np.concatenate(
-                [mat_dict["imgStack3"], mat_dict["imgStack4"]]
-            ).T
+            img_stack1 = np.concatenate([mat_dict["imgStack1"], mat_dict["imgStack2"]]).T
+            img_stack2 = np.concatenate([mat_dict["imgStack3"], mat_dict["imgStack4"]]).T
+        else:
+            raise ValueError(f"Expected 2 or 4 image stacks, got {n_img_stacks}.")
+
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
@@ -406,30 +411,6 @@ class ODMR:
     def img_shape(self) -> NDArray:
         """ """
         return self._img_shape
-
-    @property
-    def n_pixel(self) -> int:
-        """
-
-        Args:
-
-        Returns:
-          :return: int
-
-        """
-        return int(self.data_shape[0] * self.data_shape[1])
-
-    @property
-    def n_freqs(self) -> int:
-        """
-
-        Args:
-
-        Returns:
-          :return: int
-
-        """
-        return self.frequencies.shape[1]
 
     @property
     def frequencies(self) -> NDArray:
