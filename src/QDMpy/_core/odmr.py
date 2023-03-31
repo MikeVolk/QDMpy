@@ -142,31 +142,46 @@ class ODMR:
             return d
 
         # return the data
-        if re.findall("|".join(["data", "d"]), items):
+        if "data" in items or "d" in items:
             return d
 
         # polarities
-        if re.findall("|".join(["pos", re.escape("+")]), items):
+        pidx = []
+        if "+" in items or "pos" in items:
             self.LOG.debug("ODMR: selected positive field polarity")
-            pidx = [0]
-        elif re.findall("|".join(["neg", "-"]), items):
+            pidx.append(0)
+        if "-" in items or "neg" in items:
             self.LOG.debug("ODMR: selected negative field polarity")
-            pidx = [1]
-        else:
+            pidx.append(1)
+        if not pidx:
             pidx = [0, 1]
-
         d = d[pidx]
-        # franges
-        if re.findall("|".join(["low", "l", "<"]), items):
-            self.LOG.debug("ODMR: selected low frequency range")
-            fidx = [0]
-        elif re.findall("|".join(["high", "h", ">"]), items):
-            self.LOG.debug("ODMR: selected high frequency range")
-            fidx = [1]
-        else:
-            fidx = [0, 1]
 
+        # franges
+        fidx = []
+        if "<" in items or "low" in items or "l" in items:
+            self.LOG.debug("ODMR: selected low frequency range")
+            fidx.append(0)
+        if ">" in items or "high" in items or "h" in items:
+            self.LOG.debug("ODMR: selected high frequency range")
+            fidx.append(1)
+        if not fidx:
+            fidx = [0, 1]
         d = d[:, fidx]
+
+        # frequency
+        freq_idx = []
+        for i in item:
+            if isinstance(i, str) and i.startswith("f"):
+                try:
+                    freq = float(i[1:])
+                except ValueError:
+                    self.LOG.warning(f"Invalid frequency index {i}")
+                    continue
+                freq_idx.append(np.argmin(np.abs(self.frequencies_array - freq)))
+        if freq_idx:
+            d = d[:, :, :, :, freq_idx]
+
         return np.squeeze(d)
 
     # index related
