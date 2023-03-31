@@ -15,56 +15,53 @@ import QDMpy
 import QDMpy.utils
 from QDMpy.exceptions import WrongFileNumber
 
-
 class ODMR:
-    """ """
+    """Class for ODMR data object"""
 
     LOG = logging.getLogger(__name__)
 
     def __init__(
         self,
-        data: NDArray,
-        scan_dimensions: NDArray,
-        frequencies: NDArray,
+        data_array: ndarray,
+        scan_dimensions: ndarray,
+        frequencies_array: ndarray,
         **kwargs: Any,
     ) -> None:
         self.LOG.info("ODMR data object initialized")
         self.LOG.info("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
-        self.LOG.info(f"read parameter shape: data: {data.shape}")
+        self.LOG.info(f"read parameter shape: data_array: {data_array.shape}")
         self.LOG.info(f"                      scan_dimensions: {scan_dimensions}")
-        self.LOG.info(f"                      frequencies: {frequencies.shape}")
-        self.LOG.info(f"                      n(freqs): {data.shape[-1]}")
+        self.LOG.info(f"                      frequencies_array: {frequencies_array.shape}")
+        self.LOG.info(f"                      n(freqs): {data_array.shape[-1]}")
 
-        self._raw_data = data
+        self.data_array = data_array
 
-        self.n_pol = data.shape[0]
-        self.n_frange = data.shape[1]
+        self.n_pol = data_array.shape[0]
+        self.n_frange = data_array.shape[1]
 
-        self._frequencies = frequencies
-        self._frequencies_cropped = None
+        self.frequencies_array = frequencies_array
+        self.frequencies_cropped_array = None
 
         self.outlier_mask = None
-        self._img_shape = np.array(scan_dimensions)
+        self.img_shape_array = np.array(scan_dimensions)
 
-        self._data_edited = np.ones(data.shape)
-        self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
+        self.norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
-
-        self._edit_stack = [
+        self.edit_stack = [
             self.reset_data,
-            self._normalize_data,
-            None,  # spaceholder for binning
-            None, # spaceholder for outlier removal
-            None, # spaceholder for global correction
+            self.normalize_data,
+            None,  # placeholder for binning
+            None,  # placeholder for outlier removal
+            None,  # placeholder for global correction
         ]
 
-        self._apply_edit_stack()
+        self.apply_edit_stack()
 
-        self._imported_files = kwargs.pop("imported_files", [])
-        self._bin_factor = 1
-        self._pre_bin_factor = 1  # in case pre binned data is loaded
+        self.imported_files_list: List[str] = kwargs.pop("imported_files", [])
+        self.bin_factor = 1
+        self.pre_bin_factor = 1  # in case pre binned data is loaded
 
-        self._gf_factor = 0.0
+        self.gf_factor = 0.0
 
         self.is_binned = False
         self.is_gf_corrected = False  # global fluorescence correction
@@ -74,10 +71,18 @@ class ODMR:
 
     def __repr__(self) -> str:
         return (
-            f"ODMR(data={self.data.shape}, "
-            f"scan_dimensions={self.data_shape}, n_pol={self.n_pol}, "
+            f"ODMR(data_array={self.data_array.shape}, "
+            f"scan_dimensions={self.img_shape_array}, n_pol={self.n_pol}, "
             f"n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}"
         )
+
+    @property
+    def n_freqs(self) -> int:
+        return self.data_array.shape[-1]
+
+    @property
+    def n_pixel(self) -> int:
+        return self.img_shape_array[0] * self.img_shape_array[1]
 
     def __getitem__(self, item: Union[Sequence[Union[str]], str]) -> NDArray:
         """
@@ -91,6 +96,7 @@ class ODMR:
                       '<' - lower frequency range
                       '>' - higher frequency range
                       'r' - reshape to 2D image (data_shape)
+                      'f{freq}' - data at a specific frequency {freq}
 
         Returns: data of the desired return value
 
@@ -98,6 +104,7 @@ class ODMR:
         ``` py
         >>> odmr['+'] #-> pos. polarization
         >>> odmr['+', '<'] #-> pos. polarization + low frequency range
+        >>> odmr['f1.0'] #-> data at frequency 1.0 GHz
         ```
 
         """
@@ -114,8 +121,10 @@ class ODMR:
         items = ",".join(item)
 
         reshape = bool(re.findall("|".join(["r", "R"]), items))
+
         # get the data
-        d = self.data
+        d = self.data_array
+
         if linear_idx is not None:
             d = d[:, :, linear_idx]
         elif reshape:
@@ -123,8 +132,8 @@ class ODMR:
             d = d.reshape(
                 self.n_pol,
                 self.n_frange,
-                self.data_shape[0],
-                self.data_shape[1],
+                self.img_shape_array[0],
+                self.img_shape_array[1],
                 self.n_freqs,
             )
 
