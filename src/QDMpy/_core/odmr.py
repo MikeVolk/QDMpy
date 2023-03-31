@@ -229,11 +229,18 @@ class ODMR:
         """
         return QDMpy.utils.idx2rc(idx, self.data_shape)  # type: ignore[arg-type]
 
+    THRESHOLD = 0.001
+
     def most_divergent_from_mean(self) -> Tuple[int, int]:
-        """Get the most divergent pixel from the mean in data coordinates."""
+        """
+        Get the most divergent pixel from the mean in data coordinates.
+
+        Returns:
+            A tuple (i, j) representing the coordinates of the most divergent pixel.
+        """
         delta = self.delta_mean.copy()
-        delta[delta > 0.001] = np.nan
-        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)  # type: ignore[return-value]
+        delta[delta > self.THRESHOLD] = np.nan
+        return np.unravel_index(np.nanargmax(delta), delta.shape)
 
     # from methods
     # FROM / IMPORT
