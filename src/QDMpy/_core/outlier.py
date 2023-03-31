@@ -43,10 +43,12 @@ class Outlier(ABC):
     def n(self):
         return self.outliers.sum()
 
+    def reset(self):
+        """Reset the outliers array to all False values."""
+        self.outliers = np.zeros(self.data_shape, dtype=bool)
+
     def __repr__(self) -> str:
         return f"Outlier(b111={self.data_shape})"
-
-
 class StatisticsPercentile(Outlier):
     def __repr__(self):
         return (
