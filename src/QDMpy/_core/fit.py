@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numba
 import numpy as np
 import pandas as pd
+from numba import float64, guvectorize
 from numpy.typing import NDArray
 
 import QDMpy
@@ -22,18 +23,6 @@ from QDMpy._core import models
 UNITS = {"center": "GHz", "width": "GHz", "contrast": "a.u.", "offset": "a.u."}
 CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
 ESTIMATOR_ID = {"LSE": 0, "MLE": 1}
-
-
-def main() -> None:
-    """ """
-    from QDMpy._core.qdm import QDM
-
-    q = QDM.from_qdmio(QDMpy.test_data_location())
-    q.fit_odmr()
-
-
-if __name__ == "__main__":
-    main()
 
 
 class Fit:
@@ -663,7 +652,6 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
             center[p, f, px] = guess_center_pixel(data[p, f, px], freq[f])
     return center
 
-
 @numba.njit(fastmath=True)
 def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
     """
@@ -688,35 +676,7 @@ def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
     return freq[idx]
 
 
-@guvectorize([(float64[:], float64[:], float64[:])], '(p),(f)->()', target='parallel', nopython=True)
-def guess_center_pixel_guvectorize(pixel: np.ndarray, freq: np.ndarray, result: np.ndarray) -> None:
-    """
-    Guess the center frequency of a single frequency range for a given pixel data using guvectorize.
-
-    Args:
-      pixel (np.ndarray): A 1D NumPy array representing the pixel data.
-      freq (np.ndarray): A 1D NumPy array representing the frequency range of the data.
-      result (np.ndarray): A 1D NumPy array where the output center frequency value will be stored.
-
-    Returns:
-      None: The output is directly stored in the 'result' array.
-
-    Example:
-      >>> pixel_data = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
-      >>> freq_data = np.array([1, 2, 3, 4, 5])
-      >>> center_frequency = guess_center_pixel_guvectorize(pixel_data, freq_data)
-      >>> print(center_frequency)
-      3.0
-    """
-    pixel = normalized_cumsum_pixel(pixel)
-    idx = np.argmin(np.abs(pixel - 0.5))
-    center_frequency = freq[idx]
-
-    # Store the result in the 'result' array
-    result[0] = center_frequency
-
-
-@numba.njit(parallel=True, fastmath=True)
+# @numba.njit(parallel=True, fastmath=True)
 def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDArray:
     """Guess the width of a ODMR resonance peaks.
 
@@ -799,7 +759,7 @@ def normalized_cumsum(data: NDArray) -> NDArray:
     for px in numba.prange(data.shape[0]):
         csum[px, :] = normalized_cumsum_pixel(data[px])
     return csum.reshape(data_shape)
-
+#
 
 @numba.njit
 def normalized_cumsum_pixel(pixel: NDArray) -> NDArray:
@@ -817,41 +777,6 @@ def normalized_cumsum_pixel(pixel: NDArray) -> NDArray:
     pixel -= np.min(pixel)
     pixel /= np.max(pixel)
     return pixel
-
-
-@guvectorize([(float64[:], float64[:])], "(n)->(n)", target="parallel", nopython=True)
-def normalized_cumsum_vector(pixel_array: np.ndarray, result: np.ndarray) -> None:
-    """
-        Calculate the normalized cumulative sum of the given pixel data using guvectorize.
-
-        Args:
-          pixel_array (np.ndarray): A 1D NumPy array representing the pixel data.
-          result (np.ndarray): A 1D NumPy array where the output normalized cumulative sum will be stored.
-
-        Returns:
-          None: The output is directly stored in the 'result' array.
-
-        Example:
-          >>> pixel_data = np.array([1, 2, 3, 4, 5])
-          >>> normalized_data = normalized_cumsum(pixel_data)
-          >>> print(normalized_data)
-          array([0. , 0.1, 0.3, 0.6, 1. ])
-        """
-    # Calculate the cumulative sum of the input pixel data after subtracting 1
-    pixel_array = np.cumsum(pixel_array - 1)
-
-    # Subtract the minimum value from the pixel array
-    pixel_array -= np.min(pixel_array)
-
-    # Calculate the maximum value of the pixel array
-    max_pixel = np.max(pixel_array)
-
-    # Normalize the pixel array by dividing it by the maximum value, if the maximum value is not zero
-    if max_pixel != 0:
-        pixel_array /= max_pixel
-
-    # Store the result in the 'result' array
-    result[:] = pixel_array
 
 
 def make_dummy_data(
@@ -997,3 +922,16 @@ def write_test_qdmio_file(path: Union[str, os.PathLike], **kwargs: Any) -> None:
         index=False,
         sep="\t",
     )
+
+
+
+
+if __name__ == "__main__":
+    from QDMpy._core.qdm import QDM
+
+    q = QDM.from_qdmio("/Users/mike/github/QDMpy/tests/data/utrecht_test_data")
+
+    o = q.odmr
+    # aux = guess_center_pixel(o.data[0], o.f_ghz)
+
+    # q.fit_odmr()
