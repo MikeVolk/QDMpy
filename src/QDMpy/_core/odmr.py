@@ -249,7 +249,7 @@ class ODMR:
         """Loads QDM data from a Matlab file.
 
         Args:
-          data_folder:
+            data_folder: path to the directory containing the QDM data files.
 
         Returns:
             ODMR instance
@@ -472,14 +472,14 @@ class ODMR:
         """Calculate the mean of the minimum of MW sweep for each pixel."""
         return np.mean(self.raw_contrast)
 
-    @property
     def _mean_baseline(self) -> Tuple[NDArray, NDArray, NDArray]:
         """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-        baseline_mean = np.mean(
-            np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1
-        )
+        baseline_mean = np.concatenate(
+            [baseline_left_mean[..., np.newaxis], baseline_right_mean[..., np.newaxis]],
+            axis=-1
+        ).mean(axis=-1)
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
     @property
@@ -539,17 +539,26 @@ class ODMR:
         self._apply_edit_stack(method=method)
 
     def _normalize_data(self, method: str = "max", **kwargs: Any) -> None:
-        """Normalize the data.
+        """
+        Normalize the data.
 
         Args:
-          method:  (Default value = "max")
-          **kwargs:
+            method: The normalization method to use. Supported methods are "max" (default),
+                "mean", "std", "mad", and "l2".
+            **kwargs: Additional arguments to pass to the normalization method. If a "factors"
+                key is present, the method will use the specified factors instead of calculating
+                new ones using the specified method.
         """
-        self._norm_factors = self.get_norm_factors(self.data, method=method)  # type: ignore[assignment]
+        if "factors" in kwargs:
+            factors = kwargs["factors"]
+        else:
+            factors = self.get_norm_factors(self.data, method=method, **kwargs)
+
+        self._norm_factors = factors
         self.LOG.debug(f"Normalizing data with method: {method}")
         self._norm_method = method
         self.is_normalized = True
-        self._data_edited /= self._norm_factors  # type: ignore[arg-type]
+        self._data_edited /= self._norm_factors
 
     def apply_outlier_mask(
         self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any
@@ -602,14 +611,14 @@ class ODMR:
         """
         self._edit_stack[2] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
-
     def _bin_data(
-        self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any
+        self, bin_factor: Optional[Union[float, None]] = None, func: Callable = np.nanmean, **kwargs: Any
     ) -> None:
         """Bin the data from the raw data.
 
         Args:
           bin_factor:  (Default value = None)
+          func: The function to use for block averaging. Default is np.nanmean.
           **kwargs:
 
         Returns:
@@ -639,8 +648,8 @@ class ODMR:
         _odmr_binned = block_reduce(
             reshape_data,
             block_size=(1, 1, int(bin_factor), int(bin_factor), 1),
-            func=np.nanmean,  # uses mean
-            cval=np.median(reshape_data),  # replaces with median
+            func=func,  # uses the specified function
+            cval=func(reshape_data),  # replaces with the specified function's default value
         )  # bins the data
         self._data_edited = _odmr_binned.reshape(
             self.n_pol, self.n_frange, -1, self.n_freqs
@@ -654,10 +663,12 @@ class ODMR:
             f"--> {_odmr_binned.shape[0]}x{_odmr_binned.shape[1]}x{_odmr_binned.shape[2]}x{_odmr_binned.shape[3]}x{_odmr_binned.shape[4]}"
         )
 
-    def remove_overexposed(self, **kwargs: Any) -> None:
+    def remove_overexposed(self, threshold: float = 1.0, **kwargs: Any) -> None:
         """Remove overexposed pixels from the data.
 
         Args:
+          threshold: The threshold value to use. Pixels with a sum greater than or equal to the threshold
+            are considered overexposed. Default is 1.0.
           **kwargs:
 
         Returns:
@@ -666,17 +677,15 @@ class ODMR:
         if self._data_edited is None:
             return self.LOG.warning("No data to remove overexposed pixels from.")
 
-        self._overexposed = (
-            np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
-        )
+        overexposed_mask = np.sum(self._data_edited, axis=-1) >= threshold * self._data_edited.shape[-1]
 
-        if np.sum(self._overexposed) > 0:
+        if np.sum(overexposed_mask) > 0:
             self.LOG.warning(
-                f"ODMR: {np.sum(self._overexposed)} pixels are overexposed"
+                f"ODMR: {np.sum(overexposed_mask)} pixels are overexposed"
             )
-            self._data_edited = ma.masked_where(
-                self._data_edited == 1, self._data_edited
-            )
+
+            # Remove overexposed pixels by setting their value to NaN
+            self._data_edited[overexposed_mask] = np.nan
 
     ### CORRECTION METHODS ###
     def calc_gf_correction(self, gf: float) -> NDArray:
@@ -687,8 +696,9 @@ class ODMR:
 
         Returns: The global fluorescence correction
         """
-        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
-        return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
+        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline()
+        return gf * (self.mean_odmr - baseline_mean)
+
 
     def correct_glob_fluorescence(self, gf_factor: float, **kwargs: Any) -> None:
         """Correct the data for the gradient factor.
@@ -707,12 +717,19 @@ class ODMR:
     def _correct_glob_fluorescence(
         self, gf_factor: Union[float, None] = None, **kwargs: Any
     ) -> None:
+
         """Correct the data for the global fluorescence.
 
         Args:
           gf_factor: global fluorescence factor (Default value = None)
-          **kwargs: pass though for additional _apply_edit_stack kwargs
+          **kwargs: pass through for additional _apply_edit_stack kwargs
+
+        Raises:
+          TypeError: If `gf_factor` is not a float or None
         """
+        if gf_factor is not None and not isinstance(gf_factor, float):
+            raise TypeError(f"Expected `gf_factor` to be a float or None, but got {type(gf_factor)}")
+
         if gf_factor is None:
             gf_factor = self._gf_factor
 
