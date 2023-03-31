@@ -589,14 +589,25 @@ class Fit:
 
 @numba.njit(parallel=True)
 def guess_contrast(data: NDArray) -> NDArray:
-    """Guess the contrast of a ODMR data.
+    """
+    Calculate the contrast of each ODMR data point in a 3D NumPy array.
+
+    The contrast is calculated using the `guess_contrast_pixel` function
+    on each 2D slice along the third axis of the input array.
 
     Args:
-      data: data to guess the contrast from
+      data (NDArray): A 3D NumPy array representing ODMR data.
 
     Returns:
-      contrast of the data
+      NDArray: A 3D NumPy array with the same shape as the input array,
+               where each element represents the contrast of the corresponding
+               data point.
 
+    Example:
+      >>> data = np.random.rand(2, 3, 4)
+      >>> contrast_data = guess_contrast(data)
+      >>> print(contrast_data.shape)
+      (2, 3, 4)
     """
     amp = np.zeros(data.shape[:-1])
 
@@ -609,16 +620,26 @@ def guess_contrast(data: NDArray) -> NDArray:
 @numba.njit()
 def guess_contrast_pixel(data: NDArray) -> float:
     """
+    Calculate the contrast of an image represented by a 2D NumPy array.
+
+    The contrast is calculated as the absolute difference between the maximum
+    and minimum pixel values, divided by the maximum pixel value.
 
     Args:
-      data:
+      data (NDArray): A 2D NumPy array representing the pixel values of an image.
 
     Returns:
+      float: The contrast of the image.
 
+    Example:
+      >>> image = np.array([[10, 20], [30, 40]])
+      >>> contrast = guess_contrast_pixel(image)
+      >>> print(contrast)
+      0.75
     """
     mx = np.nanmax(data)
     mn = np.nanmin(data)
-    return np.abs((mx - mn) / mx)
+    return np.abs((mx - mn) / mx) if mx != 0 else 0.0
 
 
 @numba.njit(parallel=True, fastmath=True)
@@ -645,24 +666,54 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
 
 @numba.njit(fastmath=True)
 def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
-    """Guess the center frequency of a single frequency range.
+    """
+    Guess the center frequency of a single frequency range for a given pixel data.
 
     Args:
-      data: np.array
-    data to guess the center frequency from
-      freq: np.array
-    frequency range of the data
-      pixel: NDArray:
-      freq: NDArray:
+      pixel (NDArray): A 1D NumPy array representing the pixel data.
+      freq (NDArray): A 1D NumPy array representing the frequency range of the data.
 
     Returns:
-      np.array
-      center frequency of the data
+      float: The estimated center frequency of the data.
 
+    Example:
+      >>> pixel_data = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+      >>> freq_data = np.array([1, 2, 3, 4, 5])
+      >>> center_frequency = guess_center_pixel(pixel_data, freq_data)
+      >>> print(center_frequency)
+      3.0
+    """
+    pixel = normalized_cumsum(pixel)
+    idx = np.argmin(np.abs(pixel - 0.5))
+    return freq[idx]
+
+
+@guvectorize([(float64[:], float64[:], float64[:])], '(p),(f)->()', target='parallel', nopython=True)
+def guess_center_pixel_guvectorize(pixel: np.ndarray, freq: np.ndarray, result: np.ndarray) -> None:
+    """
+    Guess the center frequency of a single frequency range for a given pixel data using guvectorize.
+
+    Args:
+      pixel (np.ndarray): A 1D NumPy array representing the pixel data.
+      freq (np.ndarray): A 1D NumPy array representing the frequency range of the data.
+      result (np.ndarray): A 1D NumPy array where the output center frequency value will be stored.
+
+    Returns:
+      None: The output is directly stored in the 'result' array.
+
+    Example:
+      >>> pixel_data = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+      >>> freq_data = np.array([1, 2, 3, 4, 5])
+      >>> center_frequency = guess_center_pixel_guvectorize(pixel_data, freq_data)
+      >>> print(center_frequency)
+      3.0
     """
     pixel = normalized_cumsum_pixel(pixel)
     idx = np.argmin(np.abs(pixel - 0.5))
-    return freq[idx]
+    center_frequency = freq[idx]
+
+    # Store the result in the 'result' array
+    result[0] = center_frequency
 
 
 @numba.njit(parallel=True, fastmath=True)
