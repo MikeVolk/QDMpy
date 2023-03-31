@@ -344,29 +344,57 @@ class ODMR:
 
     @classmethod
     def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
-        """Return the normalization factors for the data.
+        """
+        Return the normalization factors for the data.
 
         Args:
-          data: data
-          method: return: (Default value = "max")
+            data: The data to normalize.
+            method: The normalization method to use. Supported methods are "max" (default),
+                "mean", "std", "mad", and "l2".
 
         Returns:
+            A 1D array of normalization factors.
 
-        Raises: NotImplementedError: if method is not implemented
+        Raises:
+            NotImplementedError: if method is not implemented.
         """
 
-        match method:
-            case "max":
-                mx = np.max(data, axis=-1)
-                cls.LOG.debug(
-                    f"Determining normalization factor from maximum value of each pixel spectrum. "
-                    f"Shape of mx: {mx.shape}"
-                )
-                factors = np.expand_dims(mx, axis=-1)
-            case _:
-                raise NotImplementedError(f'Method "{method}" not implemented.')
+        if method == "max":
+            factors = np.max(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from maximum value of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "mean":
+            factors = np.mean(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from mean value of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "std":
+            factors = np.std(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from standard deviation of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "mad":
+            med = np.median(data, axis=-1, keepdims=True)
+            factors = np.median(np.abs(data - med), axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from median absolute deviation of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "l2":
+            factors = np.linalg.norm(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from L2-norm of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        else:
+            raise NotImplementedError(f'Method "{method}" not implemented.')
 
         return factors
+
 
     # properties
     @property
