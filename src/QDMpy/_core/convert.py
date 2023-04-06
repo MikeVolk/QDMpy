@@ -1,4 +1,46 @@
+"""
+This module contains various functions to convert magnetic field vectors to
+resonance frequencies and vice versa. It also performs conversions of maps and
+signals. The following functions are implemented:
+    
+    b111_to_bxyz(bmap: numpy.ndarray, pixel_size: float = 1.175e-06,
+    rotation_angle: float = 0, direction_vector: Union[Tuple[float, float,
+    float], None] = None) -> numpy.ndarray:
+        This function converts a map measured along direction "u" to a Bz map of
+        the sample. It takes a numpy NDArray for the map, as well as pixel size,
+        rotation angle, and direction vector defaulting to (180°,35.3°).
+    \n    get_unit_vector(rotation_angle: float, direction_vector:
+    Union[Tuple[float, float, float], None] = None) -> numpy.ndarray:
+        This function takes the rotation angle and direction vector to output a
+        normalized unit vector.
+        
+    b2shift(b: float, in_unit: str = "T", out_unit: str = "GHz") -> float:
+        This function converts a magnetic field along as single NV-axis into a
+        resonance freq. shift for that axis. It takes the field, and inputs for
+        the field unit (in_unit) and output resonance frequency unit (out_unit).
+        
+    convert_to_unit(value, in_unit, out_unit):
+        This function converts a value from in_unit to out_unit. It takes the
+        value and input/output units in string format.
+        
+    freq2b(freq: float, in_unit: str = "Hz", out_unit: str = "T") -> float:
+        This function converts a resonance frequency into a magnetic field along
+        as single NV-axis. It takes the frequency and inputs for the frequency
+        unit (in_unit) and output field unit (out_unit).
+    
+    shift2b(shift: float, in_unit: str = "GHz", out_unit: str = "T") -> float:
+        This function converts a resonance frequency shift into a magnetic field
+        along as single NV-axis. It takes the frequency shift and inputs for the
+        frequency shift unit (in_unit) and output field unit (out_unit).
+    
+    project(a: numpy.ndarray, b: numpy.ndarray, c: numpy.ndarray):
+        This function projects a vector a onto b and returns the result in c. It
+        takes numpy NDArrays for vectors a and b, and an empty numpy NDArray, c,
+        to store the result.
+"""
+
 from typing import Tuple, Union
+
 
 import numpy as np
 import pint
@@ -11,7 +53,8 @@ UREG = pint.UnitRegistry()
 
 _VECTOR_OR_NONE = Union[Tuple[float, float, float], None]
 
-""" convert.py contains a number of functions used to convert, signals, maps and frequencies. 
+""" convert.py contains a number of functions used to convert, signals, maps and
+frequencies. 
 """
 
 
@@ -32,7 +75,8 @@ def b111_to_bxyz(
         rotation_angle: float
             The rotation of the diamond lattice axes around z-axis
         direction_vector:
-            The direction of the 111 axis with respect to the QDM measurement frame. Default (180°, 35.3°)
+            The direction of the 111 axis with respect to the QDM measurement
+            frame. Default (180°, 35.3°)
 
 
     Returns:
@@ -46,16 +90,8 @@ def b111_to_bxyz(
     step_size = 1 / pixel_size
 
     # these freq. coordinates match the fft algorithm
-    fx = (
-        np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)])
-        * step_size
-        / xpix
-    )
-    fy = (
-        np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)])
-        * step_size
-        / ypix
-    )
+    fx = np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)]) * step_size / xpix
+    fy = np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)]) * step_size / ypix
 
     fgrid_x, fgrid_y = np.meshgrid(fx + 1e-30, fy + 1e-30)
 
@@ -77,9 +113,7 @@ def b111_to_bxyz(
     return np.stack([map_x.real, map_y.real, map_z.real])
 
 
-def get_unit_vector(
-    rotation_angle: float, direction_vector: _VECTOR_OR_NONE = None
-) -> NDArray:
+def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = None) -> NDArray:
     """
     Get the unit vector of the sample in the lab frame.
 
