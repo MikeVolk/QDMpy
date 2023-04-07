@@ -48,9 +48,7 @@ class QualityWidget(QDMWidget):
     def update_data(self):
         data = self.qdm.get_param(self.data_select.currentText())
         for p, f in np.ndindex(data.shape[0], data.shape[1]):
-            self.canvas.add_data(
-                data[p][f], data_dimensions=self.qdm.data_shape, p=p, f=f
-            )
+            self.canvas.add_data(data[p][f], data_dimensions=self.qdm.data_shape, p=p, f=f)
 
         self.canvas.fig.suptitle(self.TITLES[self.data_select.currentText()])
         self.update_clims()

@@ -74,6 +74,8 @@ pytest-cov = "*"
 python-kacl = "*"
 pyupgrade = "*"
 tryceratops = "*"
+ruff = "*"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -86,6 +88,7 @@ src_paths = ["src", "tests"]
 [tool.black]
 target-version = ["py310"]
 include = '\.pyi?$'
+line-length = 100
 
 [tool.pytest.ini_options]
 addopts = """\
@@ -113,3 +116,23 @@ warn_redundant_casts = true
 check_untyped_defs = true
 show_error_codes = true
 ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 88
+extend-select = [
+    "I",
+"D",
+"UP",
+"YTT",
+"SIM",
+"ANN",
+"A",
+"B",
+"COM",
+"C4",
+"DTZ",
+"T20",
+"Q",
+"PD",
+"PL",
+"NPY"]

@@ -75,12 +75,8 @@ class FluoWidget(QDMWidget):
             )
         )
 
-        self.lowF_line = self.update_line(
-            self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line
-        )
-        self.highF_line = self.update_line(
-            self.canvas.high_f_mean_odmr_ax, 1, self.highF_line
-        )
+        self.lowF_line = self.update_line(self.canvas.low_f_mean_odmr_ax, 0, self.lowF_line)
+        self.highF_line = self.update_line(self.canvas.high_f_mean_odmr_ax, 1, self.highF_line)
 
         self.index_label.setText(f"Freq. index ({value}): ")
         self.freq_label.setText(

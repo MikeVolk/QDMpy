@@ -308,7 +308,7 @@ class QDMWidget(QMainWindow):
     def _add_b111_select_box(self, toolbar):
         b111_widget = QWidget()
         b111select_box = QHBoxLayout()
-        # b111label = QLabel("B: ")
+
         self.b111_select = QComboBox()
         self.b111_select.addItems(["B(111)", "B(z)"])
         self.b111_select.currentIndexChanged.connect(self.update_data)
@@ -426,9 +426,7 @@ class QDMWidget(QMainWindow):
 
             self.set_current_idx(x, y)
             self.indexLabel.setText(f"[{self._current_idx}]")
-            self.LOG.debug(
-                f"clicked in {event.inaxes} with new index: {self._current_idx}"
-            )
+            self.LOG.debug(f"clicked in {event.inaxes} with new index: {self._current_idx}")
 
             self.on_xy_value_change()
 
@@ -462,9 +460,7 @@ class QDMWidget(QMainWindow):
         freqs = np.empty((parameter.shape[1], 200))
         models = np.empty((parameter.shape[0], parameter.shape[1], 200))
         for f in np.arange(parameter.shape[1]):
-            freqs[f] = np.linspace(
-                self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200
-            )
+            freqs[f] = np.linspace(self.qdm.odmr.f_ghz[f].min(), self.qdm.odmr.f_ghz[f].max(), 200)
             for p in np.arange(parameter.shape[0]):
                 models[p, f, :] = model_func(freqs[f], parameter[p, f])
         return models
@@ -483,9 +479,7 @@ class QDMWidget(QMainWindow):
 
         # get current correction
         if self.qdm.odmr.global_factor > 0:
-            current_correct = self.qdm.odmr.calc_gf_correction(
-                gf=self.qdm.odmr.global_factor
-            )
+            current_correct = self.qdm.odmr.calc_gf_correction(gf=self.qdm.odmr.global_factor)
             # make uncorrected
             current_data += current_correct
         return current_data
@@ -506,13 +500,11 @@ class QDMWidget(QMainWindow):
         """
         uncorrected_odmr = self.get_uncorrected_odmr()
 
-        if slider_value is not None:
-            new_correct = self.qdm.odmr.calc_gf_correction(gf=slider_value / 100)
-            corrected = uncorrected_odmr - new_correct
-        else:
-            corrected = self.get_current_odmr()
+        if slider_value is None:
+            return self.get_current_odmr()
 
-        return corrected
+        new_correct = self.qdm.odmr.calc_gf_correction(gf=slider_value / 100)
+        return uncorrected_odmr - new_correct
 
     def set_current_idx(self, x=None, y=None, idx=None):
         self.caller.set_current_idx(x=x, y=y, idx=idx)
@@ -528,9 +520,7 @@ class QDMWidget(QMainWindow):
         """
         Update the marker position on the image plots.
         """
-        self.canvas.update_odmr(
-            freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr()
-        )
+        self.canvas.update_odmr(freq=self.qdm.odmr.f_ghz, data=self.get_corrected_odmr())
         self.set_ylim()
 
     def set_ylim(self):
@@ -557,9 +547,7 @@ class QDMWidget(QMainWindow):
 
     @property
     def model(self):
-        return [None, models.esrsingle, models.esr15n, models.esr14n][
-            self.qdm._diamond_type
-        ]
+        return [None, models.esrsingle, models.esr15n, models.esr14n][self.qdm._diamond_type]
 
     @property
     def pixel_size(self):

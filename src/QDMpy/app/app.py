@@ -38,7 +38,7 @@ from QDMpy.utils import millify
 matplotlib.use("Agg")
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QScreen, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -243,9 +243,7 @@ class QDMpyApp(QMainWindow):
         toolbar.addWidget(self.fit_button)
         self.fit_constraints_button = QPushButton("Constraints")
         self.fit_constraints_button.setStatusTip("Edit the fit constraints")
-        self.fit_constraints_button.clicked.connect(
-            self.on_set_fitconstraints_button_press
-        )
+        self.fit_constraints_button.clicked.connect(self.on_set_fitconstraints_button_press)
         self._visible_if_qdm_present.append(self.fit_constraints_button)
         toolbar.addWidget(self.fit_constraints_button)
 
@@ -292,9 +290,7 @@ class QDMpyApp(QMainWindow):
     def _add_gf_toolbar(self, toolbar):
         global_widget = QWidget()
         global_box = QHBoxLayout()
-        gf_label, self.gf_select = self.get_label_box(
-            "Global Fluorescence", 0, 1, 0.1, 0, 1, None
-        )
+        gf_label, self.gf_select = self.get_label_box("Global Fluorescence", 0, 1, 0.1, 0, 1, None)
         self.gf_detect_button = QPushButton("detect")
         self.gf_detect_button.setStatusTip("Detect global fluoresence")
         self.gf_detect_button.clicked.connect(self.on_gf_detect_button_press)
@@ -308,9 +304,7 @@ class QDMpyApp(QMainWindow):
         global_box.addWidget(self.gf_select)
         global_box.addWidget(self.gf_apply_button)
         global_box.addWidget(self.gf_detect_button)
-        self._visible_if_qdm_present.extend(
-            [self.gf_detect_button, self.gf_apply_button]
-        )
+        self._visible_if_qdm_present.extend([self.gf_detect_button, self.gf_apply_button])
         global_widget.setLayout(global_box)
         toolbar.addWidget(global_widget)
 
@@ -349,9 +343,7 @@ class QDMpyApp(QMainWindow):
         edit_menu = menu.addMenu("&Edit")
         set_fit_constraints_button = QAction("Set Fit Constraints", self)
         set_fit_constraints_button.setStatusTip("Set Fit Constraints")
-        set_fit_constraints_button.triggered.connect(
-            self.on_set_fitconstraints_button_press
-        )
+        set_fit_constraints_button.triggered.connect(self.on_set_fitconstraints_button_press)
         edit_menu.addAction(set_fit_constraints_button)
 
         # tools menu
@@ -442,9 +434,7 @@ class QDMpyApp(QMainWindow):
                 self.on_fitconstraints_widget_item_changed
             )
 
-            self.fitconstraints[text]["box"].addItems(
-                ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
-            )
+            self.fitconstraints[text]["box"].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
             self.fitconstraints[text]["box"].setCurrentText(constraint)
             self.fitconstraints[text]["box"].currentIndexChanged.connect(
                 self.on_fitconstraints_widget_item_changed
@@ -454,6 +444,8 @@ class QDMpyApp(QMainWindow):
             for col, item in enumerate(self.fitconstraints[text].values()):
                 self.fitconstraints_gridlayout.addWidget(item, row, col)
         self.fitconstraints_widget.setLayout(self.fitconstraints_gridlayout)
+        top_left_point = QGuiApplication.primaryScreen().availableGeometry().topLeft()
+        self.fitconstraints_widget.move(top_left_point)
 
     def _fill_fitconstraints_widget(self):
         if not self.fitconstraints:
@@ -483,11 +475,11 @@ class QDMpyApp(QMainWindow):
         Returns:
 
         """
-        if tpe in ["LOWER", "FREE"]:
+        if tpe in {"LOWER", "FREE"}:
             vmin_item.setEnabled(False)
         else:
             vmin_item.setEnabled(True)
-        if tpe in ["UPPER", "FREE"]:
+        if tpe in {"UPPER", "FREE"}:
             vmax_item.setEnabled(False)
         else:
             vmax_item.setEnabled(True)
@@ -706,9 +698,7 @@ class QDMpyApp(QMainWindow):
 
     def on_led_button_press(self):
         if self.light_window is None:
-            self.light_window = SimpleWidget(
-                dtype="light", clim_select=False, parent=self
-            )
+            self.light_window = SimpleWidget(dtype="light", clim_select=False, parent=self)
             self.light_window.show()
         elif self.light_window.isVisible():
             self.light_window.hide()
@@ -728,9 +718,7 @@ class QDMpyApp(QMainWindow):
             self.outlier_pd["x"] = self.qdm.outliers_xy[:, 0]
             self.outlier_pd["y"] = self.qdm.outliers_xy[:, 1]
             self.outlier_pd["idx"] = self.qdm.outliers_idx
-            self.statusBar().showMessage(
-                f"{self.qdm.outliers_idx.shape[0]:8d} Outliers detected"
-            )
+            self.statusBar().showMessage(f"{self.qdm.outliers_idx.shape[0]:8d} Outliers detected")
         else:
             self.LOG.warning("No fit calculated yet, no outliers detected.")
             self.statusBar().showMessage("No fit calculated yet.")
@@ -877,9 +865,7 @@ class QDMpyApp(QMainWindow):
 
     # IMPORT FUNCTIONS
     def import_qdmio(self, work_directory):
-        self.statusBar().showMessage(
-            f"Importing QDMio like files from {work_directory}"
-        )
+        self.statusBar().showMessage(f"Importing QDMio like files from {work_directory}")
 
         self.work_directory = Path(work_directory)
         try:
@@ -890,16 +876,12 @@ class QDMpyApp(QMainWindow):
 
             return qdm_obj
         except CantImportError:
-            self.statusBar().showMessage(
-                f"Cant import QDMio like files from {self.work_directory}"
-            )
+            self.statusBar().showMessage(f"Cant import QDMio like files from {self.work_directory}")
 
             return
 
     def file_imported(self):
-        self.statusBar().showMessage(
-            f"Successfully imported QDM files from {self.work_directory}"
-        )
+        self.statusBar().showMessage(f"Successfully imported QDM files from {self.work_directory}")
 
         self._change_tool_visibility()
         self._fill_info_table()

@@ -220,7 +220,9 @@ class ODMR:
         """
 
         files = os.listdir(data_folder)
-        run_files = [f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")]
+        run_files = [
+            f for f in files if f.endswith(".mat") and "run_" in f and not f.startswith("#")
+        ]
 
         if not run_files:
             raise WrongFileNumber("No run files found in folder.")
@@ -281,10 +283,11 @@ class ODMR:
             img_stack2 = mat_dict["imgStack2"].T
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
-            cls.LOG.debug("Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4.")
-
-            img_stack1 = np.concatenate([mat_dict["imgStack1"], mat_dict["imgStack2"]]).T
-            img_stack2 = np.concatenate([mat_dict["imgStack3"], mat_dict["imgStack4"]]).T
+            cls.LOG.debug(
+                "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4."
+            )
+            img_stack1 = np.concatenate([mat_dict["imgStack1"].T, mat_dict["imgStack2"].T])
+            img_stack2 = np.concatenate([mat_dict["imgStack3"].T, mat_dict["imgStack4"].T])
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod

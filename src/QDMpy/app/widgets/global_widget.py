@@ -60,9 +60,7 @@ class GlobalWidget(QDMWidget):
         self.canvas.draw_idle()
 
     def on_global_slider_change(self):
-        self.global_label.setText(
-            f"Global Fluorescence: {self.global_slider.value() / 100:.2f}"
-        )
+        self.global_label.setText(f"Global Fluorescence: {self.global_slider.value() / 100:.2f}")
         self.update_odmr()
         self.canvas.draw_idle()
 

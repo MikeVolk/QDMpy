@@ -213,9 +213,7 @@ class StatisticsWidget(QDMWidget):
             f"Percentiles have changed {chi_square_percentile} {width_percentile} {contrast_percentile}"
         )
 
-        self.set_range_labels(
-            chi_square_percentile, contrast_percentile, width_percentile
-        )
+        self.set_range_labels(chi_square_percentile, contrast_percentile, width_percentile)
 
         smaller_chi_square = self.chi2 < chi_square_percentile[0]
         larger_chi_square = self.chi2 > chi_square_percentile[1]
@@ -224,10 +222,7 @@ class StatisticsWidget(QDMWidget):
         smaller_contrast = self.contrast < contrast_percentile[0]
         larger_contrast = self.contrast > contrast_percentile[1]
         outliers = (
-            (
-                np.any(smaller_chi_square, axis=(0, 1))
-                | np.any(larger_chi_square, axis=(0, 1))
-            )
+            (np.any(smaller_chi_square, axis=(0, 1)) | np.any(larger_chi_square, axis=(0, 1)))
             | np.any(smaller_width, axis=(0, 1))
             | np.any(larger_width, axis=(0, 1))
             | np.any(smaller_contrast, axis=(0, 1))
@@ -239,9 +234,7 @@ class StatisticsWidget(QDMWidget):
             f"{np.sum(outliers)} ({(np.sum(outliers)/outliers.size)*100:.1f} %)"
         )
 
-    def set_range_labels(
-        self, chi_square_percentile, contrast_percentile, width_percentile
-    ):
+    def set_range_labels(self, chi_square_percentile, contrast_percentile, width_percentile):
         self.chi_rmin.setText(f"{chi_square_percentile[0]:5.2e} -")
         self.chi_rmax.setText(f"{chi_square_percentile[1]:5.2e}")
         self.width_rmin.setText(f"{width_percentile[0] :5.2f} -")

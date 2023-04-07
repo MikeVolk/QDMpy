@@ -81,9 +81,7 @@ class ESR14N(Model):
 
 class ESR15N(Model):
     def __init__(self):
-        super().__init__(
-            "ESR15N", 2, ["contrast", "center", "width_0", "width_1", "offset"]
-        )
+        super().__init__("ESR15N", 2, ["contrast", "center", "width_0", "width_1", "offset"])
 
     def func(self):
         """Model function.

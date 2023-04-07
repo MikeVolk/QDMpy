@@ -17,9 +17,7 @@ class Outlier(ABC):
     def settings(self) -> dict:
         if self._settings is None:
             if self.__class__.__name__ in QDMpy.SETTINGS["outlier_detection"]:
-                self._settings = QDMpy.SETTINGS["outlier_detection"][
-                    self.__class__.__name__
-                ]
+                self._settings = QDMpy.SETTINGS["outlier_detection"][self.__class__.__name__]
             else:
                 self.LOG.warning(
                     f"Settings for {self.__class__.__name__} not found in QDMpy.SETTINGS"
@@ -85,12 +83,8 @@ class StatisticsPercentile(Outlier):
 
         self.data_shape = self.b111.shape
         self.detected = False
-        self._chi2_percentile = kwargs.pop(
-            "chi2_percentile", self.settings["chi2_percentile"]
-        )
-        self._width_percentile = kwargs.pop(
-            "width_percentile", self.settings["width_percentile"]
-        )
+        self._chi2_percentile = kwargs.pop("chi2_percentile", self.settings["chi2_percentile"])
+        self._width_percentile = kwargs.pop("width_percentile", self.settings["width_percentile"])
         self._contrast_percentile = kwargs.pop(
             "contrast_percentile", self.settings["contrast_percentile"]
         )
@@ -151,9 +145,7 @@ class StatisticsPercentile(Outlier):
         self.set_range("contrast", self.mean_contrast, contrast_percentile)
         self.set_range("width", self.width, width_percentile)
 
-    def detect_outlier(
-        self, chi2_percentile=None, width_percentile=None, contrast_percentile=None
-    ):
+    def detect_outlier(self, chi2_percentile=None, width_percentile=None, contrast_percentile=None):
         """
         Detect outliers in the statistics.
 
@@ -180,9 +172,7 @@ class StatisticsPercentile(Outlier):
 
         self.chi2_outlier = self.get_outlier_from(self.chi2, self.chi2_range)
         self.width_outlier = self.get_outlier_from(self.width, self.width_range)
-        self.contrast_outlier = self.get_outlier_from(
-            self.mean_contrast, self.contrast_range
-        )
+        self.contrast_outlier = self.get_outlier_from(self.mean_contrast, self.contrast_range)
 
         self.outliers = self.chi2_outlier | self.width_outlier | self.contrast_outlier
         self.detected = True
@@ -250,9 +240,7 @@ class LocalOutlierFactor(Outlier):
         self.outliers = lof.fit_predict(data)
         self.outliers = self.outliers.reshape(initial_shape[:-1])
         self.outliers = np.any(self.outliers == -1, axis=(0, 1))
-        self.LOG.info(
-            f"detected {self.outliers.sum()} outliers ({self.outliers.shape})"
-        )
+        self.LOG.info(f"detected {self.outliers.sum()} outliers ({self.outliers.shape})")
         self.outliers = self.outliers.reshape(self.data_shape)
         return self.outliers
 

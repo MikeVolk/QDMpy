@@ -1,12 +1,5 @@
 # QDMpy
 
-[![PyPI](https://img.shields.io/pypi/v/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
-[![PyPI - License](https://img.shields.io/pypi/l/QDMpy?style=flat-square)](https://pypi.python.org/pypi/QDMpy/)
-[![Coookiecutter - Wolt](https://img.shields.io/badge/cookiecutter-Wolt-00c2e8?style=flat-square&logo=cookiecutter&logoColor=D4AA00&link=https://github.com/woltapp/wolt-python-package-cookiecutter)](https://github.com/woltapp/wolt-python-package-cookiecutter)
-
-
----
 
 **Documentation**: [https://mikevolk.github.io/QDMpy](https://mikevolk.github.io/QDMpy)
 
@@ -19,17 +12,14 @@
 A python package for calculating magnetic maps from ODMR spectra measured on a quantum diamond microscope
 
 ## Installation
-
-```sh
-pip install QDMpy
-```
+pip install will work at some point
 
 ## Development
 
 * Clone this repository
 * Requirements:
   * [Poetry](https://python-poetry.org/)
-  * Python 3.7+
+  * Python 3.10+
 * Create a virtual environment and install the dependencies
 
 ```sh
@@ -40,12 +30,6 @@ poetry install
 
 ```sh
 poetry shell
-```
-
-### Testing
-
-```sh
-pytest
 ```
 
 ### Documentation

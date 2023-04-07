@@ -78,9 +78,7 @@ class Fit:
             self._set_initial_constraints()
         )  # structure is: type: [float(min), float(vmax), str(constraint_type), str(unit)]
 
-        self.estimator_id = ESTIMATOR_ID[
-            QDMpy.SETTINGS["fit"]["estimator"]
-        ]  # 0 for LSE, 1 for MLE
+        self.estimator_id = ESTIMATOR_ID[QDMpy.SETTINGS["fit"]["estimator"]]  # 0 for LSE, 1 for MLE
 
     def __repr__(self) -> str:
         """Return a string representation of the fit."""
@@ -123,11 +121,7 @@ class Fit:
                 "Doubt on the diamond type. Check using `guess_diamond_type('debug')` and set manually if incorrect."
             )
 
-        model = [
-            mdict
-            for m, mdict in models.IMPLEMENTED.items()
-            if mdict["n_peaks"] == n_peaks
-        ][0]
+        model = [mdict for m, mdict in models.IMPLEMENTED.items() if mdict["n_peaks"] == n_peaks][0]
 
         self.LOG.info(
             f"Guessed diamond type: {n_peaks} peaks -> {model['func_name']} ({model['name']})"
@@ -297,7 +291,8 @@ class Fit:
         """ Return a dictionary of the constraints. """
         return self._constraints
 
-    def get_constraints_array(self, n_pixel: int) -> NDArray:
+    # todo not used
+    def constraints_changed(self, constraints: List[float], constraint_types: List[str]) -> bool:
         """
 
         Args:
@@ -322,8 +317,7 @@ class Fit:
 
         """
         fit_bounds = [
-            CONSTRAINT_TYPES.index(self._constraints[k][2])
-            for k in self.model_params_unique
+            CONSTRAINT_TYPES.index(self._constraints[k][2]) for k in self.model_params_unique
         ]
         return np.array(fit_bounds).astype(np.int32)
 
@@ -376,9 +370,7 @@ class Fit:
     def _guess_center(self) -> NDArray:
         """Guess the center of the ODMR spectra."""
         center = guess_center(self.data, self.f_ghz)
-        self.LOG.debug(
-            f"Guessing center frequency [GHz] of ODMR spectra {center.shape}."
-        )
+        self.LOG.debug(f"Guessing center frequency [GHz] of ODMR spectra {center.shape}.")
         return center
 
     def _guess_contrast(self) -> NDArray:
@@ -476,9 +468,7 @@ class Fit:
                 self._fit_results = np.stack((self._fit_results, results[0]))
                 self._states = np.stack((self._states, results[1]))
                 self._chi_squares = np.stack((self._chi_squares, results[2]))
-                self._number_iterations = np.stack(
-                    (self._number_iterations, results[3])
-                )
+                self._number_iterations = np.stack((self._number_iterations, results[3]))
                 self._execution_time = np.stack((self._execution_time, results[4]))
 
             self.LOG.info(f"fit finished in {results[4]:.2f} seconds")
@@ -521,9 +511,7 @@ class Fit:
             user_info=np.ascontiguousarray(freq, dtype=np.float32),
             constraints=np.ascontiguousarray(constraints, dtype=np.float32),
             constraint_types=constraint_types,
-            initial_parameters=np.ascontiguousarray(
-                initial_parameters, dtype=np.float32
-            ),
+            initial_parameters=np.ascontiguousarray(initial_parameters, dtype=np.float32),
             weights=None,
             model_id=self.model_id,
             max_number_iterations=QDMpy.SETTINGS["fit"]["max_number_iterations"],

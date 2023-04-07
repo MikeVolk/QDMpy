@@ -222,19 +222,13 @@ class QDMCanvas(FigureCanvas):
 
     def add_mean_odmr(self, freq, mean):
         for ax in self.odmr:
-            for p, f in itertools.product(
-                self.odmr[ax]["pol"], self.odmr[ax]["frange"]
-            ):
+            for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
                 self.LOG.debug(f"Adding mean odmr to axis {ax}")
 
-    def update_odmr(
-        self, freq, data=None, fit=None, corrected=None, uncorrected=None, mean=None
-    ):
+    def update_odmr(self, freq, data=None, fit=None, corrected=None, uncorrected=None, mean=None):
         for ax in self.odmr:
             self.LOG.debug(f"Updating ODMR lines in axis {ax}")
-            for p, f in itertools.product(
-                self.odmr[ax]["pol"], self.odmr[ax]["frange"]
-            ):
+            for p, f in itertools.product(self.odmr[ax]["pol"], self.odmr[ax]["frange"]):
                 if data is not None:
                     self.update_odmr_line(ax, data, freq, p, f)
                 if fit is not None:
@@ -321,9 +315,7 @@ class QDMCanvas(FigureCanvas):
                     or f not in self.fluorescence[ax]["frange"]
                 ):
                     continue
-                self.LOG.debug(
-                    f"Adding fluorescence of {POL[p]}, {FRANGE[f]} to axis {ax}"
-                )
+                self.LOG.debug(f"Adding fluorescence of {POL[p]}, {FRANGE[f]} to axis {ax}")
                 self.fluorescence[ax]["data"] = qdmplot.plot_fluorescence(
                     ax, fluorescence[p][f], img=self.fluorescence[ax]["data"]
                 )
@@ -352,9 +344,7 @@ class QDMCanvas(FigureCanvas):
             for ax in axdict:
                 if axdict[ax]["data"] is None:
                     continue
-                vmin, vmax = qdmplot.get_vmin_vmax(
-                    axdict[ax]["data"], percentile, use_percentile
-                )
+                vmin, vmax = qdmplot.get_vmin_vmax(axdict[ax]["data"], percentile, use_percentile)
                 norm = qdmplot.get_color_norm(vmin=vmin, vmax=vmax)
                 axdict[ax]["data"].set(norm=norm)
                 if axdict[ax]["cax"]:
@@ -446,12 +436,8 @@ class FitCanvas(QDMCanvas):
         self.laser = {self.laser_ax: self.img_dict.copy()}
         self.add_cax(self.laser_ax, self.laser)
 
-        self.data_ax.get_shared_x_axes().join(
-            self.data_ax, self.light_ax, self.laser_ax
-        )
-        self.data_ax.get_shared_y_axes().join(
-            self.data_ax, self.light_ax, self.laser_ax
-        )
+        self.data_ax.get_shared_x_axes().join(self.data_ax, self.light_ax, self.laser_ax)
+        self.data_ax.get_shared_y_axes().join(self.data_ax, self.light_ax, self.laser_ax)
 
         self.left_odmr_ax = self.fig.add_subplot(spec[2, :3])
         self.right_odmr_ax = self.fig.add_subplot(spec[2, 3:])
@@ -495,9 +481,7 @@ class FluoImgCanvas(QDMCanvas):
 
         widths = [1, 1]
         heights = [1, 1, 1, 0.1]
-        gs = self.fig.add_gridspec(
-            ncols=2, nrows=4, width_ratios=widths, height_ratios=heights
-        )
+        gs = self.fig.add_gridspec(ncols=2, nrows=4, width_ratios=widths, height_ratios=heights)
         self.fig.subplots_adjust(
             top=0.981, bottom=0.019, left=0.097, right=0.93, hspace=0.47, wspace=0.406
         )

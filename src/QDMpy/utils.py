@@ -37,9 +37,7 @@ def millify(n: float, sign: int = 1) -> str:
       human readable string
 
     """
-    millidx = max(
-        0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3)))
-    )
+    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
 
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
@@ -202,9 +200,7 @@ def get_image(
     return np.array(img)
 
 
-def double_norm(
-    data: np.ndarray, axis: Optional[Union[int, None]] = None
-) -> np.ndarray:
+def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:

@@ -9,14 +9,15 @@ import QDMpy
 
 UREG = pint.UnitRegistry()
 
+_EPSILON = 1e-30
 _VECTOR_OR_NONE = Union[Tuple[float, float, float], None]
 
 
-def toBxyz(
-        map: NDArray,
-        pixel_size: float = 1.175e-06,
-        rotation_angle: float = 0,
-        direction_vector: _VECTOR_OR_NONE = None,
+def b111_to_xyz(
+    map: NDArray,
+    pixel_size: float = 1.175e-06,
+    rotation_angle: float = 0,
+    direction_vector: _VECTOR_OR_NONE = None,
 ) -> NDArray:
     """
     Convert a map measured along the direction u to a Bz map of the sample.
@@ -28,6 +29,10 @@ def toBxyz(
             The size of the pixel in the map in m
         rotation_angle: float
             The rotation of the diamond lattice axes around z-axis
+        direction_vector: 3-tuple of floats
+            The direction of the u vector in the lab frame
+            (i.e. the orientation of the 111 axis with respect to the
+            magnetic bias field)
 
     Returns:
         2D array
@@ -40,10 +45,12 @@ def toBxyz(
     step_size = 1 / pixel_size
 
     # these freq. coordinates match the fft algorithm
-    fx = np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)]) * step_size / xpix
-    fy = np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)]) * step_size / ypix
+    x_steps = np.concatenate([np.arange(0, xpix / 2, 1), np.arange(-xpix / 2, 0, 1)])
+    fx = x_steps * step_size / xpix
+    y_steps = np.concatenate([np.arange(0, ypix / 2, 1), np.arange(-ypix / 2, 0, 1)])
+    fy = y_steps * step_size / ypix
 
-    fgrid_x, fgrid_y = np.meshgrid(fx + 1e-30, fy + 1e-30)
+    fgrid_x, fgrid_y = np.meshgrid(fx + _EPSILON, fy + _EPSILON)
 
     kx = 2 * np.pi * fgrid_x
     ky = 2 * np.pi * fgrid_y
@@ -54,7 +61,7 @@ def toBxyz(
     x_filter = -1j * kx / k
     y_filter = -1j * ky / k
     z_filter = k / (
-            unit_vector[2] * k - unit_vector[1] * 1j * ky - unit_vector[0] * 1j * kx
+        unit_vector[2] * k - unit_vector[1] * 1j * ky - unit_vector[0] * 1j * kx
     )  # calculate the filter frequency response associated with the x component
 
     map_x = np.fft.ifft2(e * x_filter)
@@ -75,9 +82,7 @@ def get_unit_vector(rotation_angle: float, direction_vector: _VECTOR_OR_NONE = N
         direction_vector = np.array([0, np.sqrt(2 / 3), np.sqrt(1 / 3)])
 
     QDMpy.LOG.info(
-        "Getting unit vector from rotation angle {} along direction vector {}".format(
-            rotation_angle, direction_vector
-        )
+        f"Getting unit vector from rotation angle {rotation_angle} along direction vector {direction_vector}"
     )
 
     alpha = np.rad2deg(rotation_angle)
@@ -216,42 +221,3 @@ if __name__ == "__main__":
     out = toBz(map, pixel_size=4.70e-6)
     print(out)
     plt.imshow(out[2])
-
-#         function [Bz] = QDMBzFromBu(Bu, fs, u)
-# %[Bz] = QDMBzFromBu(Bu, fs, u)
-# %   Retrieves the z component of the magnetic field from a QDM map of the u component. It performs
-# %   this operation in the frequency domain.
-# %
-# %   Code by Eduardo A. Lima - (c) 2017
-#
-# %   ----------------------------------------------------------------------------------------------
-# %   Bu     -> u component of the magnetic field measured in a regular planar grid
-# %   fs     -> Sampling frequency in 1/m
-# %   u      -> unit vector representing the field component measured
-# %   ----------------------------------------------------------------------------------------------
-#
-#
-# SHOWGRAPHS = 0; % Set this value to 1 to show frequency response plots, or to 0 otherwise.
-#
-# [SIZEx, SIZEy] = size(Bu);
-# N1 = SIZEx;
-# N2 = SIZEy;
-#
-# f1 = [0:N1 / 2 - 1, -(N1 / 2):-1] * fs / N1; %these freq. coordinates match the fft algorithm
-# f2 = [0:N2 / 2 - 1, -(N2 / 2):-1] * fs / N2;
-#
-# [F2, F1] = meshgrid(f2+1e-30, f1+1e-30);
-#
-# ky = 2 * pi * F1;
-# kx = 2 * pi * F2;
-#
-# k = sqrt(kx.^2+ky.^2);
-#
-#
-# etz = k ./ (u(3) * k - u(2) * 1i * ky - u(1) * 1i * kx); % calculate the filter frequency response associated with the x component
-#
-#
-# e = fft2(Bu, N1, N2);
-#
-# Bz = ifft2(e.*etz, N1, N2, 'symmetric');
-# %Bz=real(ifft2(e.*etz));

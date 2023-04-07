@@ -13,7 +13,7 @@ import QDMpy._core.fit
 from QDMpy._core import models
 from QDMpy._core.fit import Fit
 from QDMpy._core.odmr import ODMR
-from QDMpy._core.convert import toBxyz
+from QDMpy._core.convert import b111_to_xyz
 from QDMpy.exceptions import CantImportError, WrongFileNumber
 from QDMpy.utils import get_image, idx2rc, rc2idx
 
@@ -87,9 +87,7 @@ class QDM:
 
     def new_fit(self, model_name: str = "auto") -> Fit:
         self.LOG.debug(f"Creating new fit instance with model {model_name}")
-        return Fit(
-            data=self.odmr.data, frequencies=self.odmr.f_ghz, model_name=model_name
-        )
+        return Fit(data=self.odmr.data, frequencies=self.odmr.f_ghz, model_name=model_name)
 
     @property
     def outliers(self) -> NDArray:
@@ -185,9 +183,7 @@ class QDM:
 
         outlier_props["contamination"] = outlier_props.pop("contamination", 0.05)
 
-        if method == "LocalOutlierFactor":
-            clf = LocalOutlierFactor(**outlier_props)
-        elif method == "IsolationForest":
+        if method == "IsolationForest":
             outlier_props = {
                 k: v
                 for k, v in outlier_props.items()
@@ -203,6 +199,8 @@ class QDM:
                 ]
             }
             clf = IsolationForest(**outlier_props)
+        elif method == "LocalOutlierFactor":
+            clf = LocalOutlierFactor(**outlier_props)
         else:
             raise ValueError(f"Method {method} not recognized.")
 
@@ -438,9 +436,7 @@ class QDM:
         raise NotImplementedError(f'Dialect "{dialect}" not implemented.')
 
     @classmethod
-    def from_qdmio(
-        cls, data_folder: Union[os.PathLike[Any], str], model_name: str = "auto"
-    ) -> Any:
+    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], model_name: str = "auto") -> Any:
         """Loads QDM data from a Matlab file.
 
         Args:
@@ -485,12 +481,8 @@ class QDM:
 
         """
 
-        path_to_file = (
-            Path(path_to_file) if path_to_file is not None else self.working_directory
-        )
-        full_folder = (
-            path_to_file / f"{self.odmr.bin_factor}x{self.odmr.bin_factor}Binned"
-        )
+        path_to_file = Path(path_to_file) if path_to_file is not None else self.working_directory
+        full_folder = path_to_file / f"{self.odmr.bin_factor}x{self.odmr.bin_factor}Binned"
         full_folder.mkdir(parents=True, exist_ok=True)
         data = self._save_data(dialect="QDMio")
 
@@ -531,7 +523,7 @@ class QDM:
                     f"Cannot export data with bin factor {bin_factor} as it is smaller than the pre bin factor {self.odmr._pre_bin_factor}"
                 )
                 continue
-            if not self.bin_factor == bin_factor:
+            if self.bin_factor != bin_factor:
                 self.bin_data(bin_factor)
             if not self.fitted:
                 self.fit_odmr()
@@ -586,7 +578,7 @@ class QDM:
         Returns:
             np.ndarray: Bz remanent map
         """
-        return toBxyz(
+        return b111_to_xyz(
             self.b111_remanent,
             self.pixel_size,
             rotation_angle=rotation_angle,
@@ -601,7 +593,7 @@ class QDM:
         Returns:
             np.ndarray: Bz remanent map
         """
-        return toBxyz(
+        return b111_to_xyz(
             self.b111_induced,
             self.pixel_size,
             rotation_angle=rotation_angle,
@@ -682,7 +674,11 @@ class QDM:
 
         """
 
-        if dialect == "QDMpy":
+        if dialect == "MMT":
+            raise NotImplementedError("MMT dialect not implemented yet.")
+        elif dialect == "QDMio":
+            return self._extracted_from__save_data_30()
+        elif dialect == "QDMpy":
             return {
                 "remanent": self.b111[0],
                 "induced": self.b111[1],
@@ -698,37 +694,35 @@ class QDM:
                 "bin_factor": self.bin_factor,
             }
 
-        elif dialect == "QDMio":
-            neg_diff, pos_diff = self.delta_resonance
-            b111_remanent, b111_induced = self.b111
-            chi_squares = self.get_param("chi2")
-            chi2_pos1, chi2_pos2 = chi_squares[0]
-            chi2_neg1, chi2_neg2 = chi_squares[1]
-            led_img = self.light
-            laser_img = self.laser
-            pixel_alerts = np.zeros(b111_remanent.shape)
-
-            out = dict(
-                negDiff=neg_diff,
-                posDiff=pos_diff,
-                B111ferro=b111_remanent,
-                B111para=b111_induced,
-                chi2Pos1=chi2_pos1,
-                chi2Pos2=chi2_pos2,
-                chi2Neg1=chi2_neg1,
-                chi2Neg2=chi2_neg2,
-                ledImg=led_img,
-                laser=laser_img,
-                pixelAlerts=pixel_alerts,
-                bin_factor=self.bin_factor,
-                QDMpy_version=QDMpy.__version__,
-            )
-            return out
-
-        elif dialect == "MMT":
-            raise NotImplementedError("MMT dialect not implemented yet.")
         else:
             raise ValueError(f"Dialect {dialect} not supported.")
+
+    # TODO Rename this here and in `_save_data`
+    def _extracted_from__save_data_30(self):
+        neg_diff, pos_diff = self.delta_resonance
+        b111_remanent, b111_induced = self.b111
+        chi_squares = self.get_param("chi2")
+        chi2_pos1, chi2_pos2 = chi_squares[0]
+        chi2_neg1, chi2_neg2 = chi_squares[1]
+        led_img = self.light
+        laser_img = self.laser
+        pixel_alerts = np.zeros(b111_remanent.shape)
+
+        return dict(
+            negDiff=neg_diff,
+            posDiff=pos_diff,
+            B111ferro=b111_remanent,
+            B111para=b111_induced,
+            chi2Pos1=chi2_pos1,
+            chi2Pos2=chi2_pos2,
+            chi2Neg1=chi2_neg1,
+            chi2Neg2=chi2_neg2,
+            ledImg=led_img,
+            laser=laser_img,
+            pixelAlerts=pixel_alerts,
+            bin_factor=self.bin_factor,
+            QDMpy_version=QDMpy.__version__,
+        )
 
 
 def main():
