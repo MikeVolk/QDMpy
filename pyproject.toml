@@ -86,6 +86,10 @@ src_paths = ["src", "tests"]
 [tool.black]
 target-version = ["py310"]
 include = '\.pyi?$'
+line_length = 100
+
+[tool.ruff]
+line_length = 100
 
 [tool.pytest.ini_options]
 addopts = """\

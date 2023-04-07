@@ -15,56 +15,53 @@ import QDMpy
 import QDMpy.utils
 from QDMpy.exceptions import WrongFileNumber
 
-
 class ODMR:
-    """ """
+    """Class for ODMR data object"""
 
     LOG = logging.getLogger(__name__)
 
     def __init__(
         self,
-        data: NDArray,
-        scan_dimensions: NDArray,
-        frequencies: NDArray,
+        data_array: ndarray,
+        scan_dimensions: ndarray,
+        frequencies_array: ndarray,
         **kwargs: Any,
     ) -> None:
         self.LOG.info("ODMR data object initialized")
         self.LOG.info("ODMR data format is [polarity, f_range, n_pixels, n_freqs]")
-        self.LOG.info(f"read parameter shape: data: {data.shape}")
+        self.LOG.info(f"read parameter shape: data_array: {data_array.shape}")
         self.LOG.info(f"                      scan_dimensions: {scan_dimensions}")
-        self.LOG.info(f"                      frequencies: {frequencies.shape}")
-        self.LOG.info(f"                      n(freqs): {data.shape[-1]}")
+        self.LOG.info(f"                      frequencies_array: {frequencies_array.shape}")
+        self.LOG.info(f"                      n(freqs): {data_array.shape[-1]}")
 
-        self._raw_data = data
+        self.data_array = data_array
 
-        self.n_pol = data.shape[0]
-        self.n_frange = data.shape[1]
+        self.n_pol = data_array.shape[0]
+        self.n_frange = data_array.shape[1]
 
-        self._frequencies = frequencies
-        self._frequencies_cropped = None
+        self.frequencies_array = frequencies_array
+        self.frequencies_cropped_array = None
 
         self.outlier_mask = None
-        self._img_shape = np.array(scan_dimensions)
+        self.img_shape_array = np.array(scan_dimensions)
 
-        self._data_edited = np.ones(data.shape)
-        self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
+        self.norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
-
-        self._edit_stack = [
+        self.edit_stack = [
             self.reset_data,
-            self._normalize_data,
-            None,  # spaceholder for binning
-            None, # spaceholder for outlier removal
-            None, # spaceholder for global correction
+            self.normalize_data,
+            None,  # placeholder for binning
+            None,  # placeholder for outlier removal
+            None,  # placeholder for global correction
         ]
 
-        self._apply_edit_stack()
+        self.apply_edit_stack()
 
-        self._imported_files = kwargs.pop("imported_files", [])
-        self._bin_factor = 1
-        self._pre_bin_factor = 1  # in case pre binned data is loaded
+        self.imported_files_list: List[str] = kwargs.pop("imported_files", [])
+        self.bin_factor = 1
+        self.pre_bin_factor = 1  # in case pre binned data is loaded
 
-        self._gf_factor = 0.0
+        self.gf_factor = 0.0
 
         self.is_binned = False
         self.is_gf_corrected = False  # global fluorescence correction
@@ -74,10 +71,18 @@ class ODMR:
 
     def __repr__(self) -> str:
         return (
-            f"ODMR(data={self.data.shape}, "
-            f"scan_dimensions={self.data_shape}, n_pol={self.n_pol}, "
+            f"ODMR(data_array={self.data_array.shape}, "
+            f"scan_dimensions={self.img_shape_array}, n_pol={self.n_pol}, "
             f"n_frange={self.n_frange}, n_pixel={self.n_pixel}, n_freqs={self.n_freqs}"
         )
+
+    @property
+    def n_freqs(self) -> int:
+        return self.data_array.shape[-1]
+
+    @property
+    def n_pixel(self) -> int:
+        return self.img_shape_array[0] * self.img_shape_array[1]
 
     def __getitem__(self, item: Union[Sequence[Union[str]], str]) -> NDArray:
         """
@@ -91,6 +96,7 @@ class ODMR:
                       '<' - lower frequency range
                       '>' - higher frequency range
                       'r' - reshape to 2D image (data_shape)
+                      'f{freq}' - data at a specific frequency {freq}
 
         Returns: data of the desired return value
 
@@ -98,6 +104,7 @@ class ODMR:
         ``` py
         >>> odmr['+'] #-> pos. polarization
         >>> odmr['+', '<'] #-> pos. polarization + low frequency range
+        >>> odmr['f1.0'] #-> data at frequency 1.0 GHz
         ```
 
         """
@@ -114,8 +121,10 @@ class ODMR:
         items = ",".join(item)
 
         reshape = bool(re.findall("|".join(["r", "R"]), items))
+
         # get the data
-        d = self.data
+        d = self.data_array
+
         if linear_idx is not None:
             d = d[:, :, linear_idx]
         elif reshape:
@@ -123,8 +132,8 @@ class ODMR:
             d = d.reshape(
                 self.n_pol,
                 self.n_frange,
-                self.data_shape[0],
-                self.data_shape[1],
+                self.img_shape_array[0],
+                self.img_shape_array[1],
                 self.n_freqs,
             )
 
@@ -133,31 +142,46 @@ class ODMR:
             return d
 
         # return the data
-        if re.findall("|".join(["data", "d"]), items):
+        if "data" in items or "d" in items:
             return d
 
         # polarities
-        if re.findall("|".join(["pos", re.escape("+")]), items):
+        pidx = []
+        if "+" in items or "pos" in items:
             self.LOG.debug("ODMR: selected positive field polarity")
-            pidx = [0]
-        elif re.findall("|".join(["neg", "-"]), items):
+            pidx.append(0)
+        if "-" in items or "neg" in items:
             self.LOG.debug("ODMR: selected negative field polarity")
-            pidx = [1]
-        else:
+            pidx.append(1)
+        if not pidx:
             pidx = [0, 1]
-
         d = d[pidx]
-        # franges
-        if re.findall("|".join(["low", "l", "<"]), items):
-            self.LOG.debug("ODMR: selected low frequency range")
-            fidx = [0]
-        elif re.findall("|".join(["high", "h", ">"]), items):
-            self.LOG.debug("ODMR: selected high frequency range")
-            fidx = [1]
-        else:
-            fidx = [0, 1]
 
+        # franges
+        fidx = []
+        if "<" in items or "low" in items or "l" in items:
+            self.LOG.debug("ODMR: selected low frequency range")
+            fidx.append(0)
+        if ">" in items or "high" in items or "h" in items:
+            self.LOG.debug("ODMR: selected high frequency range")
+            fidx.append(1)
+        if not fidx:
+            fidx = [0, 1]
         d = d[:, fidx]
+
+        # frequency
+        freq_idx = []
+        for i in item:
+            if isinstance(i, str) and i.startswith("f"):
+                try:
+                    freq = float(i[1:])
+                except ValueError:
+                    self.LOG.warning(f"Invalid frequency index {i}")
+                    continue
+                freq_idx.append(np.argmin(np.abs(self.frequencies_array - freq)))
+        if freq_idx:
+            d = d[:, :, :, :, freq_idx]
+
         return np.squeeze(d)
 
     # index related
@@ -205,11 +229,18 @@ class ODMR:
         """
         return QDMpy.utils.idx2rc(idx, self.data_shape)  # type: ignore[arg-type]
 
+    THRESHOLD = 0.001
+
     def most_divergent_from_mean(self) -> Tuple[int, int]:
-        """Get the most divergent pixel from the mean in data coordinates."""
+        """
+        Get the most divergent pixel from the mean in data coordinates.
+
+        Returns:
+            A tuple (i, j) representing the coordinates of the most divergent pixel.
+        """
         delta = self.delta_mean.copy()
-        delta[delta > 0.001] = np.nan
-        return np.unravel_index(np.argmax(delta, axis=None), self.delta_mean.shape)  # type: ignore[return-value]
+        delta[delta > self.THRESHOLD] = np.nan
+        return np.unravel_index(np.nanargmax(delta), delta.shape)
 
     # from methods
     # FROM / IMPORT
@@ -218,7 +249,7 @@ class ODMR:
         """Loads QDM data from a Matlab file.
 
         Args:
-          data_folder:
+            data_folder: path to the directory containing the QDM data files.
 
         Returns:
             ODMR instance
@@ -229,13 +260,14 @@ class ODMR:
         Notes:
             Filenames starting with '#' are ignored.
         """
-
-        files = os.listdir(data_folder)
-        run_files = [
-            f
-            for f in files
-            if f.endswith(".mat") and "run_" in f and not f.startswith("#")
-        ]
+        with os.scandir(data_folder) as entries:
+            run_files = [
+                entry.name
+                for entry in entries
+                if entry.name.endswith(".mat")
+                   and "run_" in entry.name
+                   and not entry.name.startswith("#")
+            ]
 
         if not run_files:
             raise WrongFileNumber("No run files found in folder.")
@@ -272,19 +304,24 @@ class ODMR:
         if n_freqs != len(frequencies):
             frequencies = np.array([frequencies[:n_freqs], frequencies[n_freqs:]])
 
-        return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)  # type: ignore[arg-type]
-
-
+        return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)
 
     @classmethod
     def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
         """Stack the data in the ODMR object.
 
         Args:
-          mat_dict: dictionary containing the data from the QDMio matlab file
+            mat_dict: dictionary containing the data from the QDMio matlab file
 
         Returns:
-            a numpy array containing the data for both frequency ranges
+            A numpy array containing the data for both frequency ranges.
+
+        Raises:
+            ValueError: If the number of image stacks is not 2 or 4.
+
+        Notes:
+            The number of image stacks determines whether the data is in low-frequency mode (50 frequencies) or
+            high-frequency mode (101 frequencies).
 
         """
         n_img_stacks = len([k for k in mat_dict if "imgStack" in k])
@@ -301,41 +338,68 @@ class ODMR:
         elif n_img_stacks == 4:
             # 4 IMGSTACKS, THEN WE ARE IN HIGH freq. MODE (101 freqs)
             cls.LOG.debug(
-                "Four ImgStacks found: Stacking data from imgStack1, imgStack2 and imgStack3, imgStack4."
+                "Four ImgStacks found: Stacking data from imgStack1, imgStack2, imgStack3, imgStack4."
             )
-            img_stack1 = np.concatenate(
-                [mat_dict["imgStack1"], mat_dict["imgStack2"]]
-            ).T
-            img_stack2 = np.concatenate(
-                [mat_dict["imgStack3"], mat_dict["imgStack4"]]
-            ).T
+            img_stack1 = np.concatenate([mat_dict["imgStack1"], mat_dict["imgStack2"]]).T
+            img_stack2 = np.concatenate([mat_dict["imgStack3"], mat_dict["imgStack4"]]).T
+        else:
+            raise ValueError(f"Expected 2 or 4 image stacks, got {n_img_stacks}.")
+
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
     def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
-        """Return the normalization factors for the data.
+        """
+        Return the normalization factors for the data.
 
         Args:
-          data: data
-          method: return: (Default value = "max")
+            data: The data to normalize.
+            method: The normalization method to use. Supported methods are "max" (default),
+                "mean", "std", "mad", and "l2".
 
         Returns:
+            A 1D array of normalization factors.
 
-        Raises: NotImplementedError: if method is not implemented
+        Raises:
+            NotImplementedError: if method is not implemented.
         """
 
-        match method:
-            case "max":
-                mx = np.max(data, axis=-1)
-                cls.LOG.debug(
-                    f"Determining normalization factor from maximum value of each pixel spectrum. "
-                    f"Shape of mx: {mx.shape}"
-                )
-                factors = np.expand_dims(mx, axis=-1)
-            case _:
-                raise NotImplementedError(f'Method "{method}" not implemented.')
+        if method == "max":
+            factors = np.max(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from maximum value of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "mean":
+            factors = np.mean(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from mean value of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "std":
+            factors = np.std(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from standard deviation of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "mad":
+            med = np.median(data, axis=-1, keepdims=True)
+            factors = np.median(np.abs(data - med), axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from median absolute deviation of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        elif method == "l2":
+            factors = np.linalg.norm(data, axis=-1, keepdims=True)
+            cls.LOG.debug(
+                f"Determining normalization factor from L2-norm of each pixel spectrum. "
+                f"Shape of factors: {factors.shape}"
+            )
+        else:
+            raise NotImplementedError(f'Method "{method}" not implemented.')
 
         return factors
+
 
     # properties
     @property
@@ -347,30 +411,6 @@ class ODMR:
     def img_shape(self) -> NDArray:
         """ """
         return self._img_shape
-
-    @property
-    def n_pixel(self) -> int:
-        """
-
-        Args:
-
-        Returns:
-          :return: int
-
-        """
-        return int(self.data_shape[0] * self.data_shape[1])
-
-    @property
-    def n_freqs(self) -> int:
-        """
-
-        Args:
-
-        Returns:
-          :return: int
-
-        """
-        return self.frequencies.shape[1]
 
     @property
     def frequencies(self) -> NDArray:
@@ -432,14 +472,14 @@ class ODMR:
         """Calculate the mean of the minimum of MW sweep for each pixel."""
         return np.mean(self.raw_contrast)
 
-    @property
     def _mean_baseline(self) -> Tuple[NDArray, NDArray, NDArray]:
         """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-        baseline_mean = np.mean(
-            np.stack([baseline_left_mean, baseline_right_mean], -1), axis=-1
-        )
+        baseline_mean = np.concatenate(
+            [baseline_left_mean[..., np.newaxis], baseline_right_mean[..., np.newaxis]],
+            axis=-1
+        ).mean(axis=-1)
         return baseline_left_mean, baseline_right_mean, baseline_mean
 
     @property
@@ -499,17 +539,26 @@ class ODMR:
         self._apply_edit_stack(method=method)
 
     def _normalize_data(self, method: str = "max", **kwargs: Any) -> None:
-        """Normalize the data.
+        """
+        Normalize the data.
 
         Args:
-          method:  (Default value = "max")
-          **kwargs:
+            method: The normalization method to use. Supported methods are "max" (default),
+                "mean", "std", "mad", and "l2".
+            **kwargs: Additional arguments to pass to the normalization method. If a "factors"
+                key is present, the method will use the specified factors instead of calculating
+                new ones using the specified method.
         """
-        self._norm_factors = self.get_norm_factors(self.data, method=method)  # type: ignore[assignment]
+        if "factors" in kwargs:
+            factors = kwargs["factors"]
+        else:
+            factors = self.get_norm_factors(self.data, method=method, **kwargs)
+
+        self._norm_factors = factors
         self.LOG.debug(f"Normalizing data with method: {method}")
         self._norm_method = method
         self.is_normalized = True
-        self._data_edited /= self._norm_factors  # type: ignore[arg-type]
+        self._data_edited /= self._norm_factors
 
     def apply_outlier_mask(
         self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any
@@ -562,14 +611,14 @@ class ODMR:
         """
         self._edit_stack[2] = self._bin_data
         self._apply_edit_stack(bin_factor=bin_factor)
-
     def _bin_data(
-        self, bin_factor: Optional[Union[float, None]] = None, **kwargs: Any
+        self, bin_factor: Optional[Union[float, None]] = None, func: Callable = np.nanmean, **kwargs: Any
     ) -> None:
         """Bin the data from the raw data.
 
         Args:
           bin_factor:  (Default value = None)
+          func: The function to use for block averaging. Default is np.nanmean.
           **kwargs:
 
         Returns:
@@ -599,8 +648,8 @@ class ODMR:
         _odmr_binned = block_reduce(
             reshape_data,
             block_size=(1, 1, int(bin_factor), int(bin_factor), 1),
-            func=np.nanmean,  # uses mean
-            cval=np.median(reshape_data),  # replaces with median
+            func=func,  # uses the specified function
+            cval=func(reshape_data),  # replaces with the specified function's default value
         )  # bins the data
         self._data_edited = _odmr_binned.reshape(
             self.n_pol, self.n_frange, -1, self.n_freqs
@@ -614,10 +663,12 @@ class ODMR:
             f"--> {_odmr_binned.shape[0]}x{_odmr_binned.shape[1]}x{_odmr_binned.shape[2]}x{_odmr_binned.shape[3]}x{_odmr_binned.shape[4]}"
         )
 
-    def remove_overexposed(self, **kwargs: Any) -> None:
+    def remove_overexposed(self, threshold: float = 1.0, **kwargs: Any) -> None:
         """Remove overexposed pixels from the data.
 
         Args:
+          threshold: The threshold value to use. Pixels with a sum greater than or equal to the threshold
+            are considered overexposed. Default is 1.0.
           **kwargs:
 
         Returns:
@@ -626,17 +677,15 @@ class ODMR:
         if self._data_edited is None:
             return self.LOG.warning("No data to remove overexposed pixels from.")
 
-        self._overexposed = (
-            np.sum(self._data_edited, axis=-1) == self._data_edited.shape[-1]
-        )
+        overexposed_mask = np.sum(self._data_edited, axis=-1) >= threshold * self._data_edited.shape[-1]
 
-        if np.sum(self._overexposed) > 0:
+        if np.sum(overexposed_mask) > 0:
             self.LOG.warning(
-                f"ODMR: {np.sum(self._overexposed)} pixels are overexposed"
+                f"ODMR: {np.sum(overexposed_mask)} pixels are overexposed"
             )
-            self._data_edited = ma.masked_where(
-                self._data_edited == 1, self._data_edited
-            )
+
+            # Remove overexposed pixels by setting their value to NaN
+            self._data_edited[overexposed_mask] = np.nan
 
     ### CORRECTION METHODS ###
     def calc_gf_correction(self, gf: float) -> NDArray:
@@ -647,8 +696,9 @@ class ODMR:
 
         Returns: The global fluorescence correction
         """
-        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline
-        return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
+        baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline()
+        return gf * (self.mean_odmr - baseline_mean)
+
 
     def correct_glob_fluorescence(self, gf_factor: float, **kwargs: Any) -> None:
         """Correct the data for the gradient factor.
@@ -667,12 +717,19 @@ class ODMR:
     def _correct_glob_fluorescence(
         self, gf_factor: Union[float, None] = None, **kwargs: Any
     ) -> None:
+
         """Correct the data for the global fluorescence.
 
         Args:
           gf_factor: global fluorescence factor (Default value = None)
-          **kwargs: pass though for additional _apply_edit_stack kwargs
+          **kwargs: pass through for additional _apply_edit_stack kwargs
+
+        Raises:
+          TypeError: If `gf_factor` is not a float or None
         """
+        if gf_factor is not None and not isinstance(gf_factor, float):
+            raise TypeError(f"Expected `gf_factor` to be a float or None, but got {type(gf_factor)}")
+
         if gf_factor is None:
             gf_factor = self._gf_factor
 
