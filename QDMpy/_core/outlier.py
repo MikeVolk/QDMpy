@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, np.ndarray
 
 import QDMpy
 import QDMpy.utils
@@ -28,7 +28,7 @@ class Outlier(ABC):
 
     def __init__(self, data_shape: Tuple[int, ...]) -> None:
         self.data_shape = data_shape
-        self.outliers: NDArray = np.zeros(self.data_shape, dtype=bool)
+        self.outliers: np.ndarray = np.zeros(self.data_shape, dtype=bool)
         self.LOG.debug(
             f"{self.__class__.__name__} initialized with data of shape {self.data_shape}"
         )
@@ -57,10 +57,10 @@ class StatisticsPercentile(Outlier):
 
     def __init__(
         self,
-        b111: NDArray,
-        chi2: NDArray,
-        width: NDArray,
-        mean_contrast: NDArray,
+        b111: np.ndarray,
+        chi2: np.ndarray,
+        width: np.ndarray,
+        mean_contrast: np.ndarray,
         **kwargs,
     ):
         """
@@ -181,7 +181,7 @@ class StatisticsPercentile(Outlier):
                                   percentiles for mean contrast (Default value = None).
 
         Returns:
-            NDArray: Array of booleans indicating whether each pixel is an outlier or not.
+            np.ndarray: Array of booleans indicating whether each pixel is an outlier or not.
         """
         if not any(
             [
@@ -211,13 +211,13 @@ class StatisticsPercentile(Outlier):
             percentiles: The percentiles to use for outlier detection.
 
         Returns:
-            NDArray: Array of booleans indicating whether each pixel is an outlier or not.
+            np.ndarray: Array of booleans indicating whether each pixel is an outlier or not.
         """
         smaller = data < percentiles[0]
         larger = data > percentiles[1]
         return np.any(smaller, axis=(0, 1)) | np.any(larger, axis=(0, 1))
 
-    def set_range(self, dtype: str, data: NDArray, percentile: Tuple[float, float]) -> NDArray:
+    def set_range(self, dtype: str, data: np.ndarray, percentile: Tuple[float, float]) -> np.ndarray:
         """
         Set the range for the specified dtype.
 
@@ -247,7 +247,7 @@ class StatisticsPercentile(Outlier):
 
 
 class LocalOutlierFactor(Outlier):
-    def concat_data(self, data: np.ndarray) -> np.ndarray:
+    def concat_data(self, data: np.np.ndarray) -> np.np.ndarray:
         self.LOG.debug("concatenating data:")
         for i, d in enumerate(data):
             if d.ndim != 4:
@@ -264,7 +264,7 @@ class LocalOutlierFactor(Outlier):
         self.settings.update(kwargs)
         self.data = data
 
-    def detect_outlier(self, **kwargs) -> NDArray:
+    def detect_outlier(self, **kwargs) -> np.ndarray:
         """
         Detect outliers using the LocalOutlierFactor algorithm.
         A pixel is considered and outlier if it is considered an outlier in one polarization or frequency range.
@@ -275,7 +275,7 @@ class LocalOutlierFactor(Outlier):
                 See https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html
 
         Returns:
-            NDArray: boolean array with the same shape as the data ([y,x]) with True for outliers
+            np.ndarray: boolean array with the same shape as the data ([y,x]) with True for outliers
             and False for inliers
 
         """

@@ -7,7 +7,7 @@ import mat73
 import matplotlib.image as mpimg
 import numpy as np
 import scipy.io
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, np.ndarray
 from pypole.convert import dim2xyz, xyz2dim
 
 from QDMpy._core.convert import b2shift, project
@@ -45,20 +45,20 @@ def millify(n: float, sign: int = 1) -> str:
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
 
-def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[NDArray, NDArray]:
+def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarray]:
     """Convert an index to a yx coordinate of the reference.
 
     Args:
-      idx: int or numpy.ndarray [idx]
+      idx: int or numpy.np.ndarray [idx]
       shape: shape of the array
       idx: Union[int:
       List[int]:
-      np.ndarray]:
+      np.np.ndarray]:
       shape: Tuple[int:
       int]:
 
     Returns:
-      numpy.ndarray [[y], [x]] ([row][column])
+      numpy.np.ndarray [[y], [x]] ([row][column])
 
     """
     idx = np.atleast_1d(idx)
@@ -66,18 +66,18 @@ def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[NDArray, NDArray]:
     return np.unravel_index(idx, shape)  # type: ignore[return-value]
 
 
-def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
+def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> np.ndarray:
     """Convert the xy coordinates to the index of the data.
 
     Args:
-      rc: numpy.ndarray [[row], [col]]
+      rc: numpy.np.ndarray [[row], [col]]
       shape: shape of the array
-      rc: np.ndarray:
+      rc: np.np.ndarray:
       shape: Tuple[int:
       int]:
 
     Returns:
-      numpy.ndarray [idx]
+      numpy.np.ndarray [idx]
 
     """
     rc = np.array(rc).astype(int)
@@ -85,26 +85,26 @@ def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> NDArray:
 
 
 def polyfit2d(
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
+    x: np.np.ndarray,
+    y: np.np.ndarray,
+    z: np.np.ndarray,
     kx: Optional[int] = 3,
     ky: Optional[int] = 3,
     order: Optional[Union[None, int]] = None,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.np.ndarray, np.np.ndarray, np.np.ndarray, np.np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
     Fits the functional form f(x,y) = z.
 
     Args:
-      x: np.ndarray: x values for the fit
-      y: np.ndarray:  y values for the fit
-      z: np.ndarray:  z values for the fit
+      x: np.np.ndarray: x values for the fit
+      y: np.np.ndarray:  y values for the fit
+      z: np.np.ndarray:  z values for the fit
       kx: Optional[int]: Polynomial order in x. (Default value = 3)
       ky: Optional[int]: Polynomial order in y. (Default value = 3)
       order: If int, coefficients up to a maximum of kx+ky <= order are considered. (Default value = None)
 
-    Returns: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] solution, residuals, rank, singular values
+    Returns: Tuple[np.np.ndarray, np.np.ndarray, np.np.ndarray, np.np.ndarray] solution, residuals, rank, singular values
 
     See: https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
 
@@ -142,8 +142,8 @@ ZFS = 2.87
 
 
 def generate_parameter(
-    projected_shifts: NDArray, width: float, contrast: float
-) -> Tuple[np.ndarray, np.ndarray]:
+    projected_shifts: np.ndarray, width: float, contrast: float
+) -> Tuple[np.np.ndarray, np.np.ndarray]:
     """
     Generate the parameter (low/high frange) for the QDMpy simulation.
     Args:
@@ -183,7 +183,7 @@ def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
     This function is meant to calculate the "safe" field margins for the current applied field.
 
     Returns:
-        ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
+        np.ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
     """
 
     # generate the dec/inc combinations at current source field
@@ -205,7 +205,7 @@ def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
     return np.min(all_nv_models, axis=0)  # returns only the minimum
 
 
-def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
+def generate_possible_dim(b_source: float, n: int = 10) -> np.np.ndarray:
     """Generates a set of dec/inc combinations for a given source field.
 
     Args:
@@ -213,7 +213,7 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
         n (int, optional): The number of dec/inc combinations to generate. Defaults to 10.
 
     Returns:
-        ndarray: The generated dec/inc combinations.
+        np.ndarray: The generated dec/inc combinations.
     """
 
     dec = np.linspace(0, 360, n)
@@ -273,7 +273,7 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
 def get_image(
     folder: Union[str, bytes, os.PathLike],
     lst: Sequence[Union[str, bytes, os.PathLike]],
-) -> np.ndarray:
+) -> np.np.ndarray:
     """Loads an image from a list of files.
 
     Args:
@@ -292,8 +292,8 @@ def get_image(
 
 
 def double_norm(
-    data: np.ndarray, axis: Optional[Union[int, None]] = None
-) -> np.ndarray:
+    data: np.np.ndarray, axis: Optional[Union[int, None]] = None
+) -> np.np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:
@@ -301,7 +301,7 @@ def double_norm(
     data to normalize
       axis: int
     axis to normalize
-      data: np.ndarray:
+      data: np.np.ndarray:
       axis: Optional[Union[int:
       None]]:  (Default value = None)
 

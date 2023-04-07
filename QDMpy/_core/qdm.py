@@ -5,7 +5,7 @@ from typing import Any, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
+
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
@@ -48,8 +48,8 @@ class QDM:
     def __init__(
         self,
         odmr_instance: ODMR,
-        light: np.ndarray,
-        laser: np.ndarray,
+        light: np.np.ndarray,
+        laser: np.np.ndarray,
         working_directory: Union[str, os.PathLike],
         pixel_size: float = 4e-6,
         model_name: str = "auto",
@@ -89,24 +89,22 @@ class QDM:
 
     def new_fit(self, model_name: str = "auto") -> Fit:
         self.LOG.debug(f"Creating new fit instance with model {model_name}")
-        return Fit(
-            data=self.odmr.data, frequencies=self.odmr.f_ghz, model_name=model_name
-        )
+        return Fit(data=self.odmr.data, frequencies=self.odmr.f_ghz, model_name=model_name)
 
     @property
-    def outliers(self) -> NDArray:
+    def outliers(self) -> np.ndarray:
         """
 
         Args:
 
         Returns:
-          :return: ndarray of boolean
+          :return: np.ndarray of boolean
 
         """
         return self._outliers
 
     @property
-    def outliers_idx(self) -> NDArray:
+    def outliers_idx(self) -> np.ndarray:
         """
 
         Args:
@@ -120,7 +118,7 @@ class QDM:
         return np.where(self.outliers)[0]
 
     @property
-    def outliers_xy(self) -> NDArray:
+    def outliers_xy(self) -> np.ndarray:
         """
 
         Args:
@@ -155,7 +153,7 @@ class QDM:
         dtype: str = "width",
         method: str = "LocalOutlierFactor",
         **outlier_props: Any,
-    ) -> np.ndarray:
+    ) -> np.np.ndarray:
         """Detect outliers in the ODMR data.
 
         The outliers are detected using 'method'. The method can be either 'LocalOutlierFactor' or 'IsolationForest'.
@@ -222,7 +220,7 @@ class QDM:
         self._outliers = outliers
         return self._outliers
 
-    def apply_outlier_mask(self, outlier: Union[NDArray, None] = None) -> None:
+    def apply_outlier_mask(self, outlier: Union[np.ndarray, None] = None) -> None:
         """Apply the outlier mask to the ODMR data.
 
         apply_outlier_mask applies a given outlier mask to the ODMR data.
@@ -260,9 +258,7 @@ class QDM:
 
         """
         if bin_factor == self.bin_factor:
-            self.LOG.info(
-                f"bin_factor is already set to the desired value of << {bin_factor} >>"
-            )
+            self.LOG.info(f"bin_factor is already set to the desired value of << {bin_factor} >>")
             return
         elif bin_factor < self.odmr._pre_bin_factor:
             raise ValueError(
@@ -333,7 +329,7 @@ class QDM:
             self._fit.model_name = models.IMPLEMENTED[self._model_name]["func_name"]
 
     @property
-    def data_shape(self) -> NDArray:
+    def data_shape(self) -> np.ndarray:
         """ """
         return self.odmr.data_shape
 
@@ -380,7 +376,7 @@ class QDM:
             raise ImportError("pygpufit not installed.")
         self._fit.fit_odmr(refit=refit)
 
-    def get_param(self, param: str, reshape: bool = True) -> NDArray:
+    def get_param(self, param: str, reshape: bool = True) -> np.ndarray:
         """Get the value of a parameter reshaped to the image dimesions.
 
         Args:
@@ -404,10 +400,10 @@ class QDM:
 
     def _reshape_parameter(
         self,
-        data: NDArray,
+        data: np.ndarray,
         n_pol: int,
         n_frange: int,
-    ) -> NDArray:
+    ) -> np.ndarray:
         """Reshape data so that all data for a frange are in series (i.e. [low_freq(B+), low_freq(B-)]).
         Input data must have format: [polarity, frange, n_pixel, n_freqs]
 
@@ -447,9 +443,7 @@ class QDM:
         raise NotImplementedError(f'Dialect "{dialect}" not implemented.')
 
     @classmethod
-    def from_qdmio(
-        cls, data_folder: Union[os.PathLike[Any], str], model_name: str = "auto"
-    ) -> Any:
+    def from_qdmio(cls, data_folder: Union[os.PathLike[Any], str], model_name: str = "auto") -> Any:
         """Loads QDM data from a Matlab file.
 
         Args:
@@ -494,12 +488,8 @@ class QDM:
 
         """
 
-        path_to_file = (
-            Path(path_to_file) if path_to_file is not None else self.working_directory
-        )
-        full_folder = (
-            path_to_file / f"{self.odmr.bin_factor}x{self.odmr.bin_factor}Binned"
-        )
+        path_to_file = Path(path_to_file) if path_to_file is not None else self.working_directory
+        full_folder = path_to_file / f"{self.odmr.bin_factor}x{self.odmr.bin_factor}Binned"
         full_folder.mkdir(parents=True, exist_ok=True)
         data = self._save_data(dialect="QDMio")
 
@@ -552,7 +542,7 @@ class QDM:
 
     # CALCULATIONS ###
     @property
-    def mean_resonance_distance_ghz(self) -> NDArray:
+    def mean_resonance_distance_ghz(self) -> np.ndarray:
         """Return the difference between low and high freq. range resonance of the fit.
 
         This is the mean distance between the two resonance frequencies in the high and low frange.
@@ -562,28 +552,26 @@ class QDM:
 
         """
         resonance = self.get_param("resonance")
-        return (
-            resonance[:, 1] - resonance[:, 0]
-        ) / 2  # mean shift from ZFS to resonance position
+        return (resonance[:, 1] - resonance[:, 0]) / 2  # mean shift from ZFS to resonance position
 
     @property
-    def b111(self) -> Tuple[np.ndarray, np.ndarray]:
+    def b111(self) -> Tuple[np.np.ndarray, np.np.ndarray]:
         """Calculates the B111 parameter from the fit results.
         The first index is the remanent component, the second the induced component.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: B111 for the remanent and induced component
+            Tuple[np.np.ndarray, np.np.ndarray]: B111 for the remanent and induced component
         """
         return self.b111_remanent, self.b111_induced
 
     @property
-    def b111_remanent(self) -> np.ndarray:
+    def b111_remanent(self) -> np.np.ndarray:
         """Calculates the B111 remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.ndarray: B111 remanent map
+            np.np.ndarray: B111 remanent map
         """
         neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
 
@@ -593,44 +581,44 @@ class QDM:
 
         return (pos_mean_fshift - neg_mean_fshift) / 2
 
-    def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
+    def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.np.ndarray:
         """Calculates the Bz remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.ndarray: Bz remanent map
+            np.np.ndarray: Bz remanent map
         """
         return b111_to_bxyz(
             self.b111_remanent,
             self.pixel_size,
-            rotation_angle=rotation_angle,
+            rotation_angle_in_degrees=rotation_angle,
             direction_vector=direction_vector,
         )[2]
 
-    def get_bz_induced(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
+    def get_bz_induced(self, rotation_angle=0, direction_vector=None) -> np.np.ndarray:
         """Calculates the Bz remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.ndarray: Bz remanent map
+            np.np.ndarray: Bz remanent map
         """
         return b111_to_bxyz(
             self.b111_induced,
             self.pixel_size,
-            rotation_angle=rotation_angle,
+            rotation_angle_in_degrees=rotation_angle,
             direction_vector=direction_vector,
         )[2]
 
     @property
-    def b111_induced(self) -> np.ndarray:
+    def b111_induced(self) -> np.np.ndarray:
         """Calculates the B111 remanent map from the fit results.
 
         The induced component is defined as the mean distance between the high and low frequency resonance.
 
         Returns:
-            np.ndarray: B111 induced map
+            np.np.ndarray: B111 induced map
         """
         neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
 
@@ -658,7 +646,7 @@ class QDM:
         """
         return plotting.qdm(self, remanence, ax, scalebar, **plt_props)
 
-    def rc2idx(self, rc: np.ndarray, ref: str = "data") -> NDArray:
+    def rc2idx(self, rc: np.np.ndarray, ref: str = "data") -> np.ndarray:
         """Convert the xy coordinates to the index of the data.
 
         If the reference is 'data', the index is relative to the data.
@@ -666,12 +654,12 @@ class QDM:
         Only data -> data and img -> img are supported.
 
         Args:
-          rc: numpy.ndarray [[row], [column]] -> [[y], [x]]
+          rc: numpy.np.ndarray [[row], [column]] -> [[y], [x]]
           ref: str 'data' or 'img' (Default value = "data")
-          rc:np.ndarray:
+          rc:np.np.ndarray:
 
         Returns:
-          numpy.ndarray [idx]
+          numpy.np.ndarray [idx]
 
         """
         if ref == "data":
@@ -683,8 +671,8 @@ class QDM:
         return rc2idx(rc, shape)  # type: ignore[arg-type]
 
     def idx2rc(
-        self, idx: Union[int, np.ndarray], ref: str = "data"
-    ) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
+        self, idx: Union[int, np.np.ndarray], ref: str = "data"
+    ) -> Tuple[np.np.ndarray[Any, Any], np.np.ndarray[Any, Any]]:
         """Convert an index to a rc coordinate of the reference.
 
         If the reference is 'data', the index is relative to the data.
@@ -692,11 +680,11 @@ class QDM:
         Only data -> data and img -> img are implemented.
 
         Args:
-          idx: int or numpy.ndarray [idx] or [idx, idx]
+          idx: int or numpy.np.ndarray [idx] or [idx, idx]
           ref: data' or 'img' (Default value = "data")
 
         Returns:
-          numpy.ndarray ([row], [col]) -> [[y], [x]]
+          numpy.np.ndarray ([row], [col]) -> [[y], [x]]
 
         """
         if ref == "data":

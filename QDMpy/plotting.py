@@ -48,9 +48,7 @@ def qdm(
     if ax is None:
         ax = plt.gca()
 
-    img = plot_data(
-        data=qdm.b111_remanent if remanence else qdm.b111_induced, ax=ax, **plt_props
-    )
+    img = plot_data(data=qdm.b111_remanent if remanence else qdm.b111_induced, ax=ax, **plt_props)
 
     cax, _ = add_cax(ax)
     _ = plt.colorbar(
@@ -67,7 +65,7 @@ def qdm(
 
 def plot_light_img(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
@@ -98,7 +96,7 @@ def plot_light_img(
 
 def plot_fluorescence(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
@@ -129,7 +127,7 @@ def plot_fluorescence(
 
 def plot_laser_img(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -160,8 +158,8 @@ def plot_laser_img(
 
 def update_line(
     ax: plt.Axes,
-    x: np.ndarray,
-    y: Optional[Union[np.ndarray, None]] = None,
+    x: np.np.ndarray,
+    y: Optional[Union[np.np.ndarray, None]] = None,
     line: plt.Line2D = None,
     **plt_props: Any,
 ) -> plt.Line2D:
@@ -169,8 +167,8 @@ def update_line(
 
     Args:
       ax: plt.Axes:
-      x:np.ndarray[float]:
-      y:np.ndarray[float]:  (Default value = None)
+      x:np.np.ndarray[float]:
+      y:np.np.ndarray[float]:  (Default value = None)
       line:plt.Line2D:  (Default value = None)
       **plt_props:
 
@@ -190,8 +188,8 @@ def update_line(
 
 def update_marker(
     ax: plt.Axes,
-    x: np.ndarray,
-    y: np.ndarray,
+    x: np.np.ndarray,
+    y: np.np.ndarray,
     line: plt.Line2D = None,
     **plt_props: Any,
 ) -> plt.Line2D:
@@ -243,7 +241,7 @@ def add_scalebar(ax: plt.Axes, pixel_size: float, **plt_props: Any) -> None:
 
 def plot_quality_data(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -267,7 +265,7 @@ def plot_quality_data(
 
 def plot_data(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     norm_percentile: Tuple[float] = (0, 100),
     clim: Optional[Tuple[float]] = None,
@@ -345,7 +343,7 @@ def get_color_norm(vmin: float, vmax: float) -> colors.Normalize:
 
 def plot_overlay(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[Union[mpl.image.AxesImage, None]] = None,
     normtype: str = "simple",
     **plt_props: Any,
@@ -372,7 +370,7 @@ def plot_overlay(
 
 def plot_outlier(
     ax: plt.Axes,
-    data: np.ndarray,
+    data: np.np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -395,9 +393,7 @@ def plot_outlier(
     return img
 
 
-def update_clim(
-    img: mpl.image.AxesImage, vmin: float, vmax: float
-) -> mpl.image.AxesImage:
+def update_clim(img: mpl.image.AxesImage, vmin: float, vmax: float) -> mpl.image.AxesImage:
     """Update the colorbar limits of the image
 
     Args:
@@ -431,9 +427,7 @@ def update_cbar(
     Returns:
 
     """
-    extent = detect_extend(
-        vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max()
-    )
+    extent = detect_extend(vmin=vmin, vmax=vmax, mn=img.get_array().min(), mx=img.get_array().max())
 
     label = cax.get_ylabel()
     cax.clear()
@@ -479,7 +473,7 @@ def detect_extend_from_img(img) -> str:
 
 
 def update_img(
-    ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any
+    ax: plt.Axes, img: mpl.image.AxesImage, data: np.np.ndarray, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 
@@ -540,9 +534,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     print(f"{header}")
     print("-" * 100)
 
-    for p, f in itertools.product(
-        range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)
-    ):
+    for p, f in itertools.product(range(qdm_obj.odmr.n_pol), range(qdm_obj.odmr.n_frange)):
         f_new = np.linspace(min(qdm_obj.odmr.f_ghz[f]), max(qdm_obj.odmr.f_ghz[f]), 200)
 
         m_initial = model(parameter=qdm_obj.fit.initial_parameter[p, f, [idx]], x=f_new)
@@ -577,9 +569,7 @@ def check_fit_pixel(qdm_obj: QDM, idx: int) -> Tuple[plt.Figure, plt.Axes]:
     return f, ax
 
 
-def plot_fit_params(
-    qdm_obj: QDM, param: str, save: Optional[bool] = False
-) -> plt.Figure:
+def plot_fit_params(qdm_obj: QDM, param: str, save: Optional[bool] = False) -> plt.Figure:
     """
 
     Args:
@@ -652,7 +642,7 @@ def add_cax(ax):
     return cax, original_locator
 
 
-def add_cbar(ax: plt.Axes, im: mpl.image.AxesImage, label: str = 'B [μT]') :
+def add_cbar(ax: plt.Axes, im: mpl.image.AxesImage, label: str = "B [μT]"):
     """
     Add a colorbar to an existing axes.
 

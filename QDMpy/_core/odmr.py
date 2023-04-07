@@ -8,7 +8,7 @@ from typing import Any, Optional, Sequence, Tuple, Union
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import ma as ma
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, np.ndarray
 from skimage.measure import block_reduce
 
 import QDMpy
@@ -22,9 +22,9 @@ class ODMR:
 
     def __init__(
         self,
-        data_array: ndarray,
-        scan_dimensions: ndarray,
-        frequencies_array: ndarray,
+        data_array: np.ndarray,
+        scan_dimensions: np.ndarray,
+        frequencies_array: np.ndarray,
         **kwargs: Any,
     ) -> None:
         self.LOG.info("ODMR data object initialized")
@@ -84,7 +84,7 @@ class ODMR:
     def n_pixel(self) -> int:
         return self.img_shape_array[0] * self.img_shape_array[1]
 
-    def __getitem__(self, item: Union[Sequence[Union[str]], str]) -> NDArray:
+    def __getitem__(self, item: Union[Sequence[Union[str]], str]) -> np.ndarray:
         """
         Return the data of a given polarization, frequency range, pixel or frequency.
 
@@ -207,7 +207,7 @@ class ODMR:
         yid = [i[1] for i in idx]
         return xid, yid
 
-    def rc2idx(self, rc: ArrayLike) -> NDArray:
+    def rc2idx(self, rc: ArrayLike) -> np.ndarray:
         """
 
         Args:
@@ -218,7 +218,7 @@ class ODMR:
         """
         return QDMpy.utils.rc2idx(rc, self.data_shape)  # type: ignore[arg-type]
 
-    def idx2rc(self, idx: ArrayLike) -> Tuple[NDArray, NDArray]:
+    def idx2rc(self, idx: ArrayLike) -> Tuple[np.ndarray, np.ndarray]:
         """
 
         Args:
@@ -307,7 +307,7 @@ class ODMR:
         return cls(data=data, scan_dimensions=img_shape, frequencies=frequencies, **kwargs)
 
     @classmethod
-    def _qdmio_stack_data(cls, mat_dict: dict) -> NDArray:
+    def _qdmio_stack_data(cls, mat_dict: dict) -> np.ndarray:
         """Stack the data in the ODMR object.
 
         Args:
@@ -348,7 +348,7 @@ class ODMR:
         return np.stack((img_stack1, img_stack2), axis=0)
 
     @classmethod
-    def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.ndarray:
+    def get_norm_factors(cls, data: ArrayLike, method: str = "max") -> np.np.ndarray:
         """
         Return the normalization factors for the data.
 
@@ -403,23 +403,23 @@ class ODMR:
 
     # properties
     @property
-    def data_shape(self) -> NDArray:
+    def data_shape(self) -> np.ndarray:
         """ """
         return (self.img_shape / self._bin_factor).astype(np.uint32)
 
     @property
-    def img_shape(self) -> NDArray:
+    def img_shape(self) -> np.ndarray:
         """ """
         return self._img_shape
 
     @property
-    def frequencies(self) -> NDArray:
+    def frequencies(self) -> np.ndarray:
         """
 
         Args:
 
         Returns:
-          :return: numpy.ndarray
+          :return: numpy.np.ndarray
 
         """
         if self._frequencies_cropped is None:
@@ -428,12 +428,12 @@ class ODMR:
             return self._frequencies_cropped
 
     @property
-    def f_hz(self) -> NDArray:
+    def f_hz(self) -> np.ndarray:
         """Returns the frequencies of the ODMR in Hz."""
         return self.frequencies
 
     @property
-    def f_ghz(self) -> NDArray:
+    def f_ghz(self) -> np.ndarray:
         """Returns the frequencies of the ODMR in GHz."""
         return self.frequencies / 1e9
 
@@ -443,7 +443,7 @@ class ODMR:
         return self._gf_factor
 
     @property
-    def data(self) -> NDArray:
+    def data(self) -> np.ndarray:
         """ """
         if self._data_edited is None:
             return np.ascontiguousarray(self._raw_data)
@@ -451,28 +451,28 @@ class ODMR:
             return np.ascontiguousarray(self._data_edited)
 
     @property
-    def delta_mean(self) -> NDArray:
+    def delta_mean(self) -> np.ndarray:
         """ """
         return np.sum(
             np.square(self.data - self.mean_odmr[:, :, np.newaxis, :]), axis=-1
         )
 
     @property
-    def mean_odmr(self) -> NDArray:
+    def mean_odmr(self) -> np.ndarray:
         """Calculate the mean of the data."""
         return self.data.mean(axis=-2)
 
     @property
-    def raw_contrast(self) -> NDArray:
+    def raw_contrast(self) -> np.ndarray:
         """Calculate the minimum of MW sweep for each pixel."""
         return np.min(self.data, -2)
 
     @property
-    def mean_contrast(self) -> NDArray:
+    def mean_contrast(self) -> np.ndarray:
         """Calculate the mean of the minimum of MW sweep for each pixel."""
         return np.mean(self.raw_contrast)
 
-    def _mean_baseline(self) -> Tuple[NDArray, NDArray, NDArray]:
+    def _mean_baseline(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
@@ -561,12 +561,12 @@ class ODMR:
         self._data_edited /= self._norm_factors
 
     def apply_outlier_mask(
-        self, outlier_mask: Union[NDArray, None] = None, **kwargs: Any
+        self, outlier_mask: Union[np.ndarray, None] = None, **kwargs: Any
     ) -> None:
         """Apply the outlier mask to the data.
 
         Args:
-          outlier_mask: np.ndarray:  (Default value = None)
+          outlier_mask: np.np.ndarray:  (Default value = None)
           **kwargs:
 
         Returns:
@@ -688,7 +688,7 @@ class ODMR:
             self._data_edited[overexposed_mask] = np.nan
 
     ### CORRECTION METHODS ###
-    def calc_gf_correction(self, gf: float) -> NDArray:
+    def calc_gf_correction(self, gf: float) -> np.ndarray:
         """Calculate the global fluorescence correction.
 
         Args:

@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 packages = [
-    { include = "QDMpy", from = "src" }
+    { include = "QDMpy"}
 ]
 
 [tool.poetry.dependencies]
@@ -36,8 +36,8 @@ numpy = "^1.22"
 numba = "^0.56.0"
 scipy = "^1.9.1"
 #coloredlogs = "^15.0.1"
-pygpufit = [{ path = "src/pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'win32'" },
-    { path = "src/pyGpufit/linux/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'linux'" },
+pygpufit = [{ path = "pyGpufit/win/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'win32'" },
+    { path = "pyGpufit/linux/pyGpufit-1.2.0-py2.py3-none-any.whl", markers = "sys_platform == 'linux'" },
 ]
 pypole = "^0.1.1"
 pint = "^0.20.1"
@@ -81,7 +81,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
 profile = "black"
-src_paths = ["src", "tests"]
+src_paths = ["tests"]
 
 [tool.black]
 target-version = ["py310"]

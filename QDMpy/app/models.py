@@ -71,7 +71,7 @@ class Pix:
         def binned_pixel_idx(self):
             """
             Return the indices of the binned pixels. Reference is the image index.
-            :return: numpy.ndarray
+            :return: numpy.np.ndarray
             """
             rc_idx = list(
                 itertools.product(

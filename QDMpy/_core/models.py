@@ -3,7 +3,7 @@ from typing import Any, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from numba import float64, guvectorize
-from numpy.typing import NDArray
+
 
 import QDMpy
 
@@ -18,7 +18,7 @@ def lorentzian_peak(f, center, width, contrast, out):
     Calculates a single Lorentzian peak.
 
     Args:
-        f : ndarray
+        f : np.ndarray
             Frequency axis.
         center : float
             Center frequency of the peak.
@@ -26,7 +26,7 @@ def lorentzian_peak(f, center, width, contrast, out):
             Width of the peak.
         contrast : float
             Contrast of the peak.
-        out : ndarray
+        out : np.ndarray
             Model array to be filled with the model.
 
     Notes:
@@ -60,12 +60,12 @@ def lorentzian_peak(f, center, width, contrast, out):
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
-def esr14n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
+def esr14n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarray:
     """ESR14N model
 
     Args:
-        x (np.ndarray): x values
-        parameter (np.ndarray): parameters
+        x (np.np.ndarray): x values
+        parameter (np.np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -74,7 +74,7 @@ def esr14n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
             parameter[5] = offset
 
     Returns:
-        np.ndarray: y values
+        np.np.ndarray: y values
     """
     AHYP = 0.002158
 
@@ -91,12 +91,12 @@ def esr14n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
-def esr14n_folded(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
+def esr14n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarray:
     """ESR14N model
 
     Args:
-        x (np.ndarray): x values
-        parameter (np.ndarray): parameters
+        x (np.np.ndarray): x values
+        parameter (np.np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -106,7 +106,7 @@ def esr14n_folded(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
             parameter[6] = secondary frequency
 
     Returns:
-        np.ndarray: y values
+        np.np.ndarray: y values
     """
     AHYP = 0.002158
 
@@ -124,12 +124,12 @@ def esr14n_folded(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
-def esr15n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
+def esr15n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarray:
     """ESR14N model
 
     Args:
-        x (np.ndarray): x values
-        parameter (np.ndarray): parameters
+        x (np.np.ndarray): x values
+        parameter (np.np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -137,7 +137,7 @@ def esr15n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
             parameter[4] = offset
 
     Returns:
-        np.ndarray: y values
+        np.np.ndarray: y values
     """
     AHYP = 0.0015
 
@@ -149,12 +149,12 @@ def esr15n(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
 
 
 @guvectorize([(float64[:], float64[:], float64[:])], "(n),(m)->(n)", forceobj=True)
-def esr15n_folded(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
+def esr15n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarray:
     """ESR14N model, with folded spectrum
 
     Args:
-        x (np.ndarray): x values
-        parameter (np.ndarray): parameters
+        x (np.np.ndarray): x values
+        parameter (np.np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -163,7 +163,7 @@ def esr15n_folded(x: NDArray, parameter: NDArray, model: NDArray) -> NDArray:
             parameter[5] = secondary frequency
 
     Returns:
-        np.ndarray: y values
+        np.np.ndarray: y values
     """
     AHYP = 0.0015
 
@@ -186,15 +186,15 @@ def esrsingle(x, param, model):
     """Single Lorentzian model
 
     Args:
-        x (np.ndarray): frequency values
-        param (np.ndarray): parameters
+        x (np.np.ndarray): frequency values
+        param (np.np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
             parameter[3] = offset
 
     Returns:
-        np.ndarray: y values
+        np.np.ndarray: y values
     """
     model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
 
@@ -241,11 +241,11 @@ def full_model(model, freqs, parameters):
 
     Args:
         model (str): Model name
-        freqs (np.ndarray): Frequencies
-        parameters (np.ndarray): Parameters
+        freqs (np.np.ndarray): Frequencies
+        parameters (np.np.ndarray): Parameters
 
     Returns:
-        np.ndarray: Model
+        np.np.ndarray: Model
     """
     if model == "ESR14N":
         model = esr14n
@@ -262,12 +262,12 @@ def full_model(model, freqs, parameters):
     return np.concatenate((low_f_data, high_f_data), axis=-1)
 
 
-def guess_model(data: np.ndarray, check: bool = False) -> Tuple[int, bool, Any]:
+def guess_model(data: np.np.ndarray, check: bool = False) -> Tuple[int, bool, Any]:
     """
     Guess the diamond type based on the number of peaks.
 
     Args:
-        data (np.ndarray): A 2D numpy array containing the diamond data.
+        data (np.np.ndarray): A 2D numpy array containing the diamond data.
         check (bool, optional): If True, displays a plot of the diamond data with the peaks marked. Default is False.
 
     Returns:

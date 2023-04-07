@@ -8,7 +8,7 @@ import numba
 import numpy as np
 import pandas as pd
 from numba import float64, guvectorize
-from numpy.typing import NDArray
+
 
 import QDMpy
 from QDMpy._core.models import guess_model
@@ -32,8 +32,8 @@ class Fit:
 
     def __init__(
         self,
-        data: NDArray,
-        frequencies: NDArray,
+        data: np.ndarray,
+        frequencies: np.ndarray,
         model_name: str = "auto",
         constraints: Optional[Dict[str, Any]] = None,
     ):
@@ -75,20 +75,20 @@ class Fit:
         return f"Fit(data: {self.data.shape},f: {self.f_ghz.shape}, model:{self.model_name})"
 
     @property
-    def data(self) -> NDArray:
+    def data(self) -> np.ndarray:
         """Get the data to fit.
 
         Returns:
-            ndarray: The data to fit.
+            np.ndarray: The data to fit.
         """
         return self._data
 
     @data.setter
-    def data(self, data: NDArray) -> None:
+    def data(self, data: np.ndarray) -> None:
         """Set the data to fit.
 
         Args:
-            data (ndarray): A 3D array of the data to fit.
+            data (np.ndarray): A 3D array of the data to fit.
 
         Returns:
             None
@@ -162,7 +162,7 @@ class Fit:
             f"Setting model to {model_name}, resetting all fit results and initial parameters."
         )
         self._reset_fit()
-        self._initial_parameter: Union[NDArray, None] = self.get_initial_parameter()
+        self._initial_parameter: Union[np.ndarray, None] = self.get_initial_parameter()
 
     @property
     def model_id(self) -> int:
@@ -221,7 +221,7 @@ class Fit:
 
     ### INITIAL PARAMETER RELATED METHODS ###
     @property
-    def initial_parameter(self) -> Union[NDArray, None]:
+    def initial_parameter(self) -> Union[np.ndarray, None]:
         """
         Return the initial parameter.
 
@@ -229,7 +229,7 @@ class Fit:
         If the initial parameter is not set, it calls the `get_initial_parameter` method to generate one.
 
         Returns:
-            Union[NDArray, None]: The initial parameter as a NumPy array or None if not set.
+            Union[np.ndarray, None]: The initial parameter as a NumPy array or None if not set.
 
         Example:
             model = Model()
@@ -242,7 +242,7 @@ class Fit:
 
         return self._initial_parameter
 
-    def get_initial_parameter(self) -> NDArray:
+    def get_initial_parameter(self) -> np.ndarray:
         """
         Constructs an initial guess for the fit.
 
@@ -250,7 +250,7 @@ class Fit:
         by iterating over the model's parameters and calling their respective guess methods.
 
         Returns:
-            NDArray: A NumPy array containing the initial parameter guesses.
+            np.ndarray: A NumPy array containing the initial parameter guesses.
 
         Example:
             model = Model()
@@ -429,7 +429,7 @@ class Fit:
         # Return the private _constraints attribute
         return self._constraints
 
-    def get_constraints_array(self, n_pixel: int) -> NDArray:
+    def get_constraints_array(self, n_pixel: int) -> np.ndarray:
         """
         This function generates an array of constraints by repeating the given constraints for each unique model
         parameter for a specified number of pixels (n_pixel).
@@ -438,7 +438,7 @@ class Fit:
           n_pixel (int): The number of pixels for which to generate constraints.
 
         Returns:
-          NDArray: A NumPy array of shape (n_pixel, 2 * len(self.model_params_unique)) containing the constraints.
+          np.ndarray: A NumPy array of shape (n_pixel, 2 * len(self.model_params_unique)) containing the constraints.
 
         Example:
           example_instance = ExampleClass()
@@ -459,7 +459,7 @@ class Fit:
         # Tile the constraints list to generate the constraints array with shape (n_pixel, 2 * len(self.model_params_unique))
         return np.tile(constraints_list, (n_pixel, 1))
 
-    def get_constraint_types(self) -> np.ndarray:
+    def get_constraint_types(self) -> np.np.ndarray:
         """
         Returns the indices of the constraint types for each model parameter in self.model_params_unique.
 
@@ -467,7 +467,7 @@ class Fit:
             None
 
         Returns:
-            np.ndarray: An integer NumPy array containing the indices of constraint types.
+            np.np.ndarray: An integer NumPy array containing the indices of constraint types.
 
         Example:
             Assume CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"] and a class instance has
@@ -488,7 +488,7 @@ class Fit:
 
     # parameters
     @property
-    def parameter(self) -> np.ndarray:
+    def parameter(self) -> np.np.ndarray:
         """
         Returns the `_fit_results` attribute as the parameter of the class instance.
 
@@ -496,7 +496,7 @@ class Fit:
             None
 
         Returns:
-            np.ndarray: The NumPy array containing the fit results.
+            np.np.ndarray: The NumPy array containing the fit results.
 
         Example:
             Assume a class instance has self._fit_results = np.array([1.2, 3.4, 5.6])
@@ -508,7 +508,7 @@ class Fit:
         """
         return self._fit_results
 
-    def get_param(self, param: str) -> Union[NDArray, None]:
+    def get_param(self, param: str) -> Union[np.ndarray, None]:
         """
         Get the value of a parameter reshaped to the image dimensions.
 
@@ -520,7 +520,7 @@ class Fit:
                          - "mean_contrast"
 
         Returns:
-            Union[NDArray, None]: The requested parameter reshaped to the image dimensions, or None if not found.
+            Union[np.ndarray, None]: The requested parameter reshaped to the image dimensions, or None if not found.
 
         Raises:
             NotImplementedError: If no fit has been performed yet.
@@ -592,12 +592,12 @@ class Fit:
 
         return idx
 
-    def _guess_center(self) -> NDArray:
+    def _guess_center(self) -> np.ndarray:
         """
         Guess the center of the ODMR spectra.
 
         Returns:
-            NDArray: An array representing the estimated center frequencies of the ODMR spectra.
+            np.ndarray: An array representing the estimated center frequencies of the ODMR spectra.
 
         Example:
             >>> example = ExampleClass()
@@ -612,12 +612,12 @@ class Fit:
 
         return center
 
-    def _guess_contrast(self) -> NDArray:
+    def _guess_contrast(self) -> np.ndarray:
         """
         Guess the contrast of the ODMR spectra.
 
         Returns:
-            NDArray: An array representing the estimated contrast of the ODMR spectra.
+            np.ndarray: An array representing the estimated contrast of the ODMR spectra.
 
         Example:
             >>> example = ExampleClass()
@@ -632,12 +632,12 @@ class Fit:
 
         return contrast
 
-    def _guess_width(self) -> NDArray:
+    def _guess_width(self) -> np.ndarray:
         """
         Guess the width of the ODMR spectra.
 
         Returns:
-            NDArray: An array representing the estimated width of the ODMR spectra.
+            np.ndarray: An array representing the estimated width of the ODMR spectra.
 
         Raises:
             ValueError: If n_peaks is not 1, 2, or 3.
@@ -665,12 +665,12 @@ class Fit:
 
         return width
 
-    def _guess_offset(self) -> NDArray:
+    def _guess_offset(self) -> np.ndarray:
         """
         Guess the offset from 0 of the ODMR spectra. Usually, this is 1.
 
         Returns:
-            NDArray: An array representing the estimated offset of the ODMR spectra.
+            np.ndarray: An array representing the estimated offset of the ODMR spectra.
 
         Example:
             >>> example = ExampleClass()
@@ -783,18 +783,18 @@ class Fit:
         self._fitted = True
 
     def fit_frange(
-        self, data: NDArray, freq: NDArray, initial_parameters: NDArray
-    ) -> List[NDArray]:
+        self, data: np.ndarray, freq: np.ndarray, initial_parameters: np.ndarray
+    ) -> List[np.ndarray]:
         """
         Perform a fit on a single frequency range of the ODMR data.
 
         Args:
-            data (NDArray): Data for one frequency range, to be fitted. Array of size (n_pol, n_pixel, n_freqs) of the ODMR data.
-            freq (NDArray): Array of size (n_freqs) of the frequencies.
-            initial_parameters (NDArray): Initial guess for the fit, an array of size (n_pol * n_pixel, 2 * n_param) of the initial parameters.
+            data (np.ndarray): Data for one frequency range, to be fitted. Array of size (n_pol, n_pixel, n_freqs) of the ODMR data.
+            freq (np.ndarray): Array of size (n_freqs) of the frequencies.
+            initial_parameters (np.ndarray): Initial guess for the fit, an array of size (n_pol * n_pixel, 2 * n_param) of the initial parameters.
 
         Returns:
-            List[NDArray]: A list of arrays containing the fit results, including:
+            List[np.ndarray]: A list of arrays containing the fit results, including:
                 - results: array of size (n_pol*n_pixel, n_param) of the fitted parameters
                 - states: array of size (n_pol*n_pixel) of the fit states (i.e. did the fit work)
                 - chi_squares: array of size (n_pol*n_pixel) of the chi squares
@@ -835,12 +835,12 @@ class Fit:
 
         return list(results)
 
-    def reshape_results(self, results: List[NDArray]) -> List[NDArray]:
+    def reshape_results(self, results: List[np.ndarray]) -> List[np.ndarray]:
         """
         Reshape the results from the fit_constrained function into the correct shape.
 
         Args:
-            results (List[NDArray]): A list of arrays containing the fit results, including:
+            results (List[np.ndarray]): A list of arrays containing the fit results, including:
                 - parameters: array of size (n_pol*n_pixel, n_param) of the fitted parameters
                 - states: array of size (n_pol*n_pixel) of the fit states (i.e. did the fit work)
                 - chi_squares: array of size (n_pol*n_pixel) of the chi squares
@@ -848,7 +848,7 @@ class Fit:
                 - execution_time: execution time
 
         Returns:
-            List[NDArray]: A list of arrays containing the reshaped fit results, including:
+            List[np.ndarray]: A list of arrays containing the reshaped fit results, including:
                 - parameters: array of size (n_pol, n_pixel, n_param) of the fitted parameters
                 - states: array of size (n_pol, n_pixel) of the fit states (i.e. did the fit work)
                 - chi_squares: array of size (n_pol, n_pixel) of the chi squares
@@ -867,15 +867,15 @@ class Fit:
             results[i] = self.reshape_result(results[i])
         return results
 
-    def reshape_result(self, result: NDArray) -> NDArray:
+    def reshape_result(self, result: np.ndarray) -> np.ndarray:
         """
         Reshape the results to the original shape of (n_pol, n_pixel, -1).
 
         Args:
-            result (NDArray): Array of size (n_pol * n_pixel, -1) of the fitted parameters.
+            result (np.ndarray): Array of size (n_pol * n_pixel, -1) of the fitted parameters.
 
         Returns:
-            NDArray: Array of size (n_pol, n_pixel, -1) of the fitted parameters.
+            np.ndarray: Array of size (n_pol, n_pixel, -1) of the fitted parameters.
 
         Example:
             >>> example = ExampleClass()
@@ -893,7 +893,7 @@ class Fit:
 
 
 @numba.njit(parallel=True)
-def guess_contrast(data: NDArray) -> NDArray:
+def guess_contrast(data: np.ndarray) -> np.ndarray:
     """
     Calculate the contrast of each ODMR data point in a 3D NumPy array.
 
@@ -901,10 +901,10 @@ def guess_contrast(data: NDArray) -> NDArray:
     on each 2D slice along the third axis of the input array.
 
     Args:
-      data (NDArray): A 3D NumPy array representing ODMR data.
+      data (np.ndarray): A 3D NumPy array representing ODMR data.
 
     Returns:
-      NDArray: A 3D NumPy array with the same shape as the input array,
+      np.ndarray: A 3D NumPy array with the same shape as the input array,
                where each element represents the contrast of the corresponding
                data point.
 
@@ -923,7 +923,7 @@ def guess_contrast(data: NDArray) -> NDArray:
 
 
 @numba.njit()
-def guess_contrast_pixel(data: NDArray) -> float:
+def guess_contrast_pixel(data: np.ndarray) -> float:
     """
     Calculate the contrast of an image represented by a 2D NumPy array.
 
@@ -931,7 +931,7 @@ def guess_contrast_pixel(data: NDArray) -> float:
     and minimum pixel values, divided by the maximum pixel value.
 
     Args:
-      data (NDArray): A 2D NumPy array representing the pixel values of an image.
+      data (np.ndarray): A 2D NumPy array representing the pixel values of an image.
 
     Returns:
       float: The contrast of the image.
@@ -948,7 +948,7 @@ def guess_contrast_pixel(data: NDArray) -> float:
 
 
 @numba.njit(parallel=True, fastmath=True)
-def guess_center(data: NDArray, freq: NDArray) -> NDArray:
+def guess_center(data: np.ndarray, freq: np.ndarray) -> np.ndarray:
     """Guess the center frequency of ODMR data.
 
     Args:
@@ -970,13 +970,13 @@ def guess_center(data: NDArray, freq: NDArray) -> NDArray:
 
 
 @numba.njit(fastmath=True)
-def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
+def guess_center_pixel(pixel: np.ndarray, freq: np.ndarray) -> float:
     """
     Guess the center frequency of a single frequency range for a given pixel data.
 
     Args:
-      pixel (NDArray): A 1D NumPy array representing the pixel data.
-      freq (NDArray): A 1D NumPy array representing the frequency range of the data.
+      pixel (np.ndarray): A 1D NumPy array representing the pixel data.
+      freq (np.ndarray): A 1D NumPy array representing the frequency range of the data.
 
     Returns:
       float: The estimated center frequency of the data.
@@ -994,7 +994,7 @@ def guess_center_pixel(pixel: NDArray, freq: NDArray) -> float:
 
 
 # @numba.njit(parallel=True, fastmath=True)
-def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDArray:
+def guess_width(data: np.ndarray, f_ghz: np.ndarray, vmin: float, vmax: float) -> np.ndarray:
     """Guess the width of a ODMR resonance peaks.
 
     Args:
@@ -1006,8 +1006,8 @@ def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDAr
     minimum value of normalized cumsum to be considered
       vmax: float
     maximum value of normalized cumsum to be considered
-      data: NDArray:
-      f_ghz: NDArray:
+      data: np.ndarray:
+      f_ghz: np.ndarray:
       vmin: float:
       vmax: float:
 
@@ -1027,7 +1027,7 @@ def guess_width(data: NDArray, f_ghz: NDArray, vmin: float, vmax: float) -> NDAr
 
 
 @numba.njit(fastmath=True)
-def guess_width_pixel(pixel: NDArray, freq: NDArray, vmin: float, vmax: float) -> NDArray:
+def guess_width_pixel(pixel: np.ndarray, freq: np.ndarray, vmin: float, vmax: float) -> np.ndarray:
     """Guess the width of a single frequency range.
 
     Args:
@@ -1035,8 +1035,8 @@ def guess_width_pixel(pixel: NDArray, freq: NDArray, vmin: float, vmax: float) -
     data to guess the width from
       freq: np.array
     frequency range of the data
-      pixel: NDArray:
-      freq: NDArray:
+      pixel: np.ndarray:
+      freq: np.ndarray:
       vmin: float:
       vmax: float:
 
@@ -1054,7 +1054,7 @@ def guess_width_pixel(pixel: NDArray, freq: NDArray, vmin: float, vmax: float) -
 
 
 @numba.njit(parallel=True, fastmath=True)
-def normalized_cumsum(data: NDArray) -> NDArray:
+def normalized_cumsum(data: np.ndarray) -> np.ndarray:
     """Calculate the normalized cumsum of the data.
 
     Args:
@@ -1080,11 +1080,11 @@ def normalized_cumsum(data: NDArray) -> NDArray:
 
 
 @numba.njit
-def normalized_cumsum_pixel(pixel: NDArray) -> NDArray:
+def normalized_cumsum_pixel(pixel: np.ndarray) -> np.ndarray:
     """Calculate the normalized cumulative sum of the data.
 
     Args:
-      data(NDArray): Data to calculate the normalized cumulative sum of.
+      data(np.ndarray): Data to calculate the normalized cumulative sum of.
       pixel:
 
     Returns:
@@ -1103,7 +1103,7 @@ def make_dummy_data(
     scan_dimensions: Union[Tuple[int, int], None] = (120, 190),
     shift: float = 0,
     noise: float = 0,
-) -> Tuple[NDArray, NDArray, NDArray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
 
     Args:
@@ -1162,19 +1162,19 @@ def make_dummy_data(
 
 
 def make_parameter_array(
-    center_freq: float, n_parameter: int, param_arr: NDArray, param_dict: Dict[int, List[float]]
-) -> np.ndarray:
+    center_freq: float, n_parameter: int, param_arr: np.ndarray, param_dict: Dict[int, List[float]]
+) -> np.np.ndarray:
     """
     Make a parameter array for a given center frequency.
 
     Args:
         center_freq (float): The center frequency.
         num_params (int): The number of parameters.
-        param_arr (NDArray): The parameter array.
+        param_arr (np.ndarray): The parameter array.
         param_dict (Dict[int, List[float]]): The parameter dictionary.
 
     Returns:
-        np.ndarray: The parameter array.
+        np.np.ndarray: The parameter array.
 
     Example:
         >>> center_freq = 1.0

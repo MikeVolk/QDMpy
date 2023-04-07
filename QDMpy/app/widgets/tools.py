@@ -286,12 +286,8 @@ class FrequencySelectWidget(QMainWindow):
             [self.update_range_text_visibilities, self.update_range_visibility],
             False,
         )
-        self.measure_range_visibility = CheckBox(
-            "NV1", self.update_range_visibility, False
-        )
-        self.danger_range_visibility = CheckBox(
-            "NV2-NV4", self.update_range_visibility, True
-        )
+        self.measure_range_visibility = CheckBox("NV1", self.update_range_visibility, False)
+        self.danger_range_visibility = CheckBox("NV2-NV4", self.update_range_visibility, True)
 
         layout.addWidget(self.range_visibility, 0, col + 1)
         layout.addWidget(self.measure_range_visibility, 0, col + 2)
@@ -350,9 +346,7 @@ class FrequencySelectWidget(QMainWindow):
         )
 
         # widgets
-        for i, box in enumerate(
-            [label, source_dec_layout, source_inc_layout, source_field_layout]
-        ):
+        for i, box in enumerate([label, source_dec_layout, source_inc_layout, source_field_layout]):
             if i == 0:
                 layout.addWidget(box, i + 1, col + 1, 1, 3, alignment=Qt.AlignLeft)
             else:
@@ -388,9 +382,7 @@ class FrequencySelectWidget(QMainWindow):
         )
 
         # widgets
-        for i, box in enumerate(
-            [label, bias_dec_layout, bias_inc_layout, bias_field_layout]
-        ):
+        for i, box in enumerate([label, bias_dec_layout, bias_inc_layout, bias_field_layout]):
             if i == 0:
                 layout.addWidget(box, i + 1, col + 1, 1, 3, alignment=Qt.AlignLeft)
             else:
@@ -521,9 +513,7 @@ class FrequencySelectWidget(QMainWindow):
 
                 self.nvs[nv]["data"][i] = data
 
-        self.nv_sum = np.sum(
-            [self.nvs[nv]["data"][i] for nv in self.nvs for i in range(2)], axis=0
-        )
+        self.nv_sum = np.sum([self.nvs[nv]["data"][i] for nv in self.nvs for i in range(2)], axis=0)
         self.nv_sum -= np.max(self.nv_sum)
         self.nv_sum += 1
 
@@ -675,7 +665,7 @@ class FrequencySelectWidget(QMainWindow):
         This function is meant to calculate the "safe" field margins for the current applied field.
 
         Returns:
-            ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
+            np.ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
         """
         self.LOG.debug("Monte Carlo models")
 
