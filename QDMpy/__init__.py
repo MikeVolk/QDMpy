@@ -31,21 +31,10 @@ logging_conf = Path(PROJECT_PATH, "logging.conf")
 fileConfig(logging_conf)
 
 LOG = logging.getLogger("QDMpy")
-
-# import coloredlogs
-#
-# coloredlogs.install(
-#     level="DEBUG",
-#     fmt="%(asctime)s %(levelname)8s %(name)s.%(funcName)s >> %(message)s",
-#     datefmt="%H:%M:%S",
-#     stream=sys.stdout,
-#     logger=LOG,
-#     isatty=True,
-# )
-
 LOG.info("WELCOME TO QDMpy")
 LOG.debug(f"QDMpy version {__version__} installed at {PROJECT_PATH}")
 LOG.debug(f"QDMpy config file {CONFIG_FILE}")
+
 
 ############################### configfile stuff ######################################
 def make_configfile(reset: bool = False) -> None:
@@ -75,7 +64,7 @@ def load_config(file=CONFIG_FILE) -> dict:
         return tomli.load(fileObj)
 
 
-def reset_config():
+def reset_config() -> None:
     """
     Resets the config file.
     """

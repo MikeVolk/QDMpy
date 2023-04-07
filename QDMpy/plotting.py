@@ -65,7 +65,7 @@ def qdm(
 
 def plot_light_img(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
@@ -96,7 +96,7 @@ def plot_light_img(
 
 def plot_fluorescence(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Optional[Any],
 ) -> mpl.image.AxesImage:
@@ -127,7 +127,7 @@ def plot_fluorescence(
 
 def plot_laser_img(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -158,8 +158,8 @@ def plot_laser_img(
 
 def update_line(
     ax: plt.Axes,
-    x: np.np.ndarray,
-    y: Optional[Union[np.np.ndarray, None]] = None,
+    x: np.ndarray,
+    y: Optional[Union[np.ndarray, None]] = None,
     line: plt.Line2D = None,
     **plt_props: Any,
 ) -> plt.Line2D:
@@ -167,8 +167,8 @@ def update_line(
 
     Args:
       ax: plt.Axes:
-      x:np.np.ndarray[float]:
-      y:np.np.ndarray[float]:  (Default value = None)
+      x:np.ndarray[float]:
+      y:np.ndarray[float]:  (Default value = None)
       line:plt.Line2D:  (Default value = None)
       **plt_props:
 
@@ -188,8 +188,8 @@ def update_line(
 
 def update_marker(
     ax: plt.Axes,
-    x: np.np.ndarray,
-    y: np.np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
     line: plt.Line2D = None,
     **plt_props: Any,
 ) -> plt.Line2D:
@@ -241,7 +241,7 @@ def add_scalebar(ax: plt.Axes, pixel_size: float, **plt_props: Any) -> None:
 
 def plot_quality_data(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -265,7 +265,7 @@ def plot_quality_data(
 
 def plot_data(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     norm_percentile: Tuple[float] = (0, 100),
     clim: Optional[Tuple[float]] = None,
@@ -343,7 +343,7 @@ def get_color_norm(vmin: float, vmax: float) -> colors.Normalize:
 
 def plot_overlay(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[Union[mpl.image.AxesImage, None]] = None,
     normtype: str = "simple",
     **plt_props: Any,
@@ -370,7 +370,7 @@ def plot_overlay(
 
 def plot_outlier(
     ax: plt.Axes,
-    data: np.np.ndarray,
+    data: np.ndarray,
     img: Optional[mpl.image.AxesImage] = None,
     **plt_props: Any,
 ) -> mpl.image.AxesImage:
@@ -473,7 +473,7 @@ def detect_extend_from_img(img) -> str:
 
 
 def update_img(
-    ax: plt.Axes, img: mpl.image.AxesImage, data: np.np.ndarray, **plt_props: Any
+    ax: plt.Axes, img: mpl.image.AxesImage, data: np.ndarray, **plt_props: Any
 ) -> mpl.image.AxesImage:
     """
 

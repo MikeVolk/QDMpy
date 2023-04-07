@@ -64,8 +64,8 @@ def esr14n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarra
     """ESR14N model
 
     Args:
-        x (np.np.ndarray): x values
-        parameter (np.np.ndarray): parameters
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -74,7 +74,7 @@ def esr14n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarra
             parameter[5] = offset
 
     Returns:
-        np.np.ndarray: y values
+        np.ndarray: y values
     """
     AHYP = 0.002158
 
@@ -95,8 +95,8 @@ def esr14n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np
     """ESR14N model
 
     Args:
-        x (np.np.ndarray): x values
-        parameter (np.np.ndarray): parameters
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -106,7 +106,7 @@ def esr14n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np
             parameter[6] = secondary frequency
 
     Returns:
-        np.np.ndarray: y values
+        np.ndarray: y values
     """
     AHYP = 0.002158
 
@@ -128,8 +128,8 @@ def esr15n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarra
     """ESR14N model
 
     Args:
-        x (np.np.ndarray): x values
-        parameter (np.np.ndarray): parameters
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -137,7 +137,7 @@ def esr15n(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np.ndarra
             parameter[4] = offset
 
     Returns:
-        np.np.ndarray: y values
+        np.ndarray: y values
     """
     AHYP = 0.0015
 
@@ -153,8 +153,8 @@ def esr15n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np
     """ESR14N model, with folded spectrum
 
     Args:
-        x (np.np.ndarray): x values
-        parameter (np.np.ndarray): parameters
+        x (np.ndarray): x values
+        parameter (np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
@@ -163,7 +163,7 @@ def esr15n_folded(x: np.ndarray, parameter: np.ndarray, model: np.ndarray) -> np
             parameter[5] = secondary frequency
 
     Returns:
-        np.np.ndarray: y values
+        np.ndarray: y values
     """
     AHYP = 0.0015
 
@@ -186,15 +186,15 @@ def esrsingle(x, param, model):
     """Single Lorentzian model
 
     Args:
-        x (np.np.ndarray): frequency values
-        param (np.np.ndarray): parameters
+        x (np.ndarray): frequency values
+        param (np.ndarray): parameters
             parameter[0] = center
             parameter[1] = width
             parameter[2] = contrast
             parameter[3] = offset
 
     Returns:
-        np.np.ndarray: y values
+        np.ndarray: y values
     """
     model[:] = 1 + param[3] - np.sum(lorentzian_peak(x, param[0], param[1], param[2]), axis=0)
 
@@ -233,6 +233,7 @@ IMPLEMENTED = {
         "name": "SINGLE_MISC.",
     },
 }
+
 PEAK_TO_TYPE = {1: "ESRSINGLE", 2: "ESR15N", 3: "ESR14N"}
 
 
@@ -241,11 +242,11 @@ def full_model(model, freqs, parameters):
 
     Args:
         model (str): Model name
-        freqs (np.np.ndarray): Frequencies
-        parameters (np.np.ndarray): Parameters
+        freqs (np.ndarray): Frequencies
+        parameters (np.ndarray): Parameters
 
     Returns:
-        np.np.ndarray: Model
+        np.ndarray: Model
     """
     if model == "ESR14N":
         model = esr14n
@@ -262,12 +263,12 @@ def full_model(model, freqs, parameters):
     return np.concatenate((low_f_data, high_f_data), axis=-1)
 
 
-def guess_model(data: np.np.ndarray, check: bool = False) -> Tuple[int, bool, Any]:
+def guess_model(data: np.ndarray, check: bool = False) -> Tuple[int, bool, Any]:
     """
     Guess the diamond type based on the number of peaks.
 
     Args:
-        data (np.np.ndarray): A 2D numpy array containing the diamond data.
+        data (np.ndarray): A 2D numpy array containing the diamond data.
         check (bool, optional): If True, displays a plot of the diamond data with the peaks marked. Default is False.
 
     Returns:
@@ -283,26 +284,22 @@ def guess_model(data: np.np.ndarray, check: bool = False) -> Tuple[int, bool, An
     from scipy.signal import find_peaks
 
     # Compute the indices of the peaks for each row of the data array
-    peak_indices = np.apply_along_axis(
-        lambda row: find_peaks(
-            -row, prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
-        )[0],
-        axis=1,
-        arr=data,
-    )
-
-    if check:
-        # Display a plot of the data with the peaks marked
-        for i, row in enumerate(data):
-            (l,) = plt.plot(row)
+    peak_indices = []
+    for p, f in np.ndindex(*data.shape[:2]):
+        peaks = find_peaks(
+            -data[p, f], prominence=QDMpy.SETTINGS["model"]["find_peaks"]["prominence"]
+        )
+        peak_indices.append(peaks[0])
+        if check:
+            (l,) = plt.plot(data[p, f])
             plt.plot(
-                peak_indices[i],
-                row[peak_indices[i]],
+                peaks[0],
+                data[p, f][peaks[0]],
                 "x",
                 color=l.get_color(),
-                label=f"Row {i}: {len(peak_indices[i])} peaks",
+                label=f"({p},{f}): {len(peak_indices[p])}",
             )
-        plt.legend()
+            plt.legend()
 
     # Compute the number of peaks and whether there is doubt in the model
     n_peaks = int(np.round(np.mean([len(indices) for indices in peak_indices])))

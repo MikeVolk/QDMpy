@@ -318,7 +318,7 @@ class Fit:
                 constraints[f"{v}_min"],
                 constraints[f"{v}_max"],
                 constraints[f"{v}_type"],
-                self.UNITS[v],
+                UNITS[v],
             ]
         return defaults
 
@@ -459,7 +459,7 @@ class Fit:
         # Tile the constraints list to generate the constraints array with shape (n_pixel, 2 * len(self.model_params_unique))
         return np.tile(constraints_list, (n_pixel, 1))
 
-    def get_constraint_types(self) -> np.np.ndarray:
+    def get_constraint_types(self) -> np.ndarray:
         """
         Returns the indices of the constraint types for each model parameter in self.model_params_unique.
 
@@ -467,7 +467,7 @@ class Fit:
             None
 
         Returns:
-            np.np.ndarray: An integer NumPy array containing the indices of constraint types.
+            np.ndarray: An integer NumPy array containing the indices of constraint types.
 
         Example:
             Assume CONSTRAINT_TYPES = ["FREE", "LOWER", "UPPER", "LOWER_UPPER"] and a class instance has
@@ -488,7 +488,7 @@ class Fit:
 
     # parameters
     @property
-    def parameter(self) -> np.np.ndarray:
+    def parameter(self) -> np.ndarray:
         """
         Returns the `_fit_results` attribute as the parameter of the class instance.
 
@@ -496,7 +496,7 @@ class Fit:
             None
 
         Returns:
-            np.np.ndarray: The NumPy array containing the fit results.
+            np.ndarray: The NumPy array containing the fit results.
 
         Example:
             Assume a class instance has self._fit_results = np.array([1.2, 3.4, 5.6])
@@ -1163,7 +1163,7 @@ def make_dummy_data(
 
 def make_parameter_array(
     center_freq: float, n_parameter: int, param_arr: np.ndarray, param_dict: Dict[int, List[float]]
-) -> np.np.ndarray:
+) -> np.ndarray:
     """
     Make a parameter array for a given center frequency.
 
@@ -1174,7 +1174,7 @@ def make_parameter_array(
         param_dict (Dict[int, List[float]]): The parameter dictionary.
 
     Returns:
-        np.np.ndarray: The parameter array.
+        np.ndarray: The parameter array.
 
     Example:
         >>> center_freq = 1.0

@@ -48,8 +48,8 @@ class QDM:
     def __init__(
         self,
         odmr_instance: ODMR,
-        light: np.np.ndarray,
-        laser: np.np.ndarray,
+        light: np.ndarray,
+        laser: np.ndarray,
         working_directory: Union[str, os.PathLike],
         pixel_size: float = 4e-6,
         model_name: str = "auto",
@@ -153,7 +153,7 @@ class QDM:
         dtype: str = "width",
         method: str = "LocalOutlierFactor",
         **outlier_props: Any,
-    ) -> np.np.ndarray:
+    ) -> np.ndarray:
         """Detect outliers in the ODMR data.
 
         The outliers are detected using 'method'. The method can be either 'LocalOutlierFactor' or 'IsolationForest'.
@@ -555,23 +555,23 @@ class QDM:
         return (resonance[:, 1] - resonance[:, 0]) / 2  # mean shift from ZFS to resonance position
 
     @property
-    def b111(self) -> Tuple[np.np.ndarray, np.np.ndarray]:
+    def b111(self) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates the B111 parameter from the fit results.
         The first index is the remanent component, the second the induced component.
 
         Returns:
-            Tuple[np.np.ndarray, np.np.ndarray]: B111 for the remanent and induced component
+            Tuple[np.ndarray, np.ndarray]: B111 for the remanent and induced component
         """
         return self.b111_remanent, self.b111_induced
 
     @property
-    def b111_remanent(self) -> np.np.ndarray:
+    def b111_remanent(self) -> np.ndarray:
         """Calculates the B111 remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.np.ndarray: B111 remanent map
+            np.ndarray: B111 remanent map
         """
         neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
 
@@ -581,13 +581,13 @@ class QDM:
 
         return (pos_mean_fshift - neg_mean_fshift) / 2
 
-    def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.np.ndarray:
+    def get_bz_remanent(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
         """Calculates the Bz remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.np.ndarray: Bz remanent map
+            np.ndarray: Bz remanent map
         """
         return b111_to_bxyz(
             self.b111_remanent,
@@ -596,13 +596,13 @@ class QDM:
             direction_vector=direction_vector,
         )[2]
 
-    def get_bz_induced(self, rotation_angle=0, direction_vector=None) -> np.np.ndarray:
+    def get_bz_induced(self, rotation_angle=0, direction_vector=None) -> np.ndarray:
         """Calculates the Bz remanent map from the fit results.
 
         The remanent component is defined as the mean resonance frequency.
 
         Returns:
-            np.np.ndarray: Bz remanent map
+            np.ndarray: Bz remanent map
         """
         return b111_to_bxyz(
             self.b111_induced,
@@ -612,13 +612,13 @@ class QDM:
         )[2]
 
     @property
-    def b111_induced(self) -> np.np.ndarray:
+    def b111_induced(self) -> np.ndarray:
         """Calculates the B111 remanent map from the fit results.
 
         The induced component is defined as the mean distance between the high and low frequency resonance.
 
         Returns:
-            np.np.ndarray: B111 induced map
+            np.ndarray: B111 induced map
         """
         neg_mean_fshift, pos_mean_fshift = self.mean_resonance_distance_ghz
 
@@ -646,7 +646,7 @@ class QDM:
         """
         return plotting.qdm(self, remanence, ax, scalebar, **plt_props)
 
-    def rc2idx(self, rc: np.np.ndarray, ref: str = "data") -> np.ndarray:
+    def rc2idx(self, rc: np.ndarray, ref: str = "data") -> np.ndarray:
         """Convert the xy coordinates to the index of the data.
 
         If the reference is 'data', the index is relative to the data.
@@ -656,7 +656,7 @@ class QDM:
         Args:
           rc: numpy.np.ndarray [[row], [column]] -> [[y], [x]]
           ref: str 'data' or 'img' (Default value = "data")
-          rc:np.np.ndarray:
+          rc:np.ndarray:
 
         Returns:
           numpy.np.ndarray [idx]
@@ -671,8 +671,8 @@ class QDM:
         return rc2idx(rc, shape)  # type: ignore[arg-type]
 
     def idx2rc(
-        self, idx: Union[int, np.np.ndarray], ref: str = "data"
-    ) -> Tuple[np.np.ndarray[Any, Any], np.np.ndarray[Any, Any]]:
+        self, idx: Union[int, np.ndarray], ref: str = "data"
+    ) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
         """Convert an index to a rc coordinate of the reference.
 
         If the reference is 'data', the index is relative to the data.

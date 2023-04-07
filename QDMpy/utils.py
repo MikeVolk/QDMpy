@@ -1,13 +1,15 @@
 import logging
 import os
 import sys
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union, List
 
 import mat73
 import matplotlib.image as mpimg
 import numpy as np
 import scipy.io
-from numpy.typing import ArrayLike, np.ndarray
+from numpy.typing import ArrayLike
+from numba import guvectorize, float64
+
 from pypole.convert import dim2xyz, xyz2dim
 
 from QDMpy._core.convert import b2shift, project
@@ -38,9 +40,7 @@ def millify(n: float, sign: int = 1) -> str:
       human readable string
 
     """
-    millidx = max(
-        0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3)))
-    )
+    millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
 
     return f"{n / 10 ** (3 * millidx):.{sign}f}{MILLNAMES[millidx + 3]}"
 
@@ -53,7 +53,7 @@ def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarr
       shape: shape of the array
       idx: Union[int:
       List[int]:
-      np.np.ndarray]:
+      np.ndarray]:
       shape: Tuple[int:
       int]:
 
@@ -66,45 +66,42 @@ def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarr
     return np.unravel_index(idx, shape)  # type: ignore[return-value]
 
 
-def rc2idx(rc: ArrayLike, shape: Tuple[int, ...]) -> np.ndarray:
-    """Convert the xy coordinates to the index of the data.
+def rc2idx(row_col: List[Tuple[int, int]], shape: tuple) -> np.ndarray:
+    """
+    Converts row-column indexing into linear indexing.
 
     Args:
-      rc: numpy.np.ndarray [[row], [col]]
-      shape: shape of the array
-      rc: np.np.ndarray:
-      shape: Tuple[int:
-      int]:
+      row_col: List of List of ints, [[row, col], [row, col], ...] rows and columns to be converted to linear index
+      shape: tuple, (int, int), shape of array being indexed
 
     Returns:
-      numpy.np.ndarray [idx]
-
+      np.ndarray, returns array of linear index
     """
-    rc = np.array(rc).astype(int)
-    return np.ravel_multi_index(rc, shape)  # type: ignore[call-overload]
+    row_col_arr = np.array(row_col).astype(int)
+    return np.ravel_multi_index(row_col_arr.T, shape)
 
 
 def polyfit2d(
-    x: np.np.ndarray,
-    y: np.np.ndarray,
-    z: np.np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
     kx: Optional[int] = 3,
     ky: Optional[int] = 3,
     order: Optional[Union[None, int]] = None,
-) -> Tuple[np.np.ndarray, np.np.ndarray, np.np.ndarray, np.np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Two dimensional polynomial fitting by least squares.
 
     Fits the functional form f(x,y) = z.
 
     Args:
-      x: np.np.ndarray: x values for the fit
-      y: np.np.ndarray:  y values for the fit
-      z: np.np.ndarray:  z values for the fit
+      x: np.ndarray: x values for the fit
+      y: np.ndarray:  y values for the fit
+      z: np.ndarray:  z values for the fit
       kx: Optional[int]: Polynomial order in x. (Default value = 3)
       ky: Optional[int]: Polynomial order in y. (Default value = 3)
       order: If int, coefficients up to a maximum of kx+ky <= order are considered. (Default value = None)
 
-    Returns: Tuple[np.np.ndarray, np.np.ndarray, np.np.ndarray, np.np.ndarray] solution, residuals, rank, singular values
+    Returns: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] solution, residuals, rank, singular values
 
     See: https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
 
@@ -143,7 +140,7 @@ ZFS = 2.87
 
 def generate_parameter(
     projected_shifts: np.ndarray, width: float, contrast: float
-) -> Tuple[np.np.ndarray, np.np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate the parameter (low/high frange) for the QDMpy simulation.
     Args:
@@ -199,13 +196,11 @@ def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
     parameters = generate_parameter(
         projected_shifts=projected_shifts, width=width, contrast=contrast
     )
-    all_nv_models = [
-        esr15n(freqs, p) for p in parameters
-    ]  # calculate left/right spectra
+    all_nv_models = [esr15n(freqs, p) for p in parameters]  # calculate left/right spectra
     return np.min(all_nv_models, axis=0)  # returns only the minimum
 
 
-def generate_possible_dim(b_source: float, n: int = 10) -> np.np.ndarray:
+def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
     """Generates a set of dec/inc combinations for a given source field.
 
     Args:
@@ -224,7 +219,8 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.np.ndarray:
     return source_dim.T
 
 
-def rms(data):
+@guvectorize(["float64[:], float64[:]"], "(n) -> ()", target="parallel")
+def rms(data, ret):
     """Calculate the root mean square of a data set.
 
     Args:
@@ -234,7 +230,7 @@ def rms(data):
       root mean square
 
     """
-    return np.sqrt(np.mean(np.square(data)))
+    ret[0] = np.sqrt(np.mean(np.square(data)))
 
 
 def has_csv(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> bool:
@@ -273,7 +269,7 @@ def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
 def get_image(
     folder: Union[str, bytes, os.PathLike],
     lst: Sequence[Union[str, bytes, os.PathLike]],
-) -> np.np.ndarray:
+) -> np.ndarray:
     """Loads an image from a list of files.
 
     Args:
@@ -291,9 +287,7 @@ def get_image(
     return np.array(img)
 
 
-def double_norm(
-    data: np.np.ndarray, axis: Optional[Union[int, None]] = None
-) -> np.np.ndarray:
+def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
     Args:
@@ -301,7 +295,7 @@ def double_norm(
     data to normalize
       axis: int
     axis to normalize
-      data: np.np.ndarray:
+      data: np.ndarray:
       axis: Optional[Union[int:
       None]]:  (Default value = None)
 
@@ -315,6 +309,7 @@ def double_norm(
     mx = np.expand_dims(np.max(data, axis=axis), data.ndim - 1)
     data /= mx
     return data
+
 
 def loadmat(path):
     """Loads a Matlab file using the correct function (i.e. scipy.io.loadmat or mat73.loadmat)
@@ -332,6 +327,8 @@ def loadmat(path):
     except NotImplementedError:
         raw_data = mat73.loadmat(path)
     return raw_data
+
+
 def main() -> None:
     """Main function."""
     print(millify(0.001, 10))
