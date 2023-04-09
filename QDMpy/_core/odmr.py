@@ -61,7 +61,7 @@ class ODMR:
 
         self.imported_files_list: List[str] = kwargs.pop("imported_files", [])
         self._bin_factor = 1
-        self.pre_bin_factor = 1  # in case pre binned data is loaded
+        self._pre_bin_factor = 1  # in case pre binned data is loaded
 
         self.gf_factor = 0.0
 
@@ -476,6 +476,7 @@ class ODMR:
         """Calculate the mean baseline of the data."""
         baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
         baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
+
         baseline_mean = np.concatenate(
             [baseline_left_mean[..., np.newaxis], baseline_right_mean[..., np.newaxis]], axis=-1
         ).mean(axis=-1)
@@ -699,7 +700,7 @@ class ODMR:
         Returns: The global fluorescence correction
         """
         baseline_left_mean, baseline_right_mean, baseline_mean = self._mean_baseline()
-        return gf * (self.mean_odmr - baseline_mean)
+        return gf * (self.mean_odmr - baseline_mean[:, :, np.newaxis])
 
     def correct_glob_fluorescence(self, gf_factor: float, **kwargs: Any) -> None:
         """Correct the data for the gradient factor.
