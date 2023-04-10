@@ -248,17 +248,14 @@ def full_model(model, freqs, parameters):
     Returns:
         np.ndarray: Model
     """
-    if model == "ESR14N":
-        model = esr14n
-    elif model == "ESR15N":
-        model = esr15n
-    elif model == "ESRSINGLE":
-        model = esrsingle
-    else:
+    model = model.upper()
+
+    if model not in IMPLEMENTED:
         raise ValueError("Model not implemented")
 
-    low_f_data = model(freqs[: len(freqs) // 2], parameters)
-    high_f_data = model(freqs[len(freqs) // 2 :], parameters)
+    model_func = IMPLEMENTED[model]["func"]
+    low_f_data = model_func(freqs[: len(freqs) // 2], parameters)
+    high_f_data = model_func(freqs[len(freqs) // 2 :], parameters)
 
     return np.concatenate((low_f_data, high_f_data), axis=-1)
 
