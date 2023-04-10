@@ -65,50 +65,6 @@ Each key represents a model, and its value is a dictionary containing:
 - "name": A human-readable name for the model.
 """
 
-IMPLEMENTED = {
-    "GAUSS1D": {
-        "func_name": "GAUSS1D",
-        "n_peaks": 1,
-        "func": None,
-        "params": ["contrast", "center", "width", "offset"],
-        "model_id": 0,
-        "name": "GAUSS_MISC",
-    },
-    "ESR14N": {
-        "func_name": "ESR14N",
-        "n_peaks": 3,
-        "func": esr14n,
-        "params": ["center", "width", "contrast", "contrast", "contrast", "offset"],
-        "model_id": 13,
-        "name": "N14",
-    },
-    "ESR15N": {
-        "func_name": "ESR15N",
-        "n_peaks": 2,
-        "func": esr15n,
-        "params": ["center", "width", "contrast", "contrast", "offset"],
-        "model_id": 14,
-        "name": "N15",
-    },
-    "ESRSINGLE": {
-        "func_name": "ESRSINGLE",
-        "n_peaks": 1,
-        "func": esrsingle,
-        "params": ["center", "width", "contrast", "offset"],
-        "model_id": 15,
-        "name": "SINGLE_MISC.",
-    },
-}
-
-
-"""
-Dictionary mapping the number of peaks to the corresponding model type.
-
-The keys are integers representing the number of peaks, and the values are strings representing the corresponding model types. This dictionary is dynamically generated from the IMPLEMENTED dictionary.
-"""
-
-PEAK_TO_TYPE = {v["n_peaks"]: k for k, v in IMPLEMENTED.items()}
-
 
 @guvectorize(
     [(float64[:], float64, float64, float64, float64[:])],
@@ -509,3 +465,48 @@ def esr15n_superposition(x: np.ndarray, parameter: np.ndarray, model: np.ndarray
     esr15n(x + shift_freq, [center, width, c1, c1, offset], model2)
 
     model[:] = model1 + model2
+
+
+IMPLEMENTED = {
+    "GAUSS1D": {
+        "func_name": "GAUSS1D",
+        "n_peaks": 1,
+        "func": None,
+        "params": ["contrast", "center", "width", "offset"],
+        "model_id": 0,
+        "name": "GAUSS_MISC",
+    },
+    "ESR14N": {
+        "func_name": "ESR14N",
+        "n_peaks": 3,
+        "func": esr14n,
+        "params": ["center", "width", "contrast", "contrast", "contrast", "offset"],
+        "model_id": 13,
+        "name": "N14",
+    },
+    "ESR15N": {
+        "func_name": "ESR15N",
+        "n_peaks": 2,
+        "func": esr15n,
+        "params": ["center", "width", "contrast", "contrast", "offset"],
+        "model_id": 14,
+        "name": "N15",
+    },
+    "ESRSINGLE": {
+        "func_name": "ESRSINGLE",
+        "n_peaks": 1,
+        "func": esrsingle,
+        "params": ["center", "width", "contrast", "offset"],
+        "model_id": 15,
+        "name": "SINGLE_MISC.",
+    },
+}
+
+
+"""
+Dictionary mapping the number of peaks to the corresponding model type.
+
+The keys are integers representing the number of peaks, and the values are strings representing the corresponding model types. This dictionary is dynamically generated from the IMPLEMENTED dictionary.
+"""
+
+PEAK_TO_TYPE = {v["n_peaks"]: k for k, v in IMPLEMENTED.items()}
