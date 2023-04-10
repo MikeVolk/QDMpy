@@ -23,7 +23,7 @@ from pathlib import Path
 
 import matplotlib
 
-from src.QDMpy import test_data_location
+from QDMpy import test_data_location
 
 matplotlib.use("Agg")
 
@@ -89,7 +89,6 @@ class QDMpyApp(QMainWindow):
     _visible_if_fitted = []
 
     def __init__(self, **kwargs):
-
         self.LOG = logging.getLogger(f"QDMpy.{self.__class__.__name__}")
         super().__init__()
         self.debug = kwargs.pop("debug", False)
@@ -243,9 +242,7 @@ class QDMpyApp(QMainWindow):
         toolbar.addWidget(self.fit_button)
         self.fit_constraints_button = QPushButton("Constraints")
         self.fit_constraints_button.setStatusTip("Edit the fit constraints")
-        self.fit_constraints_button.clicked.connect(
-            self.on_set_fitconstraints_button_press
-        )
+        self.fit_constraints_button.clicked.connect(self.on_set_fitconstraints_button_press)
         self._visible_if_qdm_present.append(self.fit_constraints_button)
         toolbar.addWidget(self.fit_constraints_button)
 
@@ -292,9 +289,7 @@ class QDMpyApp(QMainWindow):
     def _add_gf_toolbar(self, toolbar):
         global_widget = QWidget()
         global_box = QHBoxLayout()
-        gf_label, self.gf_select = self.get_label_box(
-            "Global Fluorescence", 0, 1, 0.1, 0, 1, None
-        )
+        gf_label, self.gf_select = self.get_label_box("Global Fluorescence", 0, 1, 0.1, 0, 1, None)
         self.gf_detect_button = QPushButton("detect")
         self.gf_detect_button.setStatusTip("Detect global fluoresence")
         self.gf_detect_button.clicked.connect(self.on_gf_detect_button_press)
@@ -308,9 +303,7 @@ class QDMpyApp(QMainWindow):
         global_box.addWidget(self.gf_select)
         global_box.addWidget(self.gf_apply_button)
         global_box.addWidget(self.gf_detect_button)
-        self._visible_if_qdm_present.extend(
-            [self.gf_detect_button, self.gf_apply_button]
-        )
+        self._visible_if_qdm_present.extend([self.gf_detect_button, self.gf_apply_button])
         global_widget.setLayout(global_box)
         toolbar.addWidget(global_widget)
 
@@ -349,9 +342,7 @@ class QDMpyApp(QMainWindow):
         edit_menu = menu.addMenu("&Edit")
         set_fit_constraints_button = QAction("Set Fit Constraints", self)
         set_fit_constraints_button.setStatusTip("Set Fit Constraints")
-        set_fit_constraints_button.triggered.connect(
-            self.on_set_fitconstraints_button_press
-        )
+        set_fit_constraints_button.triggered.connect(self.on_set_fitconstraints_button_press)
         edit_menu.addAction(set_fit_constraints_button)
 
         # tools menu
@@ -442,9 +433,7 @@ class QDMpyApp(QMainWindow):
                 self.on_fitconstraints_widget_item_changed
             )
 
-            self.fitconstraints[text]["box"].addItems(
-                ["FREE", "LOWER", "UPPER", "LOWER_UPPER"]
-            )
+            self.fitconstraints[text]["box"].addItems(["FREE", "LOWER", "UPPER", "LOWER_UPPER"])
             self.fitconstraints[text]["box"].setCurrentText(constraint)
             self.fitconstraints[text]["box"].currentIndexChanged.connect(
                 self.on_fitconstraints_widget_item_changed
@@ -511,7 +500,6 @@ class QDMpyApp(QMainWindow):
         self.infotable_widget.setLayout(self.info_grid)
 
     def _fill_info_table(self):
-
         entries = [
             "Image dimensions",
             "Data dimensions",
@@ -652,7 +640,9 @@ class QDMpyApp(QMainWindow):
 
     @property
     def _need_marker_update(self):
-        return [w for w in self.widgets if hasattr(w, "needs_marker_update") and w.needs_marker_update]
+        return [
+            w for w in self.widgets if hasattr(w, "needs_marker_update") and w.needs_marker_update
+        ]
 
     @property
     def _need_odmr_update(self):
@@ -706,9 +696,7 @@ class QDMpyApp(QMainWindow):
 
     def on_led_button_press(self):
         if self.light_window is None:
-            self.light_window = SimpleWidget(
-                dtype="light", clim_select=False, parent=self
-            )
+            self.light_window = SimpleWidget(dtype="light", clim_select=False, parent=self)
             self.light_window.show()
         elif self.light_window.isVisible():
             self.light_window.hide()
@@ -728,9 +716,7 @@ class QDMpyApp(QMainWindow):
             self.outlier_pd["x"] = self.qdm.outliers_xy[:, 0]
             self.outlier_pd["y"] = self.qdm.outliers_xy[:, 1]
             self.outlier_pd["idx"] = self.qdm.outliers_idx
-            self.statusBar().showMessage(
-                f"{self.qdm.outliers_idx.shape[0]:8d} Outliers detected"
-            )
+            self.statusBar().showMessage(f"{self.qdm.outliers_idx.shape[0]:8d} Outliers detected")
         else:
             self.LOG.warning("No fit calculated yet, no outliers detected.")
             self.statusBar().showMessage("No fit calculated yet.")
@@ -877,9 +863,7 @@ class QDMpyApp(QMainWindow):
 
     # IMPORT FUNCTIONS
     def import_qdmio(self, work_directory):
-        self.statusBar().showMessage(
-            f"Importing QDMio like files from {work_directory}"
-        )
+        self.statusBar().showMessage(f"Importing QDMio like files from {work_directory}")
 
         self.work_directory = Path(work_directory)
         try:
@@ -890,16 +874,12 @@ class QDMpyApp(QMainWindow):
 
             return qdm_obj
         except CantImportError:
-            self.statusBar().showMessage(
-                f"Cant import QDMio like files from {self.work_directory}"
-            )
+            self.statusBar().showMessage(f"Cant import QDMio like files from {self.work_directory}")
 
             return
 
     def file_imported(self):
-        self.statusBar().showMessage(
-            f"Successfully imported QDM files from {self.work_directory}"
-        )
+        self.statusBar().showMessage(f"Successfully imported QDM files from {self.work_directory}")
 
         self._change_tool_visibility()
         self._fill_info_table()
@@ -947,4 +927,4 @@ def main(**kwargs):
 
 
 if __name__ == "__main__":
-    main(debug=True)
+    main(debug=False)

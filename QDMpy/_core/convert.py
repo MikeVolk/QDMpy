@@ -79,7 +79,7 @@ def b111_to_bxyz(
     """
 
     # Calculate the unit vector from rotation angle and direction vector
-    unit_vector = calculate_unit_vector(rotation_angle_in_degrees, direction_vector)
+    unit_vector = get_unit_vector(rotation_angle_in_degrees, direction_vector)
 
     # Get the shape of the input map
     num_rows, num_cols = bmap.shape

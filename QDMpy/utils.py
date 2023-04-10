@@ -219,10 +219,9 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
     return source_dim.T
 
 
-@guvectorize(["float64[:], float64[:]"], "(n) -> ()", target="parallel")
-def rms(data, ret):
+def rms(data):
     """Calculate the root mean square of a data set.
-
+    
     Args:
       data: data set
 
@@ -230,7 +229,7 @@ def rms(data, ret):
       root mean square
 
     """
-    ret[0] = np.sqrt(np.mean(np.square(data)))
+    return np.sqrt(np.mean(np.square(data)))
 
 
 def has_csv(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> bool:

@@ -63,7 +63,7 @@ class ODMR:
         self._bin_factor = 1
         self._pre_bin_factor = 1  # in case pre binned data is loaded
 
-        self.gf_factor = 0.0
+        self._gf_factor = 0.0
 
         self.is_binned = False
         self.is_gf_corrected = False  # global fluorescence correction
