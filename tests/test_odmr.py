@@ -1,108 +1,58 @@
-import unittest
+import numpy as np
+import pytest
+
+from QDMpy._core.odmr import ODMR
 
 
-class test_odmr(unittest.TestCase):
-    def test_get_binned_pixel_indices(self):
-        assert False
+@pytest.fixture
+def odmr_data():
+    data_array = np.random.rand(2, 2, 100, 100)
+    scan_dimensions = np.array([10, 10])
+    frequency_array = np.linspace(0, 10, 100)
 
-    def test_rc2idx(self):
-        assert False
+    return ODMR(data_array, scan_dimensions, frequency_array)
 
-    def test_idx2rc(self):
-        assert False
 
-    def test_get_most_divergent_from_mean(self):
-        assert False
+def test_odmr_getitem_positive_polarization(odmr_data):
+    data = odmr_data["+"]
+    expected_data = odmr_data._raw_data[0]
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test__qdmio_stack_data(self):
-        assert False
 
-    def test_from_qdmio(self):
-        assert False
+def test_odmr_getitem_negative_polarization(odmr_data):
+    data = odmr_data["-"]
+    expected_data = odmr_data._raw_data[1]
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test_get_norm_factors(self):
-        assert False
 
-    def test_data_shape(self):
-        assert False
+def test_odmr_getitem_low_freq_range(odmr_data):
+    data = odmr_data["<"]
+    expected_data = odmr_data._raw_data[:, 0]
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test_img_shape(self):
-        assert False
 
-    def test_n_pixel(self):
-        assert False
+def test_odmr_getitem_high_freq_range(odmr_data):
+    data = odmr_data[">"]
+    expected_data = odmr_data._raw_data[:, 1]
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test_n_freqs(self):
-        assert False
 
-    def test_frequencies(self):
-        assert False
+def test_odmr_getitem_reshape(odmr_data):
+    data = odmr_data["r"]
+    expected_data = odmr_data._raw_data.reshape(
+        odmr_data.n_pol, odmr_data.n_frange, *odmr_data._img_shape, odmr_data.n_freqs
+    )
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test_f_hz(self):
-        assert False
 
-    def test_f_ghz(self):
-        assert False
+def test_odmr_getitem_specific_frequency(odmr_data):
+    data = odmr_data["f1.0"]
+    freq_idx = np.argmin(np.abs(odmr_data._frequencies - 1.0))
+    expected_data = odmr_data._raw_data[..., freq_idx]
+    np.testing.assert_array_equal(data, expected_data)
 
-    def test_global_factor(self):
-        assert False
 
-    def test_data(self):
-        assert False
-
-    def test_delta_mean(self):
-        assert False
-
-    def test_mean_odmr(self):
-        assert False
-
-    def test_raw_contrast(self):
-        assert False
-
-    def test_mean_contrast(self):
-        assert False
-
-    def test__mean_baseline(self):
-        assert False
-
-    def test_bin_factor(self):
-        assert False
-
-    def test__apply_edit_stack(self):
-        assert False
-
-    def test_reset_data(self):
-        assert False
-
-    def test_normalize_data(self):
-        assert False
-
-    def test__normalize_data(self):
-        assert False
-
-    def test_apply_outlier_mask(self):
-        assert False
-
-    def test__apply_outlier_mask(self):
-        assert False
-
-    def test_bin_data(self):
-        assert False
-
-    def test__bin_data(self):
-        assert False
-
-    def test_remove_overexposed(self):
-        assert False
-
-    def test_calc_gf_correction(self):
-        assert False
-
-    def test_correct_glob_fluorescence(self):
-        assert False
-
-    def test__correct_glob_fluorescence(self):
-        assert False
-
-    def test_check_glob_fluorescence(self):
-        assert False
+def test_odmr_getitem_numpy_slicing(odmr_data):
+    data = odmr_data[:, :, 0:10]
+    expected_data = odmr_data._raw_data[..., 0:10]
+    np.testing.assert_array_equal(data, expected_data)
