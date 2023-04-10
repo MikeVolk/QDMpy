@@ -1,34 +1,39 @@
 """
-This module, utils.py, provides a collection of utility functions for working with magnetic resonance spectroscopy data, file handling, and data manipulation. The functions in this module can be used in conjunction with other modules in the project to perform data analysis, visualization, and fitting tasks.
+This module, utils.py, provides a collection of utility functions for working
+with magnetic resonance spectroscopy data, file handling, and data manipulation.
+The functions in this module can be used in conjunction with other modules in
+the project to perform data analysis, visualization, and fitting tasks.
 
 The module includes functions for:
 
-    Converting between different coordinate systems and representations (e.g., Cartesian and spherical coordinates, linear and row-column indexing).
-    Calculating root mean square, normalizing data, and generating dec/inc combinations for magnetic fields.
-    Fitting two-dimensional polynomials, creating parameter arrays for QDMpy simulations, and running Monte Carlo simulations for different field configurations.
-    Loading and saving data in various formats, such as CSV, JPG, and MATLAB files.
-    Checking for the presence of specific file types in a list of files, and loading image data from a list of files in a specified folder.
+    Converting between different coordinate systems and representations (e.g.,
+    Cartesian and spherical coordinates, linear and row-column indexing).
+    Calculating root mean square, normalizing data, and generating dec/inc
+    combinations for magnetic fields. Fitting two-dimensional polynomials,
+    creating parameter arrays for QDMpy simulations, and running Monte Carlo
+    simulations for different field configurations. Loading and saving data in
+    various formats, such as CSV, JPG, and MATLAB files. Checking for the
+    presence of specific file types in a list of files, and loading image data
+    from a list of files in a specified folder.
 
 Example usage:
 
 ``` python
-  import numpy as np
-  from utils import polyfit2d, loadmat, double_norm
+  import numpy as np from utils import polyfit2d, loadmat, double_norm
 
-  # Load data from a MATLAB file
-  data = loadmat("path/to/matlab_file.mat")
+  # Load data from a MATLAB file data = loadmat("path/to/matlab_file.mat")
 
-  # Normalize the data along a specific axis
-  normalized_data = double_norm(data, axis=1)
+  # Normalize the data along a specific axis normalized_data = double_norm(data,
+  axis=1)
 
-  # Perform a 2D polynomial fit
-  x = np.linspace(0, 1, 100)
-  y = np.linspace(0, 1, 100)
-  z = np.random.rand(100, 100)
-  solution, res, rank, s = polyfit2d(x, y, z, kx=3, ky=3)
+  # Perform a 2D polynomial fit x = np.linspace(0, 1, 100) y = np.linspace(0, 1,
+  100) z = np.random.rand(100, 100) solution, res, rank, s = polyfit2d(x, y, z,
+  kx=3, ky=3)
 ```
 
-The functions in this module are designed to be easily integrated into larger data processing pipelines, allowing for streamlined and efficient data analysis workflows.
+The functions in this module are designed to be easily integrated into larger
+data processing pipelines, allowing for streamlined and efficient data analysis
+workflows.
 """
 
 import logging
@@ -64,16 +69,18 @@ def human_readable_number(n: float, sign: int = 1) -> str:
     """
     Convert a number to a human-readable string using metric prefixes.
 
-    This function takes a number and returns a string representation with an appropriate metric prefix
-    (e.g., " K" for thousands, " M" for millions, etc.). The number of digits after the decimal point
-    can be specified using the `sign` parameter.
+    This function takes a number and returns a string representation with an
+    appropriate metric prefix (e.g., " K" for thousands, " M" for millions,
+    etc.). The number of digits after the decimal point can be specified using
+    the `sign` parameter.
 
     Args:
-        n (float): The number to convert.
-        sign (int, optional): The number of digits after the decimal point. Default is 1.
+        n (float): The number to convert. sign (int, optional): The number of
+        digits after the decimal point. Default is 1.
 
     Returns:
-        str: The human-readable string representation of the number with an appropriate metric prefix.
+        str: The human-readable string representation of the number with an
+        appropriate metric prefix.
 
     Example:
         >>> millify(1500)
@@ -90,14 +97,17 @@ def human_readable_number(n: float, sign: int = 1) -> str:
 
 def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Convert a 1D index to 2D row and column coordinates based on the given array shape.
+    Convert a 1D index to 2D row and column coordinates based on the given array
+    shape.
 
     Args:
-        idx (Union[int, List[int], np.ndarray]): An integer or an array-like of integers representing the 1D index/indices.
-        shape (Tuple[int, int]): A tuple representing the shape of the 2D array (rows, columns).
+        idx (Union[int, List[int], np.ndarray]): An integer or an array-like of
+        integers representing the 1D index/indices. shape (Tuple[int, int]): A
+        tuple representing the shape of the 2D array (rows, columns).
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: A tuple of two numpy arrays containing the row and column coordinates, respectively.
+        Tuple[np.ndarray, np.ndarray]: A tuple of two numpy arrays containing
+        the row and column coordinates, respectively.
 
     Example:
         >>> idx = 6
@@ -117,14 +127,17 @@ def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarr
 
 def rc2idx(row_col: List[Tuple[int, int]], shape: tuple) -> np.ndarray:
     """
-    Converts row and column coordinates to a linear index based on the given array shape.
+    Converts row and column coordinates to a linear index based on the given
+    array shape.
 
     Args:
-        row_col (List[Tuple[int, int]]): A list of tuples representing row and column coordinates to be converted to linear indices.
-        shape (Tuple[int, int]): A tuple representing the shape of the 2D array (rows, columns).
+        row_col (List[Tuple[int, int]]): A list of tuples representing row and
+        column coordinates to be converted to linear indices. shape (Tuple[int,
+        int]): A tuple representing the shape of the 2D array (rows, columns).
 
     Returns:
-        np.ndarray: A numpy array containing the linear indices corresponding to the row and column coordinates.
+        np.ndarray: A numpy array containing the linear indices corresponding to
+        the row and column coordinates.
 
     Example:
         >>> row_col = [(2, 0)]
@@ -155,23 +168,26 @@ def polyfit2d(
     Fits the functional form f(x, y) = z.
 
     Args:
-        x (np.ndarray): X values for the fit.
-        y (np.ndarray): Y values for the fit.
-        z (np.ndarray): Z values for the fit.
-        kx (Optional[int]): Polynomial order in x. Default is 3.
-        ky (Optional[int]): Polynomial order in y. Default is 3.
-        order (Optional[Union[None, int]]): If int, coefficients up to a maximum of kx + ky <= order are considered. Default is None.
+        x (np.ndarray): X values for the fit. y (np.ndarray): Y values for the
+        fit. z (np.ndarray): Z values for the fit. kx (Optional[int]):
+        Polynomial order in x. Default is 3. ky (Optional[int]): Polynomial
+        order in y. Default is 3. order (Optional[Union[None, int]]): If int,
+        coefficients up to a maximum of kx + ky <= order are considered. Default
+        is None.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Solution, residuals, rank, singular values.
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Solution,
+        residuals, rank, singular values.
 
-    See: https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
+    See:
+    https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
 
     See also: np.linalg.leastsq
 
     Notes:
-        Resulting fit can be plotted with:
-        >>> np.polynomial.polynomial.polygrid2d(x, y, solution.reshape((kx + 1, ky + 1)))
+        Resulting fit can be plotted with: >>>
+        np.polynomial.polynomial.polygrid2d(x, y, solution.reshape((kx + 1, ky +
+        1)))
 
     Example:
         >>> x = np.array([0, 1, 2])
@@ -208,12 +224,13 @@ def generate_parameter(
     Generate the parameters (low/high frequency range) for the QDMpy simulation.
 
     Args:
-        projected_shifts (np.ndarray): Shifts of the peaks in GHz.
-        width (float): Width of the peaks in GHz.
-        contrast (float): Contrast of the peaks.
+        projected_shifts (np.ndarray): Shifts of the peaks in GHz. width
+        (float): Width of the peaks in GHz. contrast (float): Contrast of the
+        peaks.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: Left resonance and right resonance parameters for the QDMpy simulation.
+        Tuple[np.ndarray, np.ndarray]: Left resonance and right resonance
+        parameters for the QDMpy simulation.
 
     Example:
         >>> projected_shifts = np.array([0.1, 0.2, 0.3])
@@ -246,20 +263,22 @@ def generate_parameter(
 
 def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast):
     """
-    Calculates the models for all dec/inc combinations of the current applied field.
+    Calculates the models for all dec/inc combinations of the current applied
+    field.
 
-    This function is meant to calculate the "safe" field margins for the current applied field.
+    This function is meant to calculate the "safe" field margins for the current
+    applied field.
 
     Args:
-        freqs (np.ndarray): Frequency values for the models.
-        bias_xyz (np.ndarray): Bias field in XYZ coordinates.
-        b_source (float): Source field magnitude.
-        nv_direction (np.ndarray): NV direction as unit vectors.
-        width (float): Width of the peaks in GHz.
-        contrast (float): Contrast of the peaks.
+        freqs (np.ndarray): Frequency values for the models. bias_xyz
+        (np.ndarray): Bias field in XYZ coordinates. b_source (float): Source
+        field magnitude. nv_direction (np.ndarray): NV direction as unit
+        vectors. width (float): Width of the peaks in GHz. contrast (float):
+        Contrast of the peaks.
 
     Returns:
-        np.ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
+        np.ndarray: The calculated models for all dec/inc combinations for NV
+        axes > 0 of the current applied field.
 
     Example:
         >>> freqs = np.linspace(2.8, 3.3, 1000)
@@ -292,8 +311,9 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
     Generates a set of dec/inc combinations for a given source field.
 
     Args:
-        b_source (float): The source field magnitude in microTesla.
-        n (int, optional): The number of dec/inc combinations to generate. Defaults to 10.
+        b_source (float): The source field magnitude in microTesla. n (int,
+        optional): The number of dec/inc combinations to generate. Defaults to
+        10.
 
     Returns:
         np.ndarray: The generated dec/inc combinations.
@@ -317,8 +337,8 @@ def rms(data: np.ndarray, axis: Optional[int] = None) -> Union[float, np.ndarray
     Calculate the root mean square (RMS) of a data set.
 
     Args:
-        data (np.ndarray): The data set as a NumPy array.
-        axis (Optional[int]): The axis along which to compute the RMS. If None (default),
+        data (np.ndarray): The data set as a NumPy array. axis (Optional[int]):
+        The axis along which to compute the RMS. If None (default),
             the RMS is computed over the entire array.
 
     Returns:
@@ -370,11 +390,11 @@ def get_image(
     """Loads an image from a list of files.
 
     Args:
-        folder: folder of the image
-        lst: list of files to load the image from
+        folder: folder of the image lst: list of files to load the image from
 
     Returns:
-        np.ndarray: loaded image from either csv or jpg file if csv is not available
+        np.ndarray: loaded image from either csv or jpg file if csv is not
+        available
 
     """
     folder = Path(folder)
@@ -391,8 +411,8 @@ def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np
     """Normalizes data from 0 to 1.
 
     Args:
-        data: np.ndarray, data to normalize
-        axis: Optional[Union[int, None]], axis to normalize (Default value = None)
+        data: np.ndarray, data to normalize axis: Optional[Union[int, None]],
+        axis to normalize (Default value = None)
 
     Returns:
         np.ndarray: normalized data
@@ -404,13 +424,15 @@ def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np
 
 
 def loadmat(path: Union[str, bytes, os.PathLike]) -> Dict[str, Any]:
-    """Loads a MATLAB file using the appropriate function (i.e., scipy.io.loadmat or mat73.loadmat) and returns the raw data.
+    """Loads a MATLAB file using the appropriate function (i.e.,
+    """scipy.io.loadmat or mat73.loadmat) and returns the raw data.
 
     Args:
         path: Union[str, bytes, os.PathLike], path to the MATLAB file
 
     Returns:
-        Dict[str, Any]: raw data from the MATLAB file as a dictionary with variable names as keys
+        Dict[str, Any]: raw data from the MATLAB file as a dictionary with
+        variable names as keys
     """
     try:
         raw_data = scipy.io.loadmat(path)
