@@ -33,7 +33,7 @@ import pandas as pd
 
 from QDMpy.app.widgets.fit_widget import FitWidget
 from QDMpy.app.widgets.tools import FrequencySelectWidget
-from QDMpy.utils import millify
+from QDMpy.utils import human_readable_number
 
 matplotlib.use("Agg")
 
@@ -820,7 +820,7 @@ class QDMpyApp(QMainWindow):
             f"{self.qdm.odmr.data_shape[0]}x{self.qdm.odmr.data_shape[1]}",
             self.qdm.odmr.n_pol,
             self.qdm.odmr.n_frange,
-            millify(self.qdm.odmr.data[0, 0, :, 0].size),
+            human_readable_number(self.qdm.odmr.data[0, 0, :, 0].size),
             self.qdm.odmr.n_freqs,
             self.qdm.bin_factor,
         ]

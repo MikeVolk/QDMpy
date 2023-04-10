@@ -24,21 +24,28 @@ LOG = logging.getLogger(__name__)
 MILLNAMES = ["n", "μ", "m", "", " K", " M", " B", " T"]
 
 
-def millify(n: float, sign: int = 1) -> str:
-    """Convert a number to a human readable string.
+def human_readable_number(n: float, sign: int = 1) -> str:
+    """
+    Convert a number to a human-readable string using metric prefixes.
+
+    This function takes a number and returns a string representation with an appropriate metric prefix
+    (e.g., " K" for thousands, " M" for millions, etc.). The number of digits after the decimal point
+    can be specified using the `sign` parameter.
 
     Args:
-      n: float
-    number to convert
-      sign: int
-    number of digits after the decimal point
-      n: float:
-      sign: int:  (Default value = 1)
+        n (float): The number to convert.
+        sign (int, optional): The number of digits after the decimal point. Default is 1.
 
     Returns:
-      str
-      human readable string
+        str: The human-readable string representation of the number with an appropriate metric prefix.
 
+    Example:
+        >>> millify(1500)
+        '1.5 K'
+        >>> millify(1500, sign=2)
+        '1.50 K'
+        >>> millify(0.0015)
+        '1.5 m'
     """
     millidx = max(0, min(len(MILLNAMES) - 1, int(np.floor(0 if n == 0 else np.log10(abs(n)) / 3))))
 
