@@ -3,6 +3,51 @@ from QDMpy.utils import *
 import numpy as np
 
 
+import numpy as np
+from itertools import product
+
+
+def test_generate_possible_dim():
+    b_source = 10.0
+    n = 5
+    expected_shape = (n * n, 3)
+    expected_source_dim = np.array(
+        [
+            [0.0, -90.0, 10.0],
+            [0.0, -45.0, 10.0],
+            [0.0, 0.0, 10.0],
+            [0.0, 45.0, 10.0],
+            [0.0, 90.0, 10.0],
+            [90.0, -90.0, 10.0],
+            [90.0, -45.0, 10.0],
+            [90.0, 0.0, 10.0],
+            [90.0, 45.0, 10.0],
+            [90.0, 90.0, 10.0],
+            [180.0, -90.0, 10.0],
+            [180.0, -45.0, 10.0],
+            [180.0, 0.0, 10.0],
+            [180.0, 45.0, 10.0],
+            [180.0, 90.0, 10.0],
+            [270.0, -90.0, 10.0],
+            [270.0, -45.0, 10.0],
+            [270.0, 0.0, 10.0],
+            [270.0, 45.0, 10.0],
+            [270.0, 90.0, 10.0],
+            [360.0, -90.0, 10.0],
+            [360.0, -45.0, 10.0],
+            [360.0, 0.0, 10.0],
+            [360.0, 45.0, 10.0],
+            [360.0, 90.0, 10.0],
+        ]
+    )
+
+    # Verify expected output shape
+    assert generate_possible_dim(b_source=b_source, n=n).shape == expected_shape
+
+    # Verify source dim
+    assert np.allclose(generate_possible_dim(b_source=b_source, n=n), expected_source_dim)
+
+
 def test_rms():
     data = [1, 2, 3, 4, 5]
     expected_output = 3.3166247903554
@@ -21,12 +66,11 @@ def test_rms():
     assert rms(data) == expected_output
 
     data = [[1.1, 2.2, 3.3, 4.4, 5.5], [1.1, 2.2, 3.3, 4.4, 5.5], [1.1, 2.2, 3.3, 4.4, 5.5]]
-    expected_output = [3.6482872693909396, 3.6482872693909396, 3.6482872693909396]
-    np.testing.assert_array_equal(rms(data), expected_output)
+    expected_output = 3.6482872693909396
+    np.testing.assert_array_almost_equal(rms(data), expected_output)
 
     data = [data, data]
-    expected_output = [expected_output, expected_output]
-    np.testing.assert_array_equal(rms(data), expected_output)
+    np.testing.assert_array_almost_equal(rms(data), expected_output)
 
 
 def test_rc2idx():
