@@ -1,17 +1,50 @@
+"""
+This module, utils.py, provides a collection of utility functions for working with magnetic resonance spectroscopy data, file handling, and data manipulation. The functions in this module can be used in conjunction with other modules in the project to perform data analysis, visualization, and fitting tasks.
+
+The module includes functions for:
+
+    Converting between different coordinate systems and representations (e.g., Cartesian and spherical coordinates, linear and row-column indexing).
+    Calculating root mean square, normalizing data, and generating dec/inc combinations for magnetic fields.
+    Fitting two-dimensional polynomials, creating parameter arrays for QDMpy simulations, and running Monte Carlo simulations for different field configurations.
+    Loading and saving data in various formats, such as CSV, JPG, and MATLAB files.
+    Checking for the presence of specific file types in a list of files, and loading image data from a list of files in a specified folder.
+
+Example usage:
+
+``` python
+  import numpy as np
+  from utils import polyfit2d, loadmat, double_norm
+
+  # Load data from a MATLAB file
+  data = loadmat("path/to/matlab_file.mat")
+
+  # Normalize the data along a specific axis
+  normalized_data = double_norm(data, axis=1)
+
+  # Perform a 2D polynomial fit
+  x = np.linspace(0, 1, 100)
+  y = np.linspace(0, 1, 100)
+  z = np.random.rand(100, 100)
+  solution, res, rank, s = polyfit2d(x, y, z, kx=3, ky=3)
+```
+
+The functions in this module are designed to be easily integrated into larger data processing pipelines, allowing for streamlined and efficient data analysis workflows.
+"""
+
 import logging
 import os
 import sys
-from typing import Any, Optional, Sequence, Tuple, Union, List
+from itertools import product
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import mat73
 import matplotlib.image as mpimg
 import numpy as np
 import scipy.io
+from numba import float64, guvectorize
 from numpy.typing import ArrayLike
-from numba import guvectorize, float64
-
 from pypole.convert import dim2xyz, xyz2dim
-
 from QDMpy._core.convert import b2shift, project
 from QDMpy._core.models import esr15n
 
@@ -22,6 +55,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 LOG = logging.getLogger(__name__)
 
 MILLNAMES = ["n", "μ", "m", "", " K", " M", " B", " T"]
+
+
+ZFS = 2.87
 
 
 def human_readable_number(n: float, sign: int = 1) -> str:
@@ -165,11 +201,6 @@ def polyfit2d(
     return solution, res, rank, s
 
 
-from itertools import product
-
-ZFS = 2.87
-
-
 def generate_parameter(
     projected_shifts: np.ndarray, width: float, contrast: float
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -257,7 +288,8 @@ def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
 
 
 def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
-    """Generates a set of dec/inc combinations for a given source field.
+    """
+    Generates a set of dec/inc combinations for a given source field.
 
     Args:
         b_source (float): The source field magnitude in microTesla.
@@ -265,80 +297,93 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
 
     Returns:
         np.ndarray: The generated dec/inc combinations.
+
+    Example:
+        >>> b_source = 10.0
+        >>> n = 5
+        >>> possible_dim = generate_possible_dim(b_source, n)
     """
 
     dec = np.linspace(0, 360, n)
     inc = np.linspace(-90, 90, n)
-    di = np.array(list(product(dec, inc)))
+    di = np.array([[d, i] for d in dec for i in inc])
     source_dim = np.stack([di[:, 0], di[:, 1], np.ones(di.shape[0]) * b_source])
 
     return source_dim.T
 
 
-def rms(data):
-    """Calculate the root mean square of a data set.
+def rms(data: np.ndarray, axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """
+    Calculate the root mean square (RMS) of a data set.
 
     Args:
-      data: data set
+        data (np.ndarray): The data set as a NumPy array.
+        axis (Optional[int]): The axis along which to compute the RMS. If None (default),
+            the RMS is computed over the entire array.
 
     Returns:
-      root mean square
+        Union[float, np.ndarray]: The calculated root mean square value(s).
 
+    Example:
+        >>> data = np.array([[1, 2, 3], [4, 5, 6]])
+        >>> rms_value = rms(data, axis=0)
     """
-    return np.sqrt(np.mean(np.square(data)))
+
+    return np.sqrt(np.mean(np.square(data), axis=axis))
 
 
-def has_csv(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> bool:
+def has_csv(lst: Sequence[Union[str, bytes, PathLike]]) -> bool:
     """Checks if a list of files contains a csv file.
 
     Args:
-      lst: list of str
-      lst: list:
+      lst: list of file paths
 
     Returns:
-      bool
+      bool: True if a CSV file is found, False otherwise
 
     """
-    return any(".csv" in str(s) for s in lst)
+    return any(Path(path).suffix == ".csv" for path in lst)
 
 
-def get_image_file(lst: Sequence[Union[str, bytes, os.PathLike[Any]]]) -> str:
+def get_image_file(lst: Sequence[Union[str, bytes, PathLike]]) -> str:
     """Returns the first image file in the list.
 
     Args:
-      lst: list of str
-    list of files to load the image from
-      lst: list:
+      lst: list of file paths
 
     Returns:
-      name of the image file
+      str: name of the image file
 
     """
     if has_csv(lst):
-        lst = [s for s in lst if ".csv" in str(s)]
+        image_files = [path for path in lst if Path(path).suffix == ".csv"]
     else:
-        lst = [s for s in lst if ".jpg" in str(s)]
-    return str(lst[0])
+        image_files = [path for path in lst if Path(path).suffix == ".jpg"]
+
+    return str(image_files[0])
 
 
 def get_image(
-    folder: Union[str, bytes, os.PathLike],
-    lst: Sequence[Union[str, bytes, os.PathLike]],
+    folder: Union[str, bytes, PathLike],
+    lst: Sequence[Union[str, bytes, PathLike]],
 ) -> np.ndarray:
     """Loads an image from a list of files.
 
     Args:
         folder: folder of the image
         lst: list of files to load the image from
-    Returns: loaded image from either csv or jpg file if csv is not available
+
+    Returns:
+        np.ndarray: loaded image from either csv or jpg file if csv is not available
 
     """
-    folder = str(folder)
+    folder = Path(folder)
+    image_file = folder / get_image_file(lst)
 
-    if has_csv(lst):
-        img = np.loadtxt(os.path.join(folder, get_image_file(lst)))
+    if image_file.suffix == ".csv":
+        img = np.loadtxt(image_file)
     else:
-        img = mpimg.imread(os.path.join(folder, get_image_file(lst)))
+        img = mpimg.imread(image_file)
     return np.array(img)
 
 
@@ -346,48 +391,29 @@ def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np
     """Normalizes data from 0 to 1.
 
     Args:
-      data: np.array
-    data to normalize
-      axis: int
-    axis to normalize
-      data: np.ndarray:
-      axis: Optional[Union[int:
-      None]]:  (Default value = None)
+        data: np.ndarray, data to normalize
+        axis: Optional[Union[int, None]], axis to normalize (Default value = None)
 
     Returns:
-      np.array
-      normalized data
+        np.ndarray: normalized data
 
     """
-    mn = np.expand_dims(np.min(data, axis=axis), data.ndim - 1)
-    data -= mn
-    mx = np.expand_dims(np.max(data, axis=axis), data.ndim - 1)
-    data /= mx
-    return data
+    data_min = np.min(data, axis=axis, keepdims=True)
+    data_max = np.max(data, axis=axis, keepdims=True)
+    return (data - data_min) / (data_max - data_min)
 
 
-def loadmat(path):
-    """Loads a Matlab file using the correct function (i.e. scipy.io.loadmat or mat73.loadmat)
-    and returns the raw data.
+def loadmat(path: Union[str, bytes, os.PathLike]) -> Dict[str, Any]:
+    """Loads a MATLAB file using the appropriate function (i.e., scipy.io.loadmat or mat73.loadmat) and returns the raw data.
 
-        Args:
-            data_folder:
-            mfile:
+    Args:
+        path: Union[str, bytes, os.PathLike], path to the MATLAB file
 
-        Returns:
-            raw data
+    Returns:
+        Dict[str, Any]: raw data from the MATLAB file as a dictionary with variable names as keys
     """
     try:
         raw_data = scipy.io.loadmat(path)
     except NotImplementedError:
         raw_data = mat73.loadmat(path)
     return raw_data
-
-
-def main() -> None:
-    """Main function."""
-    print(human_readable_number(0.001, 10))
-
-
-if __name__ == "__main__":
-    main()
