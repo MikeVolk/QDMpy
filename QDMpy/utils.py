@@ -53,20 +53,26 @@ def human_readable_number(n: float, sign: int = 1) -> str:
 
 
 def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarray]:
-    """Convert an index to a yx coordinate of the reference.
+    """
+    Convert a 1D index to 2D row and column coordinates based on the given array shape.
 
     Args:
-      idx: int or numpy.np.ndarray [idx]
-      shape: shape of the array
-      idx: Union[int:
-      List[int]:
-      np.ndarray]:
-      shape: Tuple[int:
-      int]:
+        idx (Union[int, List[int], np.ndarray]): An integer or an array-like of integers representing the 1D index/indices.
+        shape (Tuple[int, int]): A tuple representing the shape of the 2D array (rows, columns).
 
     Returns:
-      numpy.np.ndarray [[y], [x]] ([row][column])
+        Tuple[np.ndarray, np.ndarray]: A tuple of two numpy arrays containing the row and column coordinates, respectively.
 
+    Example:
+        >>> idx = 6
+        >>> shape = (3, 3)
+        >>> idx2rc(idx, shape)
+        (array([2]), array([0]))
+
+        >>> idx = [6, 7, 8]
+        >>> shape = (3, 3)
+        >>> idx2rc(idx, shape)
+        (array([2, 2, 2]), array([0, 1, 2]))
     """
     idx = np.atleast_1d(idx)
     idx = np.array(idx).astype(int)
@@ -75,14 +81,25 @@ def idx2rc(idx: ArrayLike, shape: Tuple[int, ...]) -> Tuple[np.ndarray, np.ndarr
 
 def rc2idx(row_col: List[Tuple[int, int]], shape: tuple) -> np.ndarray:
     """
-    Converts row-column indexing into linear indexing.
+    Converts row and column coordinates to a linear index based on the given array shape.
 
     Args:
-      row_col: List of List of ints, [[row, col], [row, col], ...] rows and columns to be converted to linear index
-      shape: tuple, (int, int), shape of array being indexed
+        row_col (List[Tuple[int, int]]): A list of tuples representing row and column coordinates to be converted to linear indices.
+        shape (Tuple[int, int]): A tuple representing the shape of the 2D array (rows, columns).
 
     Returns:
-      np.ndarray, returns array of linear index
+        np.ndarray: A numpy array containing the linear indices corresponding to the row and column coordinates.
+
+    Example:
+        >>> row_col = [(2, 0)]
+        >>> shape = (3, 3)
+        >>> rc2idx(row_col, shape)
+        array([6])
+
+        >>> row_col = [(2, 0), (2, 1), (2, 2)]
+        >>> shape = (3, 3)
+        >>> rc2idx(row_col, shape)
+        array([6, 7, 8])
     """
     row_col_arr = np.array(row_col).astype(int)
     return np.ravel_multi_index(row_col_arr.T, shape)
@@ -96,28 +113,36 @@ def polyfit2d(
     ky: Optional[int] = 3,
     order: Optional[Union[None, int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Two dimensional polynomial fitting by least squares.
+    """
+    Two-dimensional polynomial fitting by least squares.
 
-    Fits the functional form f(x,y) = z.
+    Fits the functional form f(x, y) = z.
 
     Args:
-      x: np.ndarray: x values for the fit
-      y: np.ndarray:  y values for the fit
-      z: np.ndarray:  z values for the fit
-      kx: Optional[int]: Polynomial order in x. (Default value = 3)
-      ky: Optional[int]: Polynomial order in y. (Default value = 3)
-      order: If int, coefficients up to a maximum of kx+ky <= order are considered. (Default value = None)
+        x (np.ndarray): X values for the fit.
+        y (np.ndarray): Y values for the fit.
+        z (np.ndarray): Z values for the fit.
+        kx (Optional[int]): Polynomial order in x. Default is 3.
+        ky (Optional[int]): Polynomial order in y. Default is 3.
+        order (Optional[Union[None, int]]): If int, coefficients up to a maximum of kx + ky <= order are considered. Default is None.
 
-    Returns: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] solution, residuals, rank, singular values
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Solution, residuals, rank, singular values.
 
     See: https://stackoverflow.com/questions/33964913/equivalent-of-polyfit-for-a-2d-polynomial-in-python
 
     See also: np.linalg.leastsq
 
-    Notes: Resulting fit can be plotted with:
-    >>> np.polynomial.polynomial.polygrid2d(x, y, solution.reshape((kx+1, ky+1)))
-    """
+    Notes:
+        Resulting fit can be plotted with:
+        >>> np.polynomial.polynomial.polygrid2d(x, y, solution.reshape((kx + 1, ky + 1)))
 
+    Example:
+        >>> x = np.array([0, 1, 2])
+        >>> y = np.array([0, 1, 2])
+        >>> z = np.array([[0, 1, 4], [1, 2, 5], [4, 5, 8]])
+        >>> solution, res, rank, s = polyfit2d(x, y, z)
+    """
     # grid coords
     x, y = np.meshgrid(x, y)
     # coefficient array, up to x^kx, y^ky
@@ -149,14 +174,21 @@ def generate_parameter(
     projected_shifts: np.ndarray, width: float, contrast: float
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Generate the parameter (low/high frange) for the QDMpy simulation.
+    Generate the parameters (low/high frequency range) for the QDMpy simulation.
+
     Args:
-        projected_shifts: shift of the peaks in GHz
-        width: width of the peaks in GHz
-        contrast: contrast of the peaks
+        projected_shifts (np.ndarray): Shifts of the peaks in GHz.
+        width (float): Width of the peaks in GHz.
+        contrast (float): Contrast of the peaks.
 
     Returns:
-        parameter: parameter for the QDMpy simulation
+        Tuple[np.ndarray, np.ndarray]: Left resonance and right resonance parameters for the QDMpy simulation.
+
+    Example:
+        >>> projected_shifts = np.array([0.1, 0.2, 0.3])
+        >>> width = 0.05
+        >>> contrast = 0.8
+        >>> left_resonance, right_resonance = generate_parameter(projected_shifts, width, contrast)
     """
     left_resonance = np.stack(
         [
@@ -182,14 +214,31 @@ def generate_parameter(
 
 
 def monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast):
-    """Calculates the models for all dec/inc combinations of the current applied field.
+    """
+    Calculates the models for all dec/inc combinations of the current applied field.
 
     This function is meant to calculate the "safe" field margins for the current applied field.
 
+    Args:
+        freqs (np.ndarray): Frequency values for the models.
+        bias_xyz (np.ndarray): Bias field in XYZ coordinates.
+        b_source (float): Source field magnitude.
+        nv_direction (np.ndarray): NV direction as unit vectors.
+        width (float): Width of the peaks in GHz.
+        contrast (float): Contrast of the peaks.
+
     Returns:
         np.ndarray: The calculated models for all dec/inc combinations for NV axes > 0 of the current applied field.
-    """
 
+    Example:
+        >>> freqs = np.linspace(2.8, 3.3, 1000)
+        >>> bias_xyz = np.array([0, 0, 0])
+        >>> b_source = 10.0
+        >>> nv_direction = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        >>> width = 0.05
+        >>> contrast = 0.8
+        >>> models = monte_carlo_models(freqs, bias_xyz, b_source, nv_direction, width, contrast)
+    """
     # generate the dec/inc combinations at current source field
     source_dim = generate_possible_dim(b_source=b_source, n=10)
     source_xyz = dim2xyz(source_dim)
@@ -228,7 +277,7 @@ def generate_possible_dim(b_source: float, n: int = 10) -> np.ndarray:
 
 def rms(data):
     """Calculate the root mean square of a data set.
-    
+
     Args:
       data: data set
 
@@ -337,7 +386,7 @@ def loadmat(path):
 
 def main() -> None:
     """Main function."""
-    print(millify(0.001, 10))
+    print(human_readable_number(0.001, 10))
 
 
 if __name__ == "__main__":
