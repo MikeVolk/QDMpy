@@ -41,8 +41,8 @@ import os
 import sys
 from itertools import product
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
-
+from typing import Any, List, Optional, Sequence, Tuple, Union, Dict
+from os import PathLike
 import mat73
 import matplotlib.image as mpimg
 import numpy as np
@@ -425,7 +425,7 @@ def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np
 
 def loadmat(path: Union[str, bytes, os.PathLike]) -> Dict[str, Any]:
     """Loads a MATLAB file using the appropriate function (i.e.,
-    """scipy.io.loadmat or mat73.loadmat) and returns the raw data.
+    scipy.io.loadmat or mat73.loadmat) and returns the raw data.
 
     Args:
         path: Union[str, bytes, os.PathLike], path to the MATLAB file
