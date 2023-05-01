@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from copy import deepcopy
-from typing import Any, Optional, Sequence, Tuple, Union, Callable
+from typing import Any, Optional, Sequence, Tuple, Union, Callable, List
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -74,15 +74,10 @@ class ODMR:
 
         self._norm_method = QDMpy.SETTINGS["odmr"]["norm_method"]
 
-        self._edit_stack = [
-            self.reset_data,
-            self.normalize_data,
-            None,  # placeholder for binning
-            None,  # placeholder for outlier removal
-            None,  # placeholder for global correction
-        ]
-
-        self._apply_edit_stack()
+        # data processing
+        self._data_edited = None
+        self.data_pipeline = DataPipeline()
+        self.data_pipeline.add_processor(NormalizationProcessor(self._norm_method))
 
         self.imported_files_list: List[str] = kwargs.pop("imported_files", [])
         self._bin_factor = 1
@@ -95,6 +90,10 @@ class ODMR:
         self.is_normalized = False
         self.is_cropped = False
         self.is_fcropped = False
+
+    def process_data(self):
+        self._data_edited = self.data_pipeline.process(self._raw_data)
+        return self._data_edited
 
     def __repr__(self) -> str:
         """
@@ -446,76 +445,6 @@ class ODMR:
 
         return np.stack((img_stack1, img_stack2), axis=0)
 
-    @classmethod
-    def get_norm_factors(cls, data: ArrayLike, method: str = "max", **kwargs) -> np.ndarray:
-        """
-        Return the normalization factors for the data.
-
-        Args:
-            data (ArrayLike): The data to normalize. This should be a numpy
-            array or
-                other array-like object with a shape of (n_pol, n_frange,
-                n_pixels, n_freqs).
-            method (str): The normalization method to use. Supported methods
-            are:
-                - "max" (default): Normalize by the maximum value of each pixel
-                  spectrum
-                - "mean": Normalize by the mean value of each pixel spectrum
-                - "std": Normalize by the standard deviation of each pixel
-                  spectrum
-                - "mad": Normalize by the median absolute deviation of each
-                  pixel spectrum
-                - "l2": Normalize by the L2-norm of each pixel spectrum
-
-        Returns:
-            np.ndarray: A 1D array of normalization factors with shape
-            (n_pixels,).
-
-        Raises:
-            NotImplementedError: if the method is not implemented.
-
-        Examples:
-            >>> data = np.random.rand(2, 2, 100, 50)
-            >>> norm_factors = ODMR.get_norm_factors(data, method="max")
-        """
-
-        # Determine the normalization factors based on the selected method
-        if method == "max":
-            factors = np.max(data, axis=-1, keepdims=True)
-            cls.LOG.debug(
-                f"Determining normalization factor from maximum value of each pixel spectrum. "
-                f"Shape of factors: {factors.shape}"
-            )
-        elif method == "mean":
-            factors = np.mean(data, axis=-1, keepdims=True)
-            cls.LOG.debug(
-                f"Determining normalization factor from mean value of each pixel spectrum. "
-                f"Shape of factors: {factors.shape}"
-            )
-        elif method == "std":
-            factors = np.std(data, axis=-1, keepdims=True)
-            cls.LOG.debug(
-                f"Determining normalization factor from standard deviation of each pixel spectrum. "
-                f"Shape of factors: {factors.shape}"
-            )
-        elif method == "mad":
-            med = np.median(data, axis=-1, keepdims=True)
-            factors = np.median(np.abs(data - med), axis=-1, keepdims=True)
-            cls.LOG.debug(
-                f"Determining normalization factor from median absolute deviation of each pixel spectrum. "
-                f"Shape of factors: {factors.shape}"
-            )
-        elif method == "l2":
-            factors = np.linalg.norm(data, axis=-1, keepdims=True)
-            cls.LOG.debug(
-                f"Determining normalization factor from L2-norm of each pixel spectrum. "
-                f"Shape of factors: {factors.shape}"
-            )
-        else:
-            raise NotImplementedError(f'Method "{method}" not implemented.')
-
-        return factors
-
     @property
     def data_shape(self) -> np.ndarray:
         """
@@ -645,27 +574,6 @@ class ODMR:
         """
         return np.mean(self.raw_contrast)
 
-    def _mean_baseline(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Calculate the mean baseline of the data.
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the
-            mean baselines of the left side, right side, and the overall mean
-            baseline.
-        """
-        # Calculate the mean baseline for the left side of the data
-        baseline_left_mean = np.mean(self.mean_odmr[:, :, :5], axis=-1)
-        # Calculate the mean baseline for the right side of the data
-        baseline_right_mean = np.mean(self.mean_odmr[:, :, -5:], axis=-1)
-
-        # Calculate the overall mean baseline by averaging the left and right
-        # baselines
-        baseline_mean = np.concatenate(
-            [baseline_left_mean[..., np.newaxis], baseline_right_mean[..., np.newaxis]], axis=-1
-        ).mean(axis=-1)
-        return baseline_left_mean, baseline_right_mean, baseline_mean
-
     @property
     def bin_factor(self) -> int:
         """
@@ -677,21 +585,7 @@ class ODMR:
         """
         return self._bin_factor * self._pre_bin_factor
 
-    def _apply_edit_stack(self, **kwargs: Any) -> None:
-        """
-        Apply the edit stack to the data, applying each edit function in the
-        stack.
-
-        Args:
-            **kwargs: Keyword arguments to be passed to the edit functions.
-
-        Returns:
-            None
-        """
-        self.LOG.debug("Applying edit stack")
-        for edit_func in self._edit_stack:
-            if edit_func is not None:
-                edit_func(**kwargs)  # type: ignore[operator]
+    # DATA EDITING METHODS
 
     def reset_data(self, **kwargs: Any) -> None:
         """
@@ -712,53 +606,6 @@ class ODMR:
         self.is_gf_corrected = False
         self.is_cropped = False
         self.is_fcropped = False
-
-    def normalize_data(self, method: Union[str, None] = None, **kwargs: Any) -> None:
-        """
-        Normalize the data using the specified method or the instance's
-        normalization method.
-
-        Args:
-            method (Union[str, None], optional): The normalization method to
-            use. If None, the
-                instance's normalization method will be used. Default is None.
-            **kwargs: Keyword arguments to be passed to the normalization
-            function.
-
-        Returns:
-            None
-        """
-        if method is None:
-            method = self._norm_method
-        self._edit_stack[1] = self._normalize_data
-        self._apply_edit_stack(method=method)
-
-    def _normalize_data(self, method: str = "max", **kwargs: Any) -> None:
-        """
-        Normalize the data using the specified method or provided factors.
-
-        Args:
-            method (str, optional): The normalization method to use. Supported
-            methods are "max"
-                (default), "mean", "std", "mad", and "l2".
-            **kwargs: Additional arguments to pass to the normalization method.
-            If a "factors"
-                key is present, the method will use the specified factors
-                instead of calculating new ones using the specified method.
-
-        Returns:
-            None
-        """
-        if "factors" in kwargs:
-            factors = kwargs["factors"]
-        else:
-            factors = self.get_norm_factors(self.data, method=method, **kwargs)
-
-        self._norm_factors = factors
-        self.LOG.debug(f"Normalizing data with method: {method}")
-        self._norm_method = method
-        self.is_normalized = True
-        self._data_edited /= self._norm_factors
 
     def apply_outlier_mask(
         self, outlier_mask: Union[np.ndarray, None] = None, **kwargs: Any
@@ -1015,6 +862,224 @@ class ODMR:
                 # , ylim=(0, 1.5))
                 ax[p, f].set(ylabel="ODMR contrast", xlabel="Frequency [GHz]")
             plt.tight_layout()
+
+
+from abc import ABC, abstractmethod
+
+
+class DataProcessor(ABC):
+    def __init__(self) -> None:
+        self.LOG = logging.getLogger("DataProcessor")
+
+    @abstractmethod
+    def process(self, data: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("process method should be implemented in subclasses")
+
+    @abstractmethod
+    def reverse(self, data: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("reverse method should be implemented in subclasses")
+
+
+class NormalizationProcessor(DataProcessor):
+    def __repr__(self):
+        return f"NormalizationProcessor(method={self.method})"
+
+    def __init__(self, method: str = "max"):
+        """
+        Initialize the normalization processor.
+
+        Args:
+            method (str): The normalization method to use. Default is "max".
+        """
+        self.method = method
+        self.norm_factors = None
+        self.LOG = logging.getLogger("NormalizationProcessor")
+
+    def process(self, data: np.ndarray) -> np.ndarray:
+        """
+        Normalize the input data using the specified method.
+
+        Args:
+            data (np.ndarray): The input data to normalize.
+
+        Returns:
+            np.ndarray: The normalized data.
+        """
+        self.LOG.info(f"Normalizing data with method {self.method}")
+        if self.norm_factors is None:
+            self.norm_factors = utils.get_norm_factors(data, method=self.method)
+        return data / self.norm_factors
+
+    def reverse(self, data: np.ndarray) -> np.ndarray:
+        """
+        Reverse the normalization of the input data.
+
+        Args:
+            data (np.ndarray): The input data to reverse normalization.
+
+        Returns:
+            np.ndarray: The reversed data.
+        """
+        self.LOG.info(f"Reversing normalization with method {self.method}")
+        if self.norm_factors is None:
+            return data
+        return data * self.norm_factors
+
+
+class GlobalFluorescenceProcessor(DataProcessor):
+    def __repr__(self):
+        return f"GlobalFluorescenceProcessor(gf_factor = {self.gf_factor})"
+
+    def __init__(self, gf_factor: float = 0.0):
+        """
+        Initialize the global fluorescence processor.
+
+        Args:
+            gf_factor (float): The global fluorescence factor. Default is 0.0.
+        """
+        self.gf_factor = gf_factor
+        self.gf_correction = None
+        self.LOG = logging.getLogger("GlobalFluorescenceProcessor")
+
+    def process(self, data: np.ndarray) -> np.ndarray:
+        """
+        Apply global fluorescence correction to the input data.
+
+        Args:
+            data (np.ndarray): The input data to apply global fluorescence correction.
+
+        Returns:
+            np.ndarray: The corrected data.
+        """
+        self.LOG.info(f"Applying global_fluorescence correction of {self.gf_factor}")
+
+        self.gf_correction = utils.calc_gf_correction(data, gf_factor=self.gf_factor)
+        return data - self.gf_correction
+
+    def reverse(self, data: np.ndarray) -> np.ndarray:
+        """
+        Reverse the global fluorescence correction of the input data.
+
+        Args:
+            data (np.ndarray): The input data to reverse global fluorescence correction.
+
+        Returns:
+            np.ndarray: The reversed data.
+        """
+        self.LOG.info(f"Reversing global_fluorescence correction of {self.gf_factor}")
+
+        return data + self.gf_correction
+
+
+class DataPipeline:
+    LOG = logging.getLogger(f"QDMpy.{__name__}")
+
+    def __init__(self):
+        """
+        Initialize an empty data processing pipeline.
+        """
+        self.pipeline = []
+
+    @property
+    def processor_types(self) -> List[type]:
+        """
+        Return a list of processor types present in the pipeline.
+
+        Returns:
+            List[type]: A list of processor types.
+        """
+        return [type(processor) for processor in self.pipeline]
+
+    def add_processor(self, processor: DataProcessor) -> None:
+        """
+        Add a processor to the pipeline.
+
+        Args:
+            processor (DataProcessor): The processor to add to the pipeline.
+        """
+        self.pipeline.append(processor)
+
+    def remove_processor(self, processor: DataProcessor, data: np.ndarray) -> np.ndarray:
+        """
+        Remove a processor from the pipeline and reverse its effect on the data.
+
+        Args:
+            processor (DataProcessor): The processor to remove from the pipeline.
+            data (np.ndarray): The data to reverse the processing on.
+
+        Returns:
+            np.ndarray: The data with the processing of the removed processor reversed.
+        """
+        idx = self.pipeline.index(processor)
+
+        # Reverse the processing in reverse order from the pipeline up to the processor to be removed
+        for processor in self.pipeline[idx:][::-1]:
+            data = processor.reverse(data)
+
+        self.LOG.info(f"Removing processor {processor} from pipeline")
+        self.pipeline.remove(processor)
+
+        # Apply the processing in forward order from the processor to be removed up to the end of the pipeline
+        for processor in self.pipeline[idx:]:
+            data = processor.process(data)
+
+        return data
+
+    def replace_processor(self, processor: DataProcessor, data: np.ndarray) -> np.ndarray:
+        """
+        Replace a processor in the pipeline with a new processor of the same type.
+
+        Args:
+            processor (DataProcessor): The processor to be replaced in the pipeline.
+            data (np.ndarray): The data to reverse the processing on.
+
+        Returns:
+            np.ndarray: The data with the processing of the replaced processor.
+        """
+        idx = self.processor_types.index(type(processor))
+
+        # Reverse the processing in reverse order from the pipeline up to the processor to be removed
+        for processor in self.pipeline[idx:][::-1]:
+            data = processor.reverse(data)
+
+        self.LOG.info(f"Replacing processor {self.pipeline[idx]} with {processor} in pipeline")
+        self.pipeline[idx] = processor
+
+        # Apply the processing in forward order from the processor to be removed up to the end of the pipeline
+        for processor in self.pipeline[idx:]:
+            data = processor.process(data)
+
+        return data
+
+    def process(self, data: np.ndarray) -> np.ndarray:
+        """
+        Process the input data through the pipeline.
+
+        Args:
+            data (np.ndarray): The input data to process.
+
+        Returns:
+            np.ndarray: The processed data.
+        """
+        processed_data = data.copy()
+        for processor in self.pipeline:
+            processed_data = processor.process(processed_data)
+        return processed_data
+
+    def reverse(self, data: np.ndarray) -> np.ndarray:
+        """
+        Reverse the pipeline's processing on the input data.
+
+        Args:
+            data (np.ndarray): The input data to reverse the processing on.
+
+        Returns:
+            np.ndarray: The reversed data.
+        """
+        reversed_data = data.copy()
+        for processor in reversed(self.pipeline):
+            reversed_data = processor.reverse(reversed_data)
+        return reversed_data
 
 
 def main() -> None:
