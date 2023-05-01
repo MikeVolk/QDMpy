@@ -407,6 +407,118 @@ def get_image(
     return np.array(img)
 
 
+# GLOBAL FLUORESCENCE FUNCTIONS
+def _mean_baseline(data) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Calculate the mean baseline of the data.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the
+        mean baselines of the left side, right side, and the overall mean
+        baseline.
+    """
+    mean_odmr = data.mean(axis=-2)
+
+    # Calculate the mean baseline for the left side of the data
+    baseline_left_mean = np.mean(mean_odmr[..., :5], axis=-1)
+    # Calculate the mean baseline for the right side of the data
+    baseline_right_mean = np.mean(mean_odmr[..., -5:], axis=-1)
+
+    # Calculate the overall mean baseline by averaging the left and right
+    # baselines
+    baseline_mean = np.mean([baseline_left_mean, baseline_right_mean], axis=-1)
+    return baseline_left_mean, baseline_right_mean, baseline_mean
+
+
+def calc_gf_correction(data, gf_factor: float) -> np.ndarray:
+    """Calculate the global fluorescence correction.
+
+    Args:
+      gf: The global fluorescence factor
+
+    Returns: The global fluorescence correction
+    """
+    mean_odmr = data.mean(axis=-2)
+
+    baseline_left_mean, baseline_right_mean, baseline_mean = _mean_baseline(data)
+    return gf_factor * (
+        mean_odmr[:, :, np.newaxis, :] - baseline_mean[:, :, np.newaxis, np.newaxis]
+    )
+
+
+# NORMALIZATION FUNCTIONS
+
+
+def get_norm_factors(data: ArrayLike, method: str = "max", **kwargs) -> np.ndarray:
+    """
+    Return the normalization factors for the data.
+
+    Args:
+        data (ArrayLike): The data to normalize. This should be a numpy
+        array or
+            other array-like object with a shape of (n_pol, n_frange,
+            n_pixels, n_freqs).
+        method (str): The normalization method to use. Supported methods
+        are:
+            - "max" (default): Normalize by the maximum value of each pixel
+              spectrum
+            - "mean": Normalize by the mean value of each pixel spectrum
+            - "std": Normalize by the standard deviation of each pixel
+              spectrum
+            - "mad": Normalize by the median absolute deviation of each
+              pixel spectrum
+            - "l2": Normalize by the L2-norm of each pixel spectrum
+
+    Returns:
+        np.ndarray: A 1D array of normalization factors with shape
+        (n_pixels,).
+
+    Raises:
+        NotImplementedError: if the method is not implemented.
+
+    Examples:
+        >>> data = np.random.rand(2, 2, 100, 50)
+        >>> norm_factors = ODMR.get_norm_factors(data, method="max")
+    """
+
+    # Determine the normalization factors based on the selected method
+    if method == "max":
+        factors = np.max(data, axis=-1, keepdims=True)
+        LOG.debug(
+            f"Determining normalization factor from maximum value of each pixel spectrum. "
+            f"Shape of factors: {factors.shape}"
+        )
+    elif method == "mean":
+        factors = np.mean(data, axis=-1, keepdims=True)
+        LOG.debug(
+            f"Determining normalization factor from mean value of each pixel spectrum. "
+            f"Shape of factors: {factors.shape}"
+        )
+    elif method == "std":
+        factors = np.std(data, axis=-1, keepdims=True)
+        LOG.debug(
+            f"Determining normalization factor from standard deviation of each pixel spectrum. "
+            f"Shape of factors: {factors.shape}"
+        )
+    elif method == "mad":
+        med = np.median(data, axis=-1, keepdims=True)
+        factors = np.median(np.abs(data - med), axis=-1, keepdims=True) / 0.6745
+        LOG.debug(
+            f"Determining normalization factor from median absolute deviation of each pixel spectrum. "
+            f"Shape of factors: {factors.shape}"
+        )
+    elif method == "l2":
+        factors = np.linalg.norm(data, axis=-1, keepdims=True)
+        LOG.debug(
+            f"Determining normalization factor from L2-norm of each pixel spectrum. "
+            f"Shape of factors: {factors.shape}"
+        )
+    else:
+        raise NotImplementedError(f'Method "{method}" not implemented.')
+
+    return factors
+
+
 def double_norm(data: np.ndarray, axis: Optional[Union[int, None]] = None) -> np.ndarray:
     """Normalizes data from 0 to 1.
 
